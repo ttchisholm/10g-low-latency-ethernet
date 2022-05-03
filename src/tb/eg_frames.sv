@@ -1,6 +1,6 @@
 package eg_frames;
 
-logic [31:0] eg_tx_data[$] = {
+logic [0:31] eg_tx_data[$] = {
 32'h07070707,
 32'h07070707,
 32'hfb555555,
@@ -24,7 +24,7 @@ logic [31:0] eg_tx_data[$] = {
 32'hfd070707,
 32'h07070707};
 
-logic [3:0] eg_tx_ctl[$] = {
+logic [0:3] eg_tx_ctl[$] = {
     4'b1111,
     4'b1111,
     4'b1000,

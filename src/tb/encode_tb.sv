@@ -7,17 +7,17 @@ logic i_init_done;
 
 logic i_txc;
 logic i_txc2;
-logic[0:31] i_txd;
-logic[0:3] i_txctl;
+logic[31:0] i_txd;
+logic[3:0] i_txctl;
 wire i_tx_pause;
-wire [0:65] o_txd;
+wire [65:0] o_txd;
 
 logic i_rxc;
 logic i_rxc2; //rxc/2
-logic [0:65] i_rxd;
+logic [65:0] i_rxd;
 logic i_rx_valid;
-wire [0:31] o_rxd;
-wire [0:3] o_rxctl;
+wire [31:0] o_rxd;
+wire [3:0] o_rxctl;
 wire o_rx_valid;
 
 

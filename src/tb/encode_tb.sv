@@ -10,7 +10,8 @@ logic i_txc2;
 logic[31:0] i_txd;
 logic[3:0] i_txctl;
 wire i_tx_pause;
-wire [65:0] o_txd;
+wire [63:0] o_txd;
+wire [1:0] o_tx_header;
 
 logic i_rxc;
 logic i_rxc2; //rxc/2

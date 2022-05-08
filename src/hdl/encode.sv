@@ -13,23 +13,9 @@ module encode_6466b #() (
     output wire i_tx_pause, 
 
     // TX Interface out
-    output wire [65:0] o_txd,
-
-    // Rx interface from pcs
-    input wire i_rxc,
-    input wire i_rxc2, //rxc/2
-    input wire [65:0] i_rxd,
-    input wire i_rx_valid,
-
-    //Rx interface out
-    output logic [31:0] o_rxd,
-    output logic [3:0] o_rxctl,
-    output logic o_rx_valid
+    output wire [63:0] o_txd,
+    output wire [1:0] o_tx_header
 );
-
-
-
-
     
     //*********** Transmit **********//
 
@@ -55,15 +41,11 @@ module encode_6466b #() (
     // Tx encoding
     wire [7:0] tx_type;
     logic [63:0] enc_tx_data;
-    wire [1:0] tx_header;
     wire [63:0] tx_ctl_mask, tx_ctl_mask_data;
 
-    assign tx_header = (internal_txctl == '0) ? SYNC_DATA : SYNC_CTL;
-
+    assign o_tx_header = (internal_txctl == '0) ? SYNC_DATA : SYNC_CTL;
 
     // Data is transmitted lsb first, first byte is in txd[7:0]
-
-
     function logic [7:0] get_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lane);
         assert(lane < 8);
         return ictl[lane] == 1'b1 ? idata[8*lane +: 8] : RS_ERROR;
@@ -137,118 +119,11 @@ module encode_6466b #() (
                 return {idata[56:0], BT_T7};
             else
                 return {{7{RS_ERROR}}, BT_IDLE};
-            
-
         end
     endfunction
 
-
-
     assign enc_tx_data = encode_frame(internal_txd, internal_txctl);
 
-
-
-    // Set non control data to 0 for comparison of codes
-    // genvar i;
-    // generate;
-    //     for (i = 0; i < 64; i+=8) begin
-    //         assign tx_ctl_mask_data[i+7:i] = internal_txctl[i/8] ? internal_txd[i+7:i] : 8'h00;
-    //     end
-    // endgenerate
-
-    // //Construct tx data (MSB first)
-    // always_comb begin
-    //     if(internal_txctl == '0) begin
-    //         enc_tx_data = internal_txd;
-    //     end else begin
-    //         if(internal_txctl ==  8'hff && tx_ctl_mask_data == 64'h0707070707070707) enc_tx_data = 64'h1e00000000000000; // Full IDLE
-    //         else if(internal_txctl ==  8'hf8 && tx_ctl_mask_data == 64'h07070707fb000000) enc_tx_data = {40'h3300000000, internal_txd[23:0]}; // Start 1
-    //         else if(internal_txctl ==  8'h80 && tx_ctl_mask_data == 64'hfb00000000000000) enc_tx_data = {8'h78, internal_txd[55:0]}; // Start 2
-    //         else if(internal_txctl ==  8'hff && tx_ctl_mask_data == 64'hfd07070707070707) enc_tx_data = 64'h8700000000000000; //T then idle
-    //         else if(internal_txctl ==  8'h7f && tx_ctl_mask_data == 64'h00fd070707070707) enc_tx_data = {internal_txd[63:56], 56'h87000000000000}; //D, T then idle
-    //         else if(internal_txctl ==  8'h3f && tx_ctl_mask_data == 64'h0000fd0707070707) enc_tx_data = {internal_txd[63:48], 48'h870000000000}; //D, T then idle
-    //         else if(internal_txctl ==  8'h1f && tx_ctl_mask_data == 64'h000000fd07070707) enc_tx_data = {internal_txd[63:40], 40'h8700000000}; //D, T then idle
-    //         else if(internal_txctl ==  8'h0f && tx_ctl_mask_data == 64'h00000000fd070707) enc_tx_data = {internal_txd[63:32], 32'h87000000}; //D, T then idle
-    //         else if(internal_txctl ==  8'h07 && tx_ctl_mask_data == 64'h0000000000fd0707) enc_tx_data = {internal_txd[63:24], 24'h870000}; //D, T then idle
-    //         else if(internal_txctl ==  8'h03 && tx_ctl_mask_data == 64'h000000000000fd07) enc_tx_data = {internal_txd[63:16], 16'h8700}; //D, T then idle
-    //         else if(internal_txctl ==  8'h01 && tx_ctl_mask_data == 64'h00000000000000fd) enc_tx_data = {internal_txd[63: 8],  8'h87}; //D, T then idle
-    //         else enc_tx_data = 64'h1e1e1e1e1e1e1e1e; //Error // todo not correct (1e 7 bits)
-    //     end
-    // end
-
-    // Tx State Machine
-    // typedef enum logic[] { E,Z,S,D,T } tx_t;
-    // tx_t tx_state;
-
-    // function tx_t get_control_type(logic [0:1] sync, logic[0:7] data) 
-    // begin
-    //     if(sync == 2'b01) begin
-    //         return D;
-    //     else begin
-    //         case (data)
-    //             8'h1e: Z;
-    //             8'h33: S;
-    //             8'h78: S;
-    //             8'h78: T;
-    //             8'h87: T;
-    //             8'h99: T;
-    //             8'haa: T;
-    //             8'hb4: T;
-    //             8'hcc: T;
-    //             8'hd2: T;
-    //             8'he1: T;
-    //             8'hff: T;
-    //             default: begin
-    //                 return E;
-    //             end
-    //         endcase
-    //     end
-    // end
-
-    // always @(posedge i_txc) begin
-    //     if(i_reset) begin
-    //         tx_state <= E;
-    //     end else begin
-    //         case (tx_state)
-    //             E: tx_state <= (i_init_done && get_control_type(tx_header, enc_tx_data) == Z) ? Z : E;
-    //             Z: tx_state <= (get_control_type(tx_header, enc_tx_data) == Z) ? Z :
-    //                            (get_control_type(tx_header, enc_tx_data) == S) ? S : E;
-    //             S: tx_state <= (get_control_type(tx_header, enc_tx_data) == D) ? D : E;
-    //             D: tx_state <= (get_control_type(tx_header, enc_tx_data) == D) ? D :
-    //                            (get_control_type(tx_header, enc_tx_data) == T) ? T : E;
-    //             T: tx_state <= (get_control_type(tx_header, enc_tx_data) == S) ? S :
-    //                            (get_control_type(tx_header, enc_tx_data) == Z) ? Z : E;
-    //             default: begin
-    //                 tx_state <= E;
-    //             end
-    //         endcase
-    //     end
-    // end
-
-
-
-    // assign o_txd = (tx_state == E) ? {0'b10, } : 
-    //                                 {tx_header, enc_tx_data};
-
-
-
-
-    //*********** Receive **********//
-
-    // 64-bit input to 32-bit internal
-    wire [63:0] internal_rxd;
-    wire [7:0] internal_rxctl;
-    logic rx_tick = '0;
-
-    // always @(posedge i_rxc) begin
-    //     rx_tick <= rx_tick;
-    //     o_rxd <= (rx_tick) ? internal_rxd[31:0] : internal_rxd[63:32];
-    //     o_rxctl <= (rx_tick) ? internal_rxctl[31:0] : internal_rxctl[63:32];
-    // end
-
-    // Decode data
-    // if 01 header -> output data as is
-    // if 10, 
-
+    assign o_txd = (i_reset || !i_init_done) ? {{7{RS_ERROR}}, BT_IDLE} : enc_tx_data;
 
 endmodule

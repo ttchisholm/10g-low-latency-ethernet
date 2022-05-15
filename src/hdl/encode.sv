@@ -10,7 +10,9 @@ module encode_6466b #() (
     input wire i_txc2, // txc/2
     input wire[31:0] i_txd,
     input wire[3:0] i_txctl,
-    output wire i_tx_pause, 
+
+    // Input from gearbox
+    input wire i_tx_pause, 
 
     // TX Interface out
     output wire [63:0] o_txd,
@@ -30,8 +32,10 @@ module encode_6466b #() (
             delayed_i_txd <= '0;
             delayed_i_txctl <= '0;
         end else begin
-            delayed_i_txd <= i_txd;
-            delayed_i_txctl <= i_txctl;
+            if(!i_tx_pause) begin
+                delayed_i_txd <= i_txd;
+                delayed_i_txctl <= i_txctl;
+            end
         end
     end
 
@@ -54,7 +58,7 @@ module encode_6466b #() (
     function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lanes[], input logic[7:0] code);
         foreach(lanes[i]) begin
             //$display("%d", get_rs_code(idata, ictl, i));
-            if(get_rs_code(idata, ictl, i) != code) return 0;
+            if(get_rs_code(idata, ictl, lanes[i]) != code) return 0;
         end
         return 1;
     endfunction
@@ -63,13 +67,9 @@ module encode_6466b #() (
         return code == RS_OSEQ || code == RS_OSIG;
     endfunction
 
-    function logic [3:0] rs_to_cc_ocode (input logic [7:0] rs_code);
-        return rs_code == RS_OSEQ ? OC_SEQ : OC_SIG;
-    endfunction
-
     function bit is_all_lanes_data(input logic [7:0] ictl, input int lanes[]);
         foreach(lanes[i]) begin
-            if (ictl[i] == 1'b0) return 0;
+            if (ictl[lanes[i]] == 1'b0) return 0;
         end
         return 1;
     endfunction

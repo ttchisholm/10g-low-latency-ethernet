@@ -61,5 +61,30 @@ package encoder_pkg;
         RS_OSIG = 8'h5c
     } rs_code_t;
 
+    // todo can we use enum types?
+    function logic [7:0] control_to_rs_code(logic [6:0] icode);
+        case (icode)
+            CC_IDLE:    return RS_IDLE;
+            CC_LPI:     return RS_LPI;
+            CC_ERROR:   return RS_ERROR;
+            CC_RES0:    return RS_RES0;
+            CC_RES1:    return RS_RES1;
+            CC_RES2:    return RS_RES2;
+            CC_RES3:    return RS_RES3;
+            CC_RES4:    return RS_RES4;
+            CC_RES5:    return RS_RES5;
+            default: begin
+                return RS_IDLE;
+            end
+        endcase
+    endfunction
+
+    function logic [3:0] rs_to_cc_ocode (input logic [7:0] rs_code);
+        return rs_code == RS_OSEQ ? OC_SEQ : OC_SIG;
+    endfunction
+
+    function logic [7:0] cc_to_rs_ocode (input logic [3:0] cc_ocode);
+        return cc_ocode == OC_SEQ ? RS_OSEQ : RS_OSIG;
+    endfunction
 
 endpackage

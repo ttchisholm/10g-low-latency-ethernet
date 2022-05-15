@@ -9,17 +9,10 @@ logic i_txc;
 logic i_txc2;
 logic[31:0] i_txd;
 logic[3:0] i_txctl;
-wire i_tx_pause;
+logic i_tx_pause;
 wire [63:0] o_txd;
 wire [1:0] o_tx_header;
 
-logic i_rxc;
-logic i_rxc2; //rxc/2
-logic [65:0] i_rxd;
-logic i_rx_valid;
-wire [31:0] o_rxd;
-wire [3:0] o_rxctl;
-wire o_rx_valid;
 
 
 initial begin 
@@ -27,6 +20,7 @@ initial begin
     i_txc2 = '0;
     i_txd = '0;
     i_txctl = '0;
+    i_tx_pause = '0;
 
     i_reset = 1;
     i_init_done = 0;

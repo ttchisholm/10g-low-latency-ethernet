@@ -16,14 +16,16 @@ module decode_6466b #() (
     output logic o_rx_valid
 );
 
-    // Decode to RS
 
-    function void control_code_to_rs_lane(input logic [63:0] idata, input int lanes[], output logic [63:0] odata);
+    function void control_code_to_rs_lane(input logic [63:0] idata, input int lanes[8], output logic [63:0] odata);
         odata = {8{RS_ERROR}};
-        foreach(lanes[i]) begin
-            odata[8*lanes[i] +: 8] = control_to_rs_code(idata[8 + (7*lanes[i]) +: 7]); // todo check part-select
+        for( int i = 0; i < 8; i++) begin
+            if (lanes[i] == 1) begin
+                odata[8*i +: 8] = control_to_rs_code(idata[8 + (7*i) +: 7]); // todo check part-select
+            end
         end
     endfunction;
+
 
     function void decode_frame(input logic [63:0] idata, input logic [1:0] iheader,
                           output logic [63:0] odata, output logic [7:0] octl);
@@ -44,17 +46,17 @@ module decode_6466b #() (
             case (idata[7:0])
                 
                 BT_IDLE: begin
-                    control_code_to_rs_lane(idata, '{0,1,2,3,4,5,6,7}, odata);
+                    control_code_to_rs_lane(idata, '{1,1,1,1,1,1,1,1}, odata);
                     octl = '1;
                 end
                 BT_O4: begin
-                    control_code_to_rs_lane(idata, '{0,1,2,3}, odata);
+                    control_code_to_rs_lane(idata, '{1,1,1,1,0,0,0,0}, odata);
                     odata[63:40] = idata[63:40];
                     odata[39:32] = cc_to_rs_ocode(idata[39:36]);
                     octl = 8'h0F;
                 end
                 BT_S4: begin
-                    control_code_to_rs_lane(idata, '{0,1,2,3}, odata);
+                    control_code_to_rs_lane(idata, '{1,1,1,1,0,0,0,0}, odata);
                     odata[63:40] = idata[63:40];
                     odata[39:32] = RS_START;
                     octl = 8'h0F;
@@ -79,48 +81,48 @@ module decode_6466b #() (
                     octl = 8'h01;
                 end
                 BT_O0: begin
-                    control_code_to_rs_lane(idata, '{4,5,6,7}, odata);
+                    control_code_to_rs_lane(idata, '{0,0,0,0,1,1,1,1}, odata);
                     odata[31: 8] = idata[31: 8];
                     odata[ 7: 0] = cc_to_rs_ocode(idata[35:32]);
                     octl = 8'hF1;
                 end
                 BT_T0: begin
-                    control_code_to_rs_lane(idata, '{1,2,3,4,5,6,7}, odata);
+                    control_code_to_rs_lane(idata, '{0,1,1,1,1,1,1,1}, odata);
                     odata[ 7: 0] = RS_TERM;
                     octl = 8'hFF;
                 end
                 BT_T1: begin
-                    control_code_to_rs_lane(idata, '{2,3,4,5,6,7}, odata);
+                    control_code_to_rs_lane(idata, '{0,0,1,1,1,1,1,1}, odata);
                     odata[ 7: 0] = idata[15: 8];
                     odata[15: 8] = RS_TERM;
                     octl = 8'hFE;
                 end
                 BT_T2: begin
-                    control_code_to_rs_lane(idata, '{3,4,5,6,7}, odata);
+                    control_code_to_rs_lane(idata, '{0,0,0,1,1,1,1,1}, odata);
                     odata[15: 0] = idata[23: 8];
                     odata[23:16] = RS_TERM;
                     octl = 8'hFC;
                 end
                 BT_T3: begin
-                    control_code_to_rs_lane(idata, '{4,5,6,7}, odata);
+                    control_code_to_rs_lane(idata, '{0,0,0,0,1,1,1,1}, odata);
                     odata[23: 0] = idata[31: 8];
                     odata[31:24] = RS_TERM;
                     octl = 8'hF8;
                 end
                 BT_T4: begin
-                    control_code_to_rs_lane(idata, '{5,6,7}, odata);
+                    control_code_to_rs_lane(idata, '{0,0,0,0,0,1,1,1}, odata);
                     odata[31: 0] = idata[39: 8];
                     odata[39:32] = RS_TERM;
                     octl = 8'hF0;
                 end
                 BT_T5: begin
-                    control_code_to_rs_lane(idata, '{6,7}, odata);
+                    control_code_to_rs_lane(idata, '{0,0,0,0,0,0,1,1}, odata);
                     odata[39: 0] = idata[47: 8];
                     odata[47:40] = RS_TERM;
                     octl = 8'hE0;
                 end
                 BT_T6: begin
-                    control_code_to_rs_lane(idata, '{7}, odata);
+                    control_code_to_rs_lane(idata, '{0,0,0,0,0,0,0,1}, odata);
                     odata[47: 0] = idata[55: 8];
                     odata[55:48] = RS_TERM;
                     octl = 8'hC0;
@@ -139,12 +141,14 @@ module decode_6466b #() (
 
     endfunction
 
+
     logic [63:0] internal_rxd;
     logic [7:0] internal_rxctl;
 
     always_comb begin
         decode_frame(i_rxd, i_rx_header, internal_rxd, internal_rxctl);
     end
+
 
     // 64 to 32bit
     // Init done must be active on rising edge of both clocks
@@ -167,5 +171,5 @@ module decode_6466b #() (
             o_rxctl = internal_rxctl[7:4];
         end
     end
-
-endmodule
+    
+    endmodule

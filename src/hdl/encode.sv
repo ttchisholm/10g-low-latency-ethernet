@@ -55,10 +55,10 @@ module encode_6466b #() (
         return ictl[lane] == 1'b1 ? idata[8*lane +: 8] : RS_ERROR;
     endfunction
 
-    function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lanes[], input logic[7:0] code);
-        foreach(lanes[i]) begin
-            //$display("%d", get_rs_code(idata, ictl, i));
-            if(get_rs_code(idata, ictl, lanes[i]) != code) return 0;
+    function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lanes[8], input logic[7:0] code);
+        for(int i = 0; i < 8; i++) begin
+            if(lanes[i] == 1)
+                if(get_rs_code(idata, ictl, lanes[i]) != code) return 0;
         end
         return 1;
     endfunction
@@ -67,9 +67,10 @@ module encode_6466b #() (
         return code == RS_OSEQ || code == RS_OSIG;
     endfunction
 
-    function bit is_all_lanes_data(input logic [7:0] ictl, input int lanes[]);
-        foreach(lanes[i]) begin
-            if (ictl[lanes[i]] == 1'b0) return 0;
+    function bit is_all_lanes_data(input logic [7:0] ictl, input int lanes[8]);
+        for(int i = 0; i < 8; i++) begin
+            if(lanes[i] == 1)
+                if (ictl[lanes[i]] == 1'b0) return 0;
         end
         return 1;
     endfunction
@@ -78,14 +79,14 @@ module encode_6466b #() (
         if(ictl == '0) begin
             return idata;
         end else begin
-            if(get_all_rs_code(idata, ictl, '{0,1,2,3,4,5,6,7}, RS_IDLE))
+            if(get_all_rs_code(idata, ictl, '{1,1,1,1,1,1,1,1}, RS_IDLE))
                 return {{7{CC_IDLE}}, BT_IDLE};
 
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 4)) && is_all_lanes_data(ictl, '{5,6,7}))
+            else if (is_rs_ocode(get_rs_code(idata, ictl, 4)) && is_all_lanes_data(ictl, '{0,0,0,0,0,1,1,1}))
                 return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), {4{CC_IDLE}}, BT_O4};
 
-            else if (get_all_rs_code(idata, ictl, '{0,1,2,3}, RS_IDLE) && (get_rs_code(idata, ictl, 4) == RS_START) && 
-                    is_all_lanes_data(ictl, '{5,6,7}))
+            else if (get_all_rs_code(idata, ictl, '{1,1,1,1,0,0,0,0}, RS_IDLE) && (get_rs_code(idata, ictl, 4) == RS_START) && 
+                    is_all_lanes_data(ictl, '{0,0,0,0,0,1,1,1}))
                 return {idata[63:40], 4'b0, {4{CC_IDLE}}, BT_S4};
 
             else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && get_rs_code(idata, ictl, 4) == RS_START)

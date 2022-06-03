@@ -6,9 +6,8 @@ logic i_reset;
 logic i_init_done;
 
 logic i_txc;
-logic i_txc2;
-logic[31:0] i_txd;
-logic[3:0] i_txctl;
+logic[63:0] i_txd;
+logic[7:0] i_txctl;
 logic i_tx_pause;
 wire [63:0] o_txd;
 wire [1:0] o_tx_header;
@@ -17,7 +16,6 @@ wire [1:0] o_tx_header;
 
 initial begin 
     i_txc = '0;
-    i_txc2 = '0;
     i_txd = '0;
     i_txctl = '0;
     i_tx_pause = '0;
@@ -30,14 +28,13 @@ initial begin
     i_init_done = 1;
 
     // Sync up scrambler initial state to match eg frames
-    @(posedge i_txc2);
+    @(posedge i_txc);
     #0.1ns scrambler_init_done = 1;
 end
 
 
 //always begin #1.58810509ns txc = ~txc; end
 always begin #2ns i_txc = ~i_txc; end
-always begin #4ns i_txc2 = ~i_txc2; end
 
 
 
@@ -73,7 +70,7 @@ scrambler u_scram(
 .i_reset(i_reset),
 .i_init_done(scrambler_init_done),
 .i_tx_pause(i_tx_pause),
-.i_txc2(i_txc2),
+.i_txc(i_txc),
 .i_txd(o_txd),
 .o_txd(scrambled_out));
 

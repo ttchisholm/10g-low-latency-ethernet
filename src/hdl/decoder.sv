@@ -11,8 +11,8 @@ module decode_6466b #() (
     input wire i_rx_valid,
 
     //Rx interface out
-    output logic [31:0] o_rxd,
-    output logic [3:0] o_rxctl,
+    output logic [63:0] o_rxd,
+    output logic [7:0] o_rxctl,
     output logic o_rx_valid
 );
 
@@ -146,30 +146,30 @@ module decode_6466b #() (
     logic [7:0] internal_rxctl;
 
     always_comb begin
-        decode_frame(i_rxd, i_rx_header, internal_rxd, internal_rxctl);
+        decode_frame(i_rxd, i_rx_header, o_rxd, o_rxctl);
     end
 
 
     // 64 to 32bit
     // Init done must be active on rising edge of both clocks
 
-    logic output_low;
-    always @(posedge i_rxc) begin
-        if(i_reset || !i_init_done) begin
-            output_low <= '0;
-        end else begin
-            output_low <= !output_low;
-        end
-    end
+    // logic output_low;
+    // always @(posedge i_rxc) begin
+    //     if(i_reset || !i_init_done) begin
+    //         output_low <= '0;
+    //     end else begin
+    //         output_low <= !output_low;
+    //     end
+    // end
 
-    always_comb begin
-        if(output_low) begin
-            o_rxd = internal_rxd[31:0];
-            o_rxctl = internal_rxctl[3:0];
-        end else begin
-            o_rxd = internal_rxd[63:32];
-            o_rxctl = internal_rxctl[7:4];
-        end
-    end
+    // always_comb begin
+    //     if(output_low) begin
+    //         o_rxd = internal_rxd[31:0];
+    //         o_rxctl = internal_rxctl[3:0];
+    //     end else begin
+    //         o_rxd = internal_rxd[63:32];
+    //         o_rxctl = internal_rxctl[7:4];
+    //     end
+    // end
     
     endmodule

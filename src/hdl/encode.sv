@@ -7,9 +7,8 @@ module encode_6466b #() (
 
     // TX Interface from MAC
     input wire i_txc,
-    input wire i_txc2, // txc/2
-    input wire[31:0] i_txd,
-    input wire[3:0] i_txctl,
+    input wire[63:0] i_txd,
+    input wire[7:0] i_txctl,
 
     // Input from gearbox
     input wire i_tx_pause, 
@@ -22,32 +21,32 @@ module encode_6466b #() (
     //*********** Transmit **********//
 
     // 32-bit input to 64 bit internal
-    wire [63:0] internal_txd;
-    wire [7:0] internal_txctl;
-    logic [31:0] delayed_i_txd;
-    logic [3:0] delayed_i_txctl;
+    // wire [63:0] internal_txd;
+    // wire [7:0] internal_txctl;
+    // logic [31:0] delayed_i_txd;
+    // logic [3:0] delayed_i_txctl;
 
-    always @(posedge i_txc) begin
-        if(i_reset) begin
-            delayed_i_txd <= '0;
-            delayed_i_txctl <= '0;
-        end else begin
-            if(!i_tx_pause) begin
-                delayed_i_txd <= i_txd;
-                delayed_i_txctl <= i_txctl;
-            end
-        end
-    end
+    // always @(posedge i_txc) begin
+    //     if(i_reset) begin
+    //         delayed_i_txd <= '0;
+    //         delayed_i_txctl <= '0;
+    //     end else begin
+    //         if(!i_tx_pause) begin
+    //             delayed_i_txd <= i_txd;
+    //             delayed_i_txctl <= i_txctl;
+    //         end
+    //     end
+    // end
 
-    assign internal_txd = {i_txd, delayed_i_txd};
-    assign internal_txctl = {i_txctl, delayed_i_txctl};
+    // assign internal_txd = {i_txd, delayed_i_txd};
+    // assign internal_txctl = {i_txctl, delayed_i_txctl};
 
     // Tx encoding
     wire [7:0] tx_type;
     logic [63:0] enc_tx_data;
     wire [63:0] tx_ctl_mask, tx_ctl_mask_data;
 
-    assign o_tx_header = (internal_txctl == '0) ? SYNC_DATA : SYNC_CTL;
+    assign o_tx_header = (i_txctl == '0) ? SYNC_DATA : SYNC_CTL;
 
     // Data is transmitted lsb first, first byte is in txd[7:0]
     function logic [7:0] get_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lane);
@@ -58,7 +57,7 @@ module encode_6466b #() (
     function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lanes[8], input logic[7:0] code);
         for(int i = 0; i < 8; i++) begin
             if(lanes[i] == 1)
-                if(get_rs_code(idata, ictl, lanes[i]) != code) return 0;
+                if(get_rs_code(idata, ictl, i) != code) return 0;
         end
         return 1;
     endfunction
@@ -123,7 +122,7 @@ module encode_6466b #() (
         end
     endfunction
 
-    assign enc_tx_data = encode_frame(internal_txd, internal_txctl);
+    assign enc_tx_data = encode_frame(i_txd, i_txctl);
 
     assign o_txd = (i_reset || !i_init_done) ? {{7{RS_ERROR}}, BT_IDLE} : enc_tx_data;
 

@@ -3,7 +3,7 @@ module scrambler (
     input wire i_init_done,
     input wire i_tx_pause,
 
-    input wire i_txc2,
+    input wire i_txc,
     input wire [63:0] i_txd,
 
     output wire [63:0] o_txd
@@ -14,7 +14,7 @@ module scrambler (
     wire [127:0] scrambler_data, scrambler_data_rev; // We need two transfers to calculate output, +1 latency :( todo
     //wire [63:0] scrambled_out;
 
-    always @(posedge i_txc2) begin
+    always @(posedge i_txc) begin
         if (i_reset || !i_init_done) begin
             delayed_txd <= '1;
         end
@@ -63,7 +63,7 @@ module scrambler (
         @(posedge i_init_done);
         
         forever begin
-            @(posedge i_txc2);
+            @(posedge i_txc);
             #0.1ns
 
             for(int i = 0; i < 64; i++) begin

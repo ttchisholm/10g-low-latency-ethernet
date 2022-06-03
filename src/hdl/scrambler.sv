@@ -49,30 +49,5 @@ module scrambler (
             assign o_txd[gi] = scrambler_data[6+gi] ^ scrambler_data[25+gi] ^ i_txd[gi];
         end
     endgenerate
-
-
-
-    // Test 1 bit lfsr
-
-    logic [63:0] out_1bit;
-    logic [57:0] lfsr;
-
-    initial begin
-        lfsr = '1;
-
-        @(posedge i_init_done);
-        
-        forever begin
-            @(posedge i_txc);
-            #0.1ns
-
-            for(int i = 0; i < 64; i++) begin
-                out_1bit[i] = i_txd[i] ^ lfsr[0] ^ lfsr[19];
-                lfsr = {out_1bit[i], lfsr[57:1]};
-            end
-        end
-
-    end
-
     
 endmodule

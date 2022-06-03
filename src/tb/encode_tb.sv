@@ -45,7 +45,7 @@ initial begin
     @(posedge i_init_done);
 
     foreach (eg_tx_data[i]) begin
-        @(negedge i_txc);
+        @(posedge i_txc);
         i_txd = eg_tx_data[i];
         
     end
@@ -55,7 +55,7 @@ initial begin
     @(posedge i_init_done);
 
     foreach (eg_tx_ctl[i]) begin
-        @(negedge i_txc);
+        @(posedge i_txc);
         i_txctl = eg_tx_ctl[i];
         
     end

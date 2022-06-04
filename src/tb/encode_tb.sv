@@ -62,7 +62,7 @@ initial begin
 end
 
 
-wire [63:0] scrambled_out;
+wire [63:0] scrambled_out, descrambled_out;
 
 encode_6466b u_dut(.*);
 
@@ -73,6 +73,14 @@ scrambler u_scram(
 .i_txc(i_txc),
 .i_txd(o_txd),
 .o_txd(scrambled_out));
+
+descrambler u_descram(
+.i_reset(i_reset),
+.i_init_done(scrambler_init_done),
+.i_tx_pause(i_tx_pause),
+.i_txc(i_txc),
+.i_txd(scrambled_out),
+.o_txd(descrambled_out));
 
 
 endmodule

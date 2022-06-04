@@ -1,4 +1,4 @@
-module scrambler (
+module descrambler (
     input wire i_reset,
     input wire i_init_done,
     input wire i_tx_pause,
@@ -18,13 +18,15 @@ module scrambler (
             delayed_txd <= '1;
         end
         else if (!i_tx_pause) begin
-            delayed_txd <= o_txd;
+            delayed_txd <= i_txd;
         end
     end
 
     // Data here is reversed wrt. polynomial index
-    assign scrambler_data = {{o_txd}, {delayed_txd}};
-
+    assign scrambler_data = {{i_txd}, {delayed_txd}};
+    
+    //
+    
     // Parallel scrambler
     // Polynomial is 1 + x^39 + x^58, easier to write as inverse 1 + x^19 + x^58
     //  and say S0 is first transmitted bit (lsb)

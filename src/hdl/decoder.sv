@@ -5,15 +5,13 @@ module decode_6466b #() (
     input wire i_reset,
     input wire i_init_done,   // Rx interface from pcs
     input wire i_rxc,
-    input wire i_rxc2, //rxc/2
     input wire [63:0] i_rxd,
     input wire [1:0] i_rx_header,
     input wire i_rx_valid,
 
     //Rx interface out
     output logic [63:0] o_rxd,
-    output logic [7:0] o_rxctl,
-    output logic o_rx_valid
+    output logic [7:0] o_rxctl
 );
 
 

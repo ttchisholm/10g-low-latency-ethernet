@@ -1,8 +1,8 @@
 module gearbox_tb();
 
 
-localparam INPUT_WIDTH = 20;
-localparam OUTPUT_WIDTH = 16;
+localparam INPUT_WIDTH = 32;
+localparam OUTPUT_WIDTH = 64;
 
 logic i_clk;
 logic [INPUT_WIDTH-1:0] i_data;

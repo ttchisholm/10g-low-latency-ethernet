@@ -8,7 +8,7 @@ module lock_state(
 );
 
     typedef enum logic[3:0] { LOCK_INIT, RESET_CNT, TEST_SH, 
-        VALID_SH, INVALID_SH, GOOD_64, SLIP} lock_state_t;
+        VALID_SH, INVALID_SH, GOOD_64, SLIP, X='x, Z='z} lock_state_t;
 
     lock_state_t state, next_state;
     logic rx_block_lock, test_sh, slip_done;
@@ -36,24 +36,49 @@ module lock_state(
                 next_state = TEST_SH;
             end
             TEST_SH: begin
-               next_state = sh_valid ? VALID_SH : INVALID_SH;
+                // Must use if..else here to avoid unknown propagation into enum
+                if (sh_valid) begin
+                    next_state = VALID_SH;
+                end else begin
+                    next_state = INVALID_SH;    
+                end
             end
             VALID_SH: begin
                 // Minor change here as going back to TEST_SH would miss data
-                next_state = sh_cnt == 64 && sh_invalid_cnt == 0 ? GOOD_64 : 
-                             sh_cnt == 64 && sh_invalid_cnt != 0 ? RESET_CNT :
-                             sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
+                // next_state = sh_cnt == 64 && sh_invalid_cnt == 0 ? GOOD_64 : 
+                //              sh_cnt == 64 && sh_invalid_cnt != 0 ? RESET_CNT :
+                //              sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
+
+                if (sh_cnt == 64 && sh_invalid_cnt == 0) begin
+                    next_state = GOOD_64;
+                end else if (sh_cnt == 64 && sh_invalid_cnt != 0) begin
+                    next_state = RESET_CNT;
+                end else if (sh_cnt < 64 && !sh_valid) begin
+                    next_state = INVALID_SH;
+                end else begin
+                    next_state = VALID_SH;
+                end
             end
             INVALID_SH: begin
-                next_state = sh_cnt == 64 && sh_invalid_cnt < 16 ? RESET_CNT :
-                             sh_invalid_cnt == 16 ? SLIP :
-                             sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
+                // next_state = sh_cnt == 64 && sh_invalid_cnt < 16 ? RESET_CNT :
+                //              sh_invalid_cnt == 16 ? SLIP :
+                //              sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
+
+                if (sh_cnt == 64 && sh_invalid_cnt < 16) begin
+                    next_state = RESET_CNT; 
+                end else if (sh_invalid_cnt == 16) begin
+                    next_state = SLIP;
+                end else if (sh_cnt < 64 && !sh_valid) begin
+                    next_state = INVALID_SH;
+                end else begin
+                    next_state = VALID_SH;
+                end
             end
             GOOD_64: begin
-                next_state <= RESET_CNT;
+                next_state = RESET_CNT;
             end
             SLIP: begin
-                next_state <= RESET_CNT;
+                next_state = RESET_CNT;
             end
             default: begin
                 next_state = LOCK_INIT;

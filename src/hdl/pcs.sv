@@ -55,7 +55,7 @@ module pcs #(
     );
     
     // Scrambler
-    generate;
+    generate
         if(SCRAMBLER_BYPASS) begin
             assign tx_scrambled_data = tx_encoded_data;
         end else begin
@@ -117,7 +117,7 @@ module pcs #(
     );
 
     // Descrambler
-    generate;
+    generate
         if(SCRAMBLER_BYPASS) begin
             assign rx_descrambled_data = rx_gearbox_data_out;
         end else begin
@@ -144,5 +144,13 @@ module pcs #(
         .o_rxd(o_rxd),
         .o_rxctl(o_rxctl)
     );
+
+    `ifdef COCOTB_SIM
+    initial begin
+    $dumpfile ("pcs.vcd");
+    $dumpvars (0, pcs);
+    #1;
+    end
+    `endif
 
 endmodule

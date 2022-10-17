@@ -56,7 +56,7 @@ module encode_6466b (
         return ictl[lane] == 1'b1 ? idata[8*lane +: 8] : RS_ERROR;
     endfunction
 
-    function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input bit [3:0] lanes, input logic[7:0] code);
+    function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input bit [7:0] lanes, input logic[7:0] code);
         for(int i = 0; i < 8; i++) begin
             if(lanes[i] == 1)
                 if(get_rs_code(idata, ictl, i) != code) return 0;

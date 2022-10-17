@@ -21,11 +21,12 @@ module decode_6466b (
         logic [7:0] octl;
    } xgmii_data_ctl;
 
-    function logic [63:0] control_code_to_rs_lane(input logic [63:0] idata, input bit [3:0] lanes);
+    // todo properly define parameters (esp. lanes ordering)
+    function logic [63:0] control_code_to_rs_lane(input logic [63:0] idata, input bit [7:0] lanes);
         logic [63:0] odata;
         odata = {8{RS_ERROR}};
         for( int i = 0; i < 8; i++) begin
-            if (lanes[i] == 1) begin
+            if (lanes[7-i] == 1) begin
                 odata[8*i +: 8] = control_to_rs_code(idata[8 + (7*i) +: 7]); // todo check part-select
             end
         end

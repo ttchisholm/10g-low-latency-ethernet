@@ -17,7 +17,7 @@ module descrambler (
         if (i_reset || !i_init_done) begin
             delayed_rxd <= '1;
         end
-        else if (!i_rx_valid) begin
+        else if (i_rx_valid) begin
             delayed_rxd <= i_rxd;
         end
     end

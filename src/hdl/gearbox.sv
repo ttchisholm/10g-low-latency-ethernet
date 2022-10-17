@@ -29,7 +29,7 @@ module gearbox #(
             always @(posedge i_clk) begin
                 if(i_reset || !i_init_done) begin
                     input_delayed <= '0;
-                    count <= '0;
+                    count <= '0; // Todo for debugging - set to (-2)
                     output_buf <= '0;
                 end else begin
                     if (!o_valid) begin

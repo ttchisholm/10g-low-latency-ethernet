@@ -76,7 +76,7 @@ module pcs #(
         .i_reset(tx_reset),
         .i_init_done(!tx_reset),
         .i_clk(i_txc),
-        .i_data({tx_header, tx_scrambled_data}),
+        .i_data({tx_scrambled_data, tx_header}),
         .i_slip(1'b0),
         .o_data(o_txd),
         .o_pause(tx_gearbox_pause),
@@ -104,8 +104,8 @@ module pcs #(
         .o_pause(), // Never pauses when gearing up
         .o_valid(o_rx_valid)
     );
-    assign rx_gearbox_data_out = rx_gearbox_out[63:0];
-    assign rx_header = rx_gearbox_out[65:64];
+    assign rx_gearbox_data_out = rx_gearbox_out[65:2];
+    assign rx_header = rx_gearbox_out[1:0];
 
     // Lock state machine
     lock_state u_lock_state(
@@ -144,13 +144,5 @@ module pcs #(
         .o_rxd(o_rxd),
         .o_rxctl(o_rxctl)
     );
-
-    `ifdef COCOTB_SIM
-    initial begin
-    $dumpfile ("pcs.vcd");
-    $dumpvars (0, pcs);
-    #1;
-    end
-    `endif
 
 endmodule

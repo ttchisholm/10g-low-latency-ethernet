@@ -29,9 +29,11 @@ module scrambler (
     // Polynomial is 1 + x^39 + x^58, easier to write as inverse 1 + x^19 + x^58
     //  and say S0 is first transmitted bit (lsb)
     // S58 = D58 + S19 + S0
+    // ...
+    // S64 = D64 + S25 + S6
     // S65 = D65 + S26 + S7
     // ...
-    // S128 = D128 + S89 + S70
+    // S127 = D127 + S88 + S69
 
     genvar gi;
     generate;

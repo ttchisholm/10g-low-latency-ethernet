@@ -24,7 +24,7 @@ MODULE = test_pcs
 
 
 # module parameters
-export SCRAMBLER_BYPASS ?= 1
+export SCRAMBLER_BYPASS ?= 0
 
 ifeq ($(SIM), icarus)
 	PLUSARGS += -fst

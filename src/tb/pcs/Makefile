@@ -5,14 +5,14 @@ SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 WAVES ?= 1
 
-VERILOG_SOURCES += $(PWD)/../hdl/encoder_pkg.sv
-VERILOG_SOURCES += $(PWD)/../hdl/pcs.sv
-VERILOG_SOURCES += $(PWD)/../hdl/decoder.sv
-VERILOG_SOURCES += $(PWD)/../hdl/descrambler.sv
-VERILOG_SOURCES += $(PWD)/../hdl/encode.sv
-VERILOG_SOURCES += $(PWD)/../hdl/gearbox.sv
-VERILOG_SOURCES += $(PWD)/../hdl/lock_state.sv
-VERILOG_SOURCES += $(PWD)/../hdl/scrambler.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/encoder_pkg.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/pcs.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/decoder.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/descrambler.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/encode.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/gearbox.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/lock_state.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/scrambler.sv
 # use VHDL_SOURCES for VHDL files
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file

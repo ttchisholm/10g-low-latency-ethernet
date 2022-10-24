@@ -10,7 +10,7 @@ class CRC_TB:
         self.dut = dut
 
         self.data_width = len(self.dut.i_data)
-        self.clk_period = round(1 / (10.3125 / self.data_width), 3) # ps precision
+        self.clk_period = round(1 / (10.3125 / self.data_width), 2) # ps precision
 
         cocotb.start_soon(Clock(dut.i_clk, self.clk_period, units="ns").start())
 
@@ -51,12 +51,31 @@ async def crc_test(dut):
         int("0x0C", 16), int("0x0D", 16), int("0x0E", 16), int("0x0F", 16), int("0x10", 16), int("0x11", 16)
     ]
 
+    assert (tb.data_width % 8 == 0)
+    input_width_bytes = tb.data_width // 8
+
+    # concatonate the test vector to match the input width
+    # https://stackoverflow.com/questions/434287/how-to-iterate-over-a-list-in-chunks
+    def chunker(seq, size):
+        return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+
     await tb.reset()
     await FallingEdge(tb.dut.i_clk)
 
-    for ival in test_vector:
-        tb.dut.i_data.value = ival
-        tb.dut.i_valid.value = 1
+    for ivalues in chunker(test_vector, input_width_bytes):
+
+        ivalue = 0
+        ivalid = 0
+        for i, v in enumerate(ivalues):
+            ivalue = ivalue | (v <<  (i * 8))
+            ivalid = ivalid | (1 << i)
+
+        print(f"ivalue: {ivalue:16x} ")
+        print(f"ivalid: {ivalid:16b} ")
+
+        tb.dut.i_data.value = ivalue
+        tb.dut.i_valid.value = ivalid
         await FallingEdge(tb.dut.i_clk)
 
     assert tb.dut.o_crc.value.integer == int("0x1b8831b3", 16)

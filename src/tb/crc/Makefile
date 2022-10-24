@@ -20,11 +20,12 @@ MODULE = test_crc
 
 
 # module parameters
-
+export INPUT_WIDTH_BYTES ?= 8
 
 ifeq ($(SIM), icarus)
 	PLUSARGS += -fst
 
+	COMPILE_ARGS += -P $(TOPLEVEL).INPUT_WIDTH_BYTES=$(INPUT_WIDTH_BYTES)
 
 	ifeq ($(WAVES), 1)
 		VERILOG_SOURCES += iverilog_dump.v

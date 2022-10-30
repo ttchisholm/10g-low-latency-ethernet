@@ -1,0 +1,12 @@
+Needed:
+- Better module signal names
+- rename encoder_pkg and move to common folder
+- File headers
+- Handle MAC User Rx not ready - buffer up to end of IPG?
+
+Nice to have:
+- MAC: Non-8 octet aligned data/padding
+- MAC: Deficit IPG
+- 32-bit datapath
+- Clearer PCS encoding without functions?
+- 

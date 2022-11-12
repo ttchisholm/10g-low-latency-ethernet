@@ -30,46 +30,59 @@ module tx_mac (
     localparam MIN_PAYLOAD_SIZE = 46;
     localparam IPG_SIZE = 12;
 
-    localparam START_FRAME = 64'hd5555555555555fb; // First octet of preamble is replaced by SFD (46.1.7.1.4)
-    localparam IDLE_FRAME =  64'h0707070707070707;
-    localparam ERROR_FRAME = 64'hfefefefefefefefe;
+    localparam START_FRAME = {MAC_SFD, {6{MAC_PRE}}, RS_START}; // First octet of preamble is replaced by RS_START (46.1.7.1.4)
+    localparam IDLE_FRAME =  {8{RS_IDLE}};
+    localparam ERROR_FRAME = {8{RS_ERROR}};
 
+    // Tx states
     typedef enum {IDLE, DATA, PADDING, TERM, IPG} tx_state_t;
     tx_state_t tx_state, tx_next_state;
-    logic [$clog2(MIN_PAYLOAD_SIZE):0] data_counter; 
-    logic min_packet_size_reached;
-    logic [4:0] ipg_counter;
+
+    // Delayed inputs
     logic [63:0] data_del;
     logic tlast_del, tvalid_del;
+
+    // CRC
     wire [31:0] tx_crc;
-    wire [63:0] term_data;
     wire [7:0] tx_crc_input_valid;
     wire  tx_crc_reset;
     wire [63:0] tx_crc_input;
 
+    // Termination
     logic [7:0] tx_data_keep;
     logic [63:0] tx_term_data_0, tx_term_data_1;
     logic [7:0] tx_term_ctl_0, tx_term_ctl_1;
+
+    // Min payload counter
+    logic [$clog2(MIN_PAYLOAD_SIZE):0] data_counter; 
+    logic min_packet_size_reached;
+
+    // IPG counter
     logic [4:0] initial_ipg_count;
-    
+    logic [4:0] ipg_counter;
+
+  
 
     always @(posedge i_clk)
     if (i_reset) begin
         tx_state <= IDLE;
-        data_counter <= '0;
-        ipg_counter <= '0;
         data_del <= '0;
-        min_packet_size_reached <= '0;
         tlast_del <= '0;
         tvalid_del <= '0;
+        data_counter <= '0;
+        ipg_counter <= '0;
+        min_packet_size_reached <= '0;
+        
     end else begin
         tx_state <= tx_next_state;
-        data_counter <= (min_packet_size_reached) ? data_counter :
-                        ((tx_next_state == DATA || tx_next_state == PADDING)) ? data_counter + 8 : '0;
-        ipg_counter <= (tx_state == IPG) ? ipg_counter + 8 : initial_ipg_count;
+
         data_del <= s00_axis_tdata;
         tlast_del <= s00_axis_tlast;
         tvalid_del <= s00_axis_tvalid;
+
+        data_counter <= (min_packet_size_reached) ? data_counter :
+                        ((tx_next_state == DATA || tx_next_state == PADDING)) ? data_counter + 8 : '0;
+        ipg_counter <= (tx_state == IPG) ? ipg_counter + 8 : initial_ipg_count;
 
         if ((tx_next_state == DATA || tx_next_state == PADDING) && data_counter >= MIN_PAYLOAD_SIZE)
             min_packet_size_reached <= 1'b1;
@@ -82,10 +95,10 @@ module tx_mac (
     assign tx_crc_input_valid = tx_data_keep & {8{(tx_next_state == DATA || tx_next_state == PADDING) && phy_tx_ready}};
     assign tx_crc_reset = tx_next_state == IDLE;
     assign tx_crc_input = tx_next_state == DATA ? s00_axis_tdata : '0;
+
     assign tx_data_keep = (tx_state == DATA && min_packet_size_reached) ? s00_axis_tkeep : '1; // todo non 8-octet padding
 
     always @(*) begin
-        
         case (tx_state)
             IDLE: begin
                 if (s00_axis_tvalid && phy_tx_ready)
@@ -98,7 +111,7 @@ module tx_mac (
                 xgmii_txc = (s00_axis_tvalid && phy_tx_ready) ? 8'b00000001 : '1;
             end
             DATA: begin
-                if (!tvalid_del && phy_tx_ready)
+                if (!tvalid_del && phy_tx_ready) // tvalid must be high throughout frame
                     tx_next_state = IDLE;
                 else if (tlast_del && !min_packet_size_reached)
                     tx_next_state = PADDING;
@@ -107,10 +120,10 @@ module tx_mac (
                 else
                     tx_next_state = DATA;
                     
-                xgmii_txd = (!tvalid_del && phy_tx_ready) ? ERROR_FRAME : 
-                        (tx_next_state == TERM)     ? tx_term_data_0 : data_del;
+                xgmii_txd = (!tvalid_del && phy_tx_ready) ? ERROR_FRAME :               
+                            (tx_next_state == TERM)       ? tx_term_data_0 : data_del;  
                 xgmii_txc = (!tvalid_del && phy_tx_ready) ? '1 : 
-                          (tx_next_state == TERM)     ? tx_term_ctl_0 : '0;
+                            (tx_next_state == TERM)       ? tx_term_ctl_0 : '0;
             end
             PADDING: begin
                 if (!min_packet_size_reached) 

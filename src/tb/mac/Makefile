@@ -8,6 +8,7 @@ WAVES ?= 1
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/encoder_pkg.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/tx_mac.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/mac/rx_mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/crc32.sv
 
 

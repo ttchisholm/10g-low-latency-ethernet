@@ -61,6 +61,12 @@ package encoder_pkg;
         RS_OSIG = 8'h5c
     } rs_code_t;
 
+    // MAC Codes
+    typedef enum logic [7:0] {
+        MAC_PRE = 8'h55,
+        MAC_SFD = 8'hd5
+    } mac_code_t;
+
     // todo can we use enum types?
     function logic [7:0] control_to_rs_code(logic [6:0] icode);
         case (icode)

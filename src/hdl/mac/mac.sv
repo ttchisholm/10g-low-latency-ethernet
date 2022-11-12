@@ -10,7 +10,7 @@ module mac (
     output logic [7:0] xgmii_txc,
     input wire phy_tx_ready,
 
-    // Tx User AXIS
+    // Tx AXIS
     input wire [63:0] s00_axis_tdata,
     input wire [7:0] s00_axis_tkeep,
     input wire s00_axis_tvalid,
@@ -24,12 +24,13 @@ module mac (
     input wire [7:0] xgmii_rxc,
     input wire phy_rx_valid,
 
-    // Rx USER
+    // Rx AXIS
     output logic [63:0] m00_axis_tdata,
-    output logic [7:0] m00_axis_tkeep, // todo
+    output logic [7:0] m00_axis_tkeep,
     output logic m00_axis_tvalid,
     input wire m00_axis_tready,
-    output logic m00_axis_tlast
+    output logic m00_axis_tlast,
+    output logic m00_axis_tuser
 );
 
     import encoder_pkg::*;
@@ -68,6 +69,25 @@ module mac (
         .s00_axis_tvalid(s00_axis_tvalid),
         .s00_axis_tready(s00_axis_tready),
         .s00_axis_tlast(s00_axis_tlast)
+    );
+
+    rx_mac u_rx (
+    
+        .i_reset(i_reset),
+        .i_clk(i_rxc),
+
+        // Rx PHY
+        .xgmii_rxd(xgmii_rxd),
+        .xgmii_rxc(xgmii_rxc),
+        .phy_rx_valid(phy_rx_valid),
+
+        // Rx AXIS
+        .m00_axis_tdata(m00_axis_tdata),
+        .m00_axis_tkeep(m00_axis_tkeep),
+        .m00_axis_tvalid(m00_axis_tvalid),
+        .m00_axis_tready(m00_axis_tready),
+        .m00_axis_tlast(m00_axis_tlast),
+        .m00_axis_tuser(m00_axis_tuser)
     );
 
     

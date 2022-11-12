@@ -43,10 +43,10 @@ class MAC_TB:
 async def tx_test(dut):
     tb = MAC_TB(dut)
 
+    dut.phy_tx_ready.value = 1
     
     await tb.reset()
 
-    dut.i_tx_ready.value = 1
     dut.s00_axis_tkeep.value = int("0b11111111", 2)
     await RisingEdge(dut.i_txc)
 

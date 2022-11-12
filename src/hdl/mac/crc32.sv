@@ -1,3 +1,4 @@
+`default_nettype none
 // Lookup table crc32
 
 module crc32 #(

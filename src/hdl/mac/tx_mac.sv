@@ -141,71 +141,101 @@ module tx_mac (
     end
 
     // Construct the final two tx frames depending on number of bytes in last axis frame
+    // first term frame is used without reg
     always @(*) begin
         case (tx_data_keep)
             8'b11111111: begin
                 tx_term_data_0 = data_del;
-                tx_term_data_1 = {{3{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24]};
                 tx_term_ctl_0 = 8'b00000000;
-                tx_term_ctl_1 = 8'b11110000;
-                initial_ipg_count = 3;
             end
             8'b01111111: begin
                 tx_term_data_0 = {tx_crc[31:24], data_del[55:0]};
-                tx_term_data_1 = {{4{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16]};
                 tx_term_ctl_0 = 8'b00000000;
-                tx_term_ctl_1 = 8'b11111000;
-                initial_ipg_count = 4;
             end
             8'b00111111: begin
                 tx_term_data_0 = {tx_crc[23:16], tx_crc[31:24], data_del[47:0]};
-                tx_term_data_1 = {{5{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8]};
                 tx_term_ctl_0 = 8'b00000000;
-                tx_term_ctl_1 = 8'b11111100;
-                initial_ipg_count = 5;
             end
             8'b00011111: begin
                 tx_term_data_0 = {tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[39:0]};
-                tx_term_data_1 = {{6{RS_IDLE}}, RS_TERM, tx_crc[7:0]};
                 tx_term_ctl_0 = 8'b00000000;
-                tx_term_ctl_1 = 8'b11111110;
-                initial_ipg_count = 6;
             end
             8'b00001111: begin
                 tx_term_data_0 = {tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[31:0]};
-                tx_term_data_1 = {{7{RS_IDLE}}, RS_TERM};
                 tx_term_ctl_0 = 8'b00000000;
-                tx_term_ctl_1 = 8'b11111111;
-                initial_ipg_count = 7;
             end
             8'b00000111: begin
                 tx_term_data_0 = {RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[23:0]};
-                tx_term_data_1 = {{8{RS_IDLE}}};
                 tx_term_ctl_0 = 8'b10000000;
-                tx_term_ctl_1 = 8'b11111111;
-                initial_ipg_count = 8;
             end
             8'b00000011: begin
                 tx_term_data_0 = {RS_IDLE, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[15:0]};
-                tx_term_data_1 = {{8{RS_IDLE}}};
                 tx_term_ctl_0 = 8'b11000000;
-                tx_term_ctl_1 = 8'b11111111;
-                initial_ipg_count = 9;
             end
             8'b00000001: begin
                 tx_term_data_0 = {RS_IDLE, RS_IDLE, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[7:0]};
-                tx_term_data_1 = {{8{RS_IDLE}}};
                 tx_term_ctl_0 = 8'b11100000;
-                tx_term_ctl_1 = 8'b11111111;
-                initial_ipg_count = 10;
             end
             default: begin
                 tx_term_data_0 = {8{RS_ERROR}};
-                tx_term_data_1 = {8{RS_ERROR}};
-                initial_ipg_count = 0;
+                tx_term_ctl_0 = 8'b11111111;
             end
         endcase
+    end
 
+    always @(posedge i_clk)
+    if (i_reset) begin
+        tx_term_data_1 <= '0;
+        tx_term_ctl_1 <= '0;
+        initial_ipg_count <= '0;
+    end else if (tlast_del) begin
+        case (tx_data_keep)
+            8'b11111111: begin
+                tx_term_data_1 <= {{3{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24]};
+                tx_term_ctl_1 <= 8'b11110000;
+                initial_ipg_count <= 3;
+            end
+            8'b01111111: begin
+                tx_term_data_1 <= {{4{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16]};
+                tx_term_ctl_1 <= 8'b11111000;
+                initial_ipg_count <= 4;
+            end
+            8'b00111111: begin
+                tx_term_data_1 <= {{5{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8]};
+                tx_term_ctl_1 <= 8'b11111100;
+                initial_ipg_count <= 5;
+            end
+            8'b00011111: begin
+                tx_term_data_1 <= {{6{RS_IDLE}}, RS_TERM, tx_crc[7:0]};
+                tx_term_ctl_1 <= 8'b11111110;
+                initial_ipg_count <= 6;
+            end
+            8'b00001111: begin
+                tx_term_data_1 <= {{7{RS_IDLE}}, RS_TERM};
+                tx_term_ctl_1 <= 8'b11111111;
+                initial_ipg_count <= 7;
+            end
+            8'b00000111: begin
+                tx_term_data_1 <= {{8{RS_IDLE}}};
+                tx_term_ctl_1 <= 8'b11111111;
+                initial_ipg_count <= 8;
+            end
+            8'b00000011: begin
+                tx_term_data_1 <= {{8{RS_IDLE}}};
+                tx_term_ctl_1 <= 8'b11111111;
+                initial_ipg_count <= 9;
+            end
+            8'b00000001: begin
+                tx_term_data_1 <= {{8{RS_IDLE}}};
+                tx_term_ctl_1 <= 8'b11111111;
+                initial_ipg_count <= 10;
+            end
+            default: begin
+                tx_term_data_1 <= {8{RS_ERROR}};
+                tx_term_ctl_1 <= 8'b11111111;
+                initial_ipg_count <= 0;
+            end
+        endcase
     end
 
     crc32 #(.INPUT_WIDTH_BYTES(8)) u_tx_crc(

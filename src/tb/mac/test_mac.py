@@ -71,6 +71,11 @@ async def tx_test(dut):
             int("0x30", 16),  int("0x77", 16),  int("0x00", 16),  int("0x00", 16), int("0x7a", 16), int("0x0c", 16), int("0x50", 16), int("0x12", 16),
             int("0x1e", 16),  int("0xd2", 16),  int("0x62", 16),  int("0x84", 16), int("0x00", 16), int("0x00", 16), int("0x00", 16), int("0x00", 16),
             int("0x00", 16),  int("0x00", 16),  int("0x00", 16),  int("0x00", 16)
+        ],
+        [   int("0x08", 16),  int("0xdd", 16),  int("0x20", 16),  int("0x77", 16), int("0x05", 16), int("0x38", 16), int("0x0e", 16), int("0x8b", 16),
+            int("0xd3", 16),  int("0xd4", 16),  int("0xd5", 16),  int("0xd6", 16), int("0x08", 16), int("0xdd", 16), int("0x45", 16), int("0xdd", 16),
+            int("0xdd", 16),  int("0x28", 16),  int("0x1c", 16),  int("0x66", 16), int("0xd8", 16), int("0xda", 16), int("0x1b", 16), int("0x06", 16),
+            int("0x9e", 16),  int("0xd7", 16)
         ]
     ]
 

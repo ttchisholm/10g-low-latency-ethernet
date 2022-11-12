@@ -5,7 +5,7 @@ Needed:
 - Handle MAC User Rx not ready - buffer up to end of IPG?
 
 Nice to have:
-- MAC: Non-8 octet aligned data/padding
+- MAC: Non-8 octet aligned data/padding (rx)
 - MAC: Deficit IPG
 - 32-bit datapath
 - Clearer PCS encoding without functions?

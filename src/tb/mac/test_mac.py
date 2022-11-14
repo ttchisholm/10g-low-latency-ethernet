@@ -1,4 +1,5 @@
 from asyncore import loop
+import asyncio
 import enum
 import cocotb
 from cocotb.triggers import Timer, RisingEdge, FallingEdge, Edge, NextTimeStep
@@ -9,7 +10,7 @@ import debugpy
 
 
 class MAC_TB:
-    def __init__(self, dut):
+    def __init__(self, dut, loopback=False):
         self.dut = dut
 
         self.data_width = len(self.dut.s00_axis_tdata)
@@ -18,7 +19,11 @@ class MAC_TB:
         cocotb.start_soon(Clock(dut.i_txc, self.clk_period, units="ns").start())
         cocotb.start_soon(Clock(dut.i_rxc, self.clk_period, units="ns").start())
 
-        #if loopback: cocotb.start_soon(self.loopback())
+        if loopback:  
+            cocotb.start_soon(self.loopback('xgmii_txd', 'xgmii_rxd'))
+            cocotb.start_soon(self.loopback('xgmii_txc', 'xgmii_rxc'))
+
+        
 
         self.dut.s00_axis_tvalid.value = 0
         self.dut.s00_axis_tdata.value = 0
@@ -38,10 +43,16 @@ class MAC_TB:
         await self.change_reset(1)
         await self.change_reset(0)
 
+    async def loopback(self, output, input):
+        while True:
+            await Edge(getattr(self.dut, output))
+            getattr(self.dut, input).value = getattr(self.dut, output).value
+
+
 
 @cocotb.test()
 async def tx_test(dut):
-    tb = MAC_TB(dut)
+    tb = MAC_TB(dut, True)
 
     dut.phy_tx_ready.value = 1
     
@@ -75,7 +86,10 @@ async def tx_test(dut):
         [   int("0x08", 16),  int("0xdd", 16),  int("0x20", 16),  int("0x77", 16), int("0x05", 16), int("0x38", 16), int("0x0e", 16), int("0x8b", 16),
             int("0xd3", 16),  int("0xd4", 16),  int("0xd5", 16),  int("0xd6", 16), int("0x08", 16), int("0xdd", 16), int("0x45", 16), int("0xdd", 16),
             int("0xdd", 16),  int("0x28", 16),  int("0x1c", 16),  int("0x66", 16), int("0xd8", 16), int("0xda", 16), int("0x1b", 16), int("0x06", 16),
-            int("0x9e", 16),  int("0xd7", 16)
+            int("0x9e", 16),  int("0xd7", 16),  int("0x08", 16),  int("0xdd", 16),  int("0x20", 16),  int("0x77", 16), int("0x05", 16), int("0x38", 16), int("0x0e", 16), int("0x8b", 16),
+            int("0xd3", 16),  int("0xd4", 16),  int("0xd5", 16),  int("0xd6", 16), int("0x08", 16), int("0xdd", 16), int("0x45", 16), int("0xdd", 16),
+            int("0xdd", 16),  int("0x28", 16),  int("0x1c", 16),  int("0x66", 16), int("0xd8", 16), int("0xda", 16), int("0x1b", 16), int("0x06", 16),
+            int("0x9e", 16),  int("0xd7", 16),  int("0xd8", 16)
         ]
     ]
 
@@ -159,3 +173,5 @@ async def rx_test(dut):
         tb.dut.xgmii_rxc.value = ctl
 
         await RisingEdge(dut.i_rxc)
+
+

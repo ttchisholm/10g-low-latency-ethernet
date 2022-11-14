@@ -3,7 +3,8 @@
 
 module crc32 #(
     parameter [31:0] INITIAL_CRC = 32'hFFFFFFFF,
-    parameter INPUT_WIDTH_BYTES = 8
+    parameter INPUT_WIDTH_BYTES = 8,
+    parameter REGISTER_OUTPUT = 1
 ) (
     input i_clk,
     input [INPUT_WIDTH_BYTES*8 -1:0] i_data,
@@ -25,7 +26,12 @@ module crc32 #(
         crc <= INITIAL_CRC;
     end
 
-    assign o_crc = crc ^ 32'hFFFFFFFF;
+    generate if(REGISTER_OUTPUT) begin
+        assign o_crc = crc ^ 32'hFFFFFFFF;
+    end else begin
+        assign o_crc = next_crc ^ 32'hFFFFFFFF;
+    end endgenerate
+    
 
     wire [31:0] next_crc;
     always @(posedge i_clk) begin

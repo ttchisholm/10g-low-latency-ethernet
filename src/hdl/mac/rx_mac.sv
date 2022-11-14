@@ -41,16 +41,15 @@ module rx_mac (
     // Masked data out
     wire [63:0] masked_data;
 
+    // CRC
+    logic [31:0] rx_crc, rx_crc_del, term_crc, frame_crc, prev_frame_crc;
+    logic [7:0] rx_crc_input_valid, rx_crc_input_valid_del;
+    wire  rx_crc_reset;
+    logic [63:0] rx_crc_input, rx_crc_input_del;
 
-    // // CRC
-    // wire [31:0] rx_crc;
-    // wire [7:0] rx_crc_input_valid;
-    // wire  rx_crc_reset;
-    // wire [63:0] rx_crc_input;
 
 
-  
-
+    // State
     always @(posedge i_clk)
     if (i_reset) begin
         rx_state <= IDLE;
@@ -59,7 +58,37 @@ module rx_mac (
         rx_state <= rx_next_state;
     end
 
-    
+    always @(*) begin
+        case (rx_state)
+            IDLE: begin
+                if (sfd_found)
+                    rx_next_state = DATA;
+                else
+                    rx_next_state = IDLE;
+                
+                m00_axis_tdata = '0;
+                m00_axis_tvalid = '0;
+                m00_axis_tkeep = '0;
+                m00_axis_tlast = '0;
+            end
+            DATA: begin
+                if (term_found)
+                    rx_next_state = IDLE;
+                else
+                    rx_next_state = DATA;
+                
+                m00_axis_tdata = masked_data;
+                m00_axis_tvalid = 1'b1;
+                m00_axis_tkeep = |sfd_found_loc ? start_keep :
+                                  term_found    ? term_keep  :
+                                                8'b11111111; 
+                m00_axis_tlast = term_found;
+            end
+
+        endcase
+
+    end
+
     // Start detect
     assign sfd_found_0 = (xgmii_rxd[7:0] == RS_START) && (xgmii_rxc[0] == 1'b1);
     assign sfd_found_4 = (xgmii_rxd[39:32] == RS_START) && (xgmii_rxc[4] == 1'b1);
@@ -87,53 +116,134 @@ module rx_mac (
         assign term_keep[gi] = (1 << gi) < term_loc ? 1'b1 : 1'b0;
     end endgenerate
 
-    
-    always @(*) begin
-        case (rx_state)
-            IDLE: begin
-                if (sfd_found)
-                    rx_next_state = DATA;
-                else
-                    rx_next_state = IDLE;
-                
-                m00_axis_tdata = '0;
-                m00_axis_tvalid = '0;
-                m00_axis_tkeep = '0;
-                m00_axis_tlast = '0;
-                m00_axis_tuser = '0;
-            end
-            DATA: begin
-                if (term_found)
-                    rx_next_state = IDLE;
-                else
-                    rx_next_state = DATA;
-                
-                m00_axis_tdata = masked_data;
-                m00_axis_tvalid = 1'b1;
-                m00_axis_tkeep = |sfd_found_loc ? start_keep :
-                                  term_found    ? term_keep  :
-                                                8'b11111111; 
-                m00_axis_tlast = term_found;
-                m00_axis_tuser = 1'b0; // todo crc
-            end
-
-        endcase
-
-    end
-
+    // Masked data
     generate for (gi = 0; gi < 8; gi++) begin
         assign masked_data[gi*8 +: 8] = m00_axis_tkeep[gi] ? xgmii_rxd[gi*8 +: 8] : 8'h00;
     end endgenerate
 
+    // CRC
+
+    // todo doc:
+    /*
+        // three scenarios
+        // term is with crc (easy)
+        // term is first in next frame
+        // crc is split across two frames
+
+        // options:
+            delay everything (bad)
+            calc crc across xfers and flag with term
+
+        // this approach is alternative to using length field - 
+        //      this gives quicker result for crc but not if length is wrong
+    */
+
+    assign rx_crc_input = m00_axis_tdata;
+    //assign rx_crc_input_valid = m00_axis_tkeep; // todo this will include crc itself
+    assign rx_crc_reset = rx_state == IDLE;
+
+    logic [7:0] delayed_crc_input_valid;
+    always @(*) begin
+        if (!term_found) begin
+            frame_crc = xgmii_rxd[63:32]; // Assume term is first in next frame for now
+            rx_crc_input_valid = m00_axis_tkeep;
+            delayed_crc_input_valid = rx_crc_input_valid_del;
+        end else begin
+            delayed_crc_input_valid = rx_crc_input_valid_del;
+
+            case (term_loc)
+                8'b00000001: begin
+                    frame_crc = prev_frame_crc;
+                    delayed_crc_input_valid = 8'b00001111; // This means the last 4 bytes of the previous frame were the crc
+                end
+                8'b00000010: begin
+                    frame_crc = {xgmii_rxd[7:0], prev_frame_crc[31:8]};
+                    delayed_crc_input_valid = 8'b00011111; 
+                end
+                8'b00000100: begin
+                    frame_crc = {xgmii_rxd[15:0], prev_frame_crc[31:16]};
+                    delayed_crc_input_valid = 8'b00111111; 
+                end
+                8'b00001000: begin
+                    frame_crc = {xgmii_rxd[23:0], prev_frame_crc[31:24]};
+                    delayed_crc_input_valid = 8'b01111111; 
+                end
+                8'b00010000: begin
+                    frame_crc = xgmii_rxd[31:0];
+                end
+                8'b00100000: begin
+                    frame_crc = xgmii_rxd[39:8];
+                end
+                8'b01000000: begin
+                    frame_crc = xgmii_rxd[47:16];
+                end
+                8'b10000000: begin
+                    frame_crc = xgmii_rxd[55:24];
+                end
+            endcase
+
+
+        end
+    end
+
+    // todo optimise out with xgmii_del
+    always @(posedge i_clk)
+    if (i_reset) begin
+        prev_frame_crc <= '0;
+    end else begin
+        prev_frame_crc <= frame_crc;
+    end
     
 
-    // crc32 #(.INPUT_WIDTH_BYTES(8)) u_tx_crc(
+                       
+    
+
+    crc32 #(.INPUT_WIDTH_BYTES(8)) u_rx_crc(
         
-    //     .i_clk(i_clk),
-    //     .i_data(tx_crc_input),
-    //     .i_valid(tx_crc_input_valid),
-    //     .i_reset(tx_crc_reset),
-    //     .o_crc(tx_crc)
-    // );
+        .i_clk(i_clk),
+        .i_data(rx_crc_input),
+        .i_valid(rx_crc_input_valid),
+        .i_reset(rx_crc_reset),
+        .o_crc(rx_crc)
+    );
+
+    always @(posedge i_clk)
+    if (i_reset) begin
+        rx_crc_input_del <= '0;
+        rx_crc_input_valid_del <= '0;
+    end else begin
+        rx_crc_input_del <= rx_crc_input;
+        rx_crc_input_valid_del <= rx_crc_input_valid;
+    end
+
+    
+
+    // todo fix crc checking options:
+    // - delay all by 1
+    // - use frame length to detect when crc
+    // - dual crc solution?
+    // - what is the actual crc latency and why?
+
+    //assign delayed_crc_input_valid = term_loc[0] ? 8'b00001111 : rx_crc_input_valid_del;
+
+    crc32 #(
+        .INPUT_WIDTH_BYTES(8),
+        .REGISTER_OUTPUT(0)
+    ) u_rx_crc_del(
+        
+        .i_clk(i_clk),
+        .i_data(rx_crc_input_del),
+        .i_valid(delayed_crc_input_valid),
+        .i_reset(rx_crc_reset),
+        .o_crc(term_crc)
+    );
+
+    // Finally set tuser
+    wire [31:0] frame_crc_byteswapped;
+    assign frame_crc_byteswapped = {frame_crc[0+:8], frame_crc[8+:8], frame_crc[16+:8], frame_crc[24+:8]};
+    assign m00_axis_tuser = term_found && term_loc < 8'b00000100  ? term_crc == frame_crc :
+                            term_found ? rx_crc == frame_crc : 1'b0;
+
+    
 
 endmodule

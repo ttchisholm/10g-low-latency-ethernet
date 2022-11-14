@@ -28,6 +28,7 @@ module tx_mac (
     import encoder_pkg::*;
 
     localparam MIN_PAYLOAD_SIZE = 46;
+    localparam MAX_PAYLOAD_SIZE = 1500; //todo not true
     localparam IPG_SIZE = 12;
 
     localparam START_FRAME = {MAC_SFD, {6{MAC_PRE}}, RS_START}; // First octet of preamble is replaced by RS_START (46.1.7.1.4)
@@ -43,7 +44,7 @@ module tx_mac (
     logic tlast_del, tvalid_del;
 
     // CRC
-    wire [31:0] tx_crc;
+    wire [31:0] tx_crc, tx_crc_byteswapped;
     wire [7:0] tx_crc_input_valid;
     wire  tx_crc_reset;
     wire [63:0] tx_crc_input;
@@ -54,7 +55,7 @@ module tx_mac (
     logic [7:0] tx_term_ctl_0, tx_term_ctl_1;
 
     // Min payload counter
-    logic [$clog2(MIN_PAYLOAD_SIZE):0] data_counter; 
+    logic [$clog2(MIN_PAYLOAD_SIZE):0] data_counter, next_data_counter; 
     logic min_packet_size_reached;
 
     // IPG counter
@@ -71,7 +72,6 @@ module tx_mac (
         tvalid_del <= '0;
         data_counter <= '0;
         ipg_counter <= '0;
-        min_packet_size_reached <= '0;
         
     end else begin
         tx_state <= tx_next_state;
@@ -80,15 +80,12 @@ module tx_mac (
         tlast_del <= s00_axis_tlast;
         tvalid_del <= s00_axis_tvalid;
 
-        data_counter <= (min_packet_size_reached) ? data_counter :
-                        ((tx_next_state == DATA || tx_next_state == PADDING)) ? data_counter + 8 : '0;
+        data_counter <= next_data_counter;
         ipg_counter <= (tx_state == IPG) ? ipg_counter + 8 : initial_ipg_count;
 
-        if ((tx_next_state == DATA || tx_next_state == PADDING) && data_counter >= MIN_PAYLOAD_SIZE)
-            min_packet_size_reached <= 1'b1;
-        else 
-            min_packet_size_reached <= 1'b0;
+        
     end
+
 
     assign s00_axis_tready = phy_tx_ready && !tlast_del && (tx_state == IDLE || tx_state == DATA);
 
@@ -109,6 +106,7 @@ module tx_mac (
                 
                 xgmii_txd = (s00_axis_tvalid && phy_tx_ready) ? START_FRAME : IDLE_FRAME;
                 xgmii_txc = (s00_axis_tvalid && phy_tx_ready) ? 8'b00000001 : '1;
+                next_data_counter = 0;
             end
             DATA: begin
                 if (!tvalid_del && phy_tx_ready) // tvalid must be high throughout frame
@@ -124,6 +122,8 @@ module tx_mac (
                             (tx_next_state == TERM)       ? tx_term_data_0 : data_del;  
                 xgmii_txc = (!tvalid_del && phy_tx_ready) ? '1 : 
                             (tx_next_state == TERM)       ? tx_term_ctl_0 : '0;
+
+                next_data_counter = data_counter + 8; // todo use keep rather than assume all bytes are valid
             end
             PADDING: begin
                 if (!min_packet_size_reached) 
@@ -133,11 +133,14 @@ module tx_mac (
                 
                 xgmii_txd = (tx_next_state == TERM) ? tx_term_data_0 : '0;
                 xgmii_txc = (tx_next_state == TERM) ? tx_term_ctl_0 : '0;
+
+                next_data_counter = data_counter + 8;
             end
             TERM: begin
                 tx_next_state = IPG;
                 xgmii_txd = tx_term_data_1;
                 xgmii_txc = tx_term_ctl_1;
+                next_data_counter = 0;
             end
             IPG: begin
                 if (ipg_counter < IPG_SIZE)
@@ -147,11 +150,14 @@ module tx_mac (
 
                 xgmii_txd = IDLE_FRAME;
                 xgmii_txc = '1;
+                next_data_counter = 0;
             end
 
         endcase
 
     end
+
+    assign min_packet_size_reached = next_data_counter >= MIN_PAYLOAD_SIZE;
 
     // Construct the final two tx frames depending on number of bytes in last axis frame
     // first term frame is used without reg
@@ -162,31 +168,31 @@ module tx_mac (
                 tx_term_ctl_0 = 8'b00000000;
             end
             8'b01111111: begin
-                tx_term_data_0 = {tx_crc[31:24], data_del[55:0]};
+                tx_term_data_0 = {tx_crc_byteswapped[31:24], data_del[55:0]};
                 tx_term_ctl_0 = 8'b00000000;
             end
             8'b00111111: begin
-                tx_term_data_0 = {tx_crc[23:16], tx_crc[31:24], data_del[47:0]};
+                tx_term_data_0 = {tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], data_del[47:0]};
                 tx_term_ctl_0 = 8'b00000000;
             end
             8'b00011111: begin
-                tx_term_data_0 = {tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[39:0]};
+                tx_term_data_0 = {tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], data_del[39:0]};
                 tx_term_ctl_0 = 8'b00000000;
             end
             8'b00001111: begin
-                tx_term_data_0 = {tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[31:0]};
+                tx_term_data_0 = {tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], data_del[31:0]};
                 tx_term_ctl_0 = 8'b00000000;
             end
             8'b00000111: begin
-                tx_term_data_0 = {RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[23:0]};
+                tx_term_data_0 = {RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], data_del[23:0]};
                 tx_term_ctl_0 = 8'b10000000;
             end
             8'b00000011: begin
-                tx_term_data_0 = {RS_IDLE, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[15:0]};
+                tx_term_data_0 = {RS_IDLE, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], data_del[15:0]};
                 tx_term_ctl_0 = 8'b11000000;
             end
             8'b00000001: begin
-                tx_term_data_0 = {RS_IDLE, RS_IDLE, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24], data_del[7:0]};
+                tx_term_data_0 = {RS_IDLE, RS_IDLE, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], data_del[7:0]};
                 tx_term_ctl_0 = 8'b11100000;
             end
             default: begin
@@ -204,22 +210,22 @@ module tx_mac (
     end else if (tlast_del) begin
         case (tx_data_keep)
             8'b11111111: begin
-                tx_term_data_1 <= {{3{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16], tx_crc[31:24]};
+                tx_term_data_1 <= {{3{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24]};
                 tx_term_ctl_1 <= 8'b11110000;
                 initial_ipg_count <= 3;
             end
             8'b01111111: begin
-                tx_term_data_1 <= {{4{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8], tx_crc[23:16]};
+                tx_term_data_1 <= {{4{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16]};
                 tx_term_ctl_1 <= 8'b11111000;
                 initial_ipg_count <= 4;
             end
             8'b00111111: begin
-                tx_term_data_1 <= {{5{RS_IDLE}}, RS_TERM, tx_crc[7:0], tx_crc[15:8]};
+                tx_term_data_1 <= {{5{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8]};
                 tx_term_ctl_1 <= 8'b11111100;
                 initial_ipg_count <= 5;
             end
             8'b00011111: begin
-                tx_term_data_1 <= {{6{RS_IDLE}}, RS_TERM, tx_crc[7:0]};
+                tx_term_data_1 <= {{6{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0]};
                 tx_term_ctl_1 <= 8'b11111110;
                 initial_ipg_count <= 6;
             end
@@ -259,5 +265,6 @@ module tx_mac (
         .i_reset(tx_crc_reset),
         .o_crc(tx_crc)
     );
-
+    
+    assign tx_crc_byteswapped = {tx_crc[0+:8], tx_crc[8+:8], tx_crc[16+:8], tx_crc[24+:8]};
 endmodule

@@ -1,3 +1,4 @@
 vivado_project/*
 msim/*
 *.log
+doc/

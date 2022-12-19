@@ -49,7 +49,7 @@ class TxDriver(uvm_driver):
 
     async def launch_tb(self):
         await self.bfm.start_bfm()
-        await self.bfm.pause(20)
+        await self.bfm.pause(100)
 
     async def run_phase(self):
         await self.launch_tb()
@@ -58,11 +58,29 @@ class TxDriver(uvm_driver):
             await self.bfm.send_tx_packet(seq_item.packet)
             self.seq_item_port.item_done()
 
+class Monitor(uvm_component):
+    def __init__(self, name, parent, method_name):
+        super().__init__(name, parent)
+        self.method_name = method_name
+
+    def build_phase(self):
+        self.ap = uvm_analysis_port("ap", self)
+        self.bfm = Eth10gBfm()
+        self.get_method = getattr(self.bfm, self.method_name)
+
+    async def run_phase(self):
+        while True:
+            datum = await self.get_method()
+            self.logger.debug(f"MONITORED {datum}")
+            self.ap.write(datum)
+
 class EthEnv(uvm_env):
     def build_phase(self):
+        np.random.seed(0)
         self.seqr = uvm_sequencer('seqr', self)
         ConfigDB().set(None, '*', 'SEQR', self.seqr)
         self.driver = TxDriver.create('driver', self)
+        self.tx_mon = Monitor("tx_mon", self, "get_tx_frame")
         
     def connect_phase(self):
         self.driver.seq_item_port.connect(self.seqr.seq_item_export)

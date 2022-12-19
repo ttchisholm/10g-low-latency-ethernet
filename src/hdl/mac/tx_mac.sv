@@ -50,7 +50,7 @@ module tx_mac (
     wire [63:0] tx_crc_input;
 
     // Termination
-    logic [7:0] tx_data_keep;
+    logic [7:0] tx_data_keep, tx_data_keep_del;
     logic [63:0] tx_term_data_0, tx_term_data_1;
     logic [7:0] tx_term_ctl_0, tx_term_ctl_1;
 
@@ -69,6 +69,7 @@ module tx_mac (
         tx_state <= IDLE;
         data_del <= '0;
         tlast_del <= '0;
+        tx_data_keep_del <= '0;
         tvalid_del <= '0;
         data_counter <= '0;
         ipg_counter <= '0;
@@ -76,9 +77,12 @@ module tx_mac (
     end else begin
         tx_state <= tx_next_state;
 
-        data_del <= s00_axis_tdata;
-        tlast_del <= s00_axis_tlast;
-        tvalid_del <= s00_axis_tvalid;
+        if (phy_tx_ready) begin
+            data_del <= s00_axis_tdata;
+            tlast_del <= s00_axis_tlast;
+            tvalid_del <= s00_axis_tvalid;
+            tx_data_keep_del <= tx_data_keep;
+        end
 
         data_counter <= next_data_counter;
         ipg_counter <= (tx_state == IPG) ? ipg_counter + 8 : initial_ipg_count;
@@ -96,64 +100,74 @@ module tx_mac (
     assign tx_data_keep = (tx_state == DATA && min_packet_size_reached) ? s00_axis_tkeep : '1; // todo non 8-octet padding
 
     always @(*) begin
-        case (tx_state)
-            IDLE: begin
-                if (s00_axis_tvalid && phy_tx_ready)
-                    tx_next_state = DATA;
-                else 
-                    tx_next_state = IDLE;
-                
-                
-                xgmii_txd = (s00_axis_tvalid && phy_tx_ready) ? START_FRAME : IDLE_FRAME;
-                xgmii_txc = (s00_axis_tvalid && phy_tx_ready) ? 8'b00000001 : '1;
-                next_data_counter = 0;
-            end
-            DATA: begin
-                if (!tvalid_del && phy_tx_ready) // tvalid must be high throughout frame
-                    tx_next_state = IDLE;
-                else if (tlast_del && !min_packet_size_reached)
-                    tx_next_state = PADDING;
-                else if (tlast_del)
-                    tx_next_state = TERM;
-                else
-                    tx_next_state = DATA;
+
+        if (!phy_tx_ready) begin
+            tx_next_state = tx_state;
+            xgmii_txd = ERROR_FRAME;
+            xgmii_txc = '1;
+            next_data_counter = next_data_counter;
+        end else begin
+            case (tx_state)
+                IDLE: begin
+                    if (s00_axis_tvalid)
+                        tx_next_state = DATA;
+                    else 
+                        tx_next_state = IDLE;
                     
-                xgmii_txd = (!tvalid_del && phy_tx_ready) ? ERROR_FRAME :               
-                            (tx_next_state == TERM)       ? tx_term_data_0 : data_del;  
-                xgmii_txc = (!tvalid_del && phy_tx_ready) ? '1 : 
-                            (tx_next_state == TERM)       ? tx_term_ctl_0 : '0;
+                    
+                    xgmii_txd = (s00_axis_tvalid) ? START_FRAME : IDLE_FRAME;
+                    xgmii_txc = (s00_axis_tvalid) ? 8'b00000001 : '1;
+                    next_data_counter = 0;
+                end
+                DATA: begin
+                    if (!tvalid_del) // tvalid must be high throughout frame
+                        tx_next_state = IDLE;
+                    else if (tlast_del && !min_packet_size_reached)
+                        tx_next_state = PADDING;
+                    else if (tlast_del)
+                        tx_next_state = TERM;
+                    else
+                        tx_next_state = DATA;
+                        
+                    xgmii_txd = (!tvalid_del) ? ERROR_FRAME :               
+                                (tx_next_state == TERM)       ? tx_term_data_0 : data_del;  
+                    xgmii_txc = (!tvalid_del) ? '1 : 
+                                (tx_next_state == TERM)       ? tx_term_ctl_0 : '0;
 
-                next_data_counter = data_counter + 8; // todo use keep rather than assume all bytes are valid
-            end
-            PADDING: begin
-                if (!min_packet_size_reached) 
-                    tx_next_state = PADDING;
-                else 
-                    tx_next_state = TERM;
-                
-                xgmii_txd = (tx_next_state == TERM) ? tx_term_data_0 : '0;
-                xgmii_txc = (tx_next_state == TERM) ? tx_term_ctl_0 : '0;
+                    next_data_counter = data_counter + 8; // todo use keep rather than assume all bytes are valid
+                end
+                PADDING: begin
+                    if (!min_packet_size_reached) 
+                        tx_next_state = PADDING;
+                    else 
+                        tx_next_state = TERM;
+                    
+                    xgmii_txd = (tx_next_state == TERM) ? tx_term_data_0 : '0;
+                    xgmii_txc = (tx_next_state == TERM) ? tx_term_ctl_0 : '0;
 
-                next_data_counter = data_counter + 8;
-            end
-            TERM: begin
-                tx_next_state = IPG;
-                xgmii_txd = tx_term_data_1;
-                xgmii_txc = tx_term_ctl_1;
-                next_data_counter = 0;
-            end
-            IPG: begin
-                if (ipg_counter < IPG_SIZE)
+                    next_data_counter = data_counter + 8;
+                end
+                TERM: begin
                     tx_next_state = IPG;
-                else
-                    tx_next_state = IDLE;
+                    xgmii_txd = tx_term_data_1;
+                    xgmii_txc = tx_term_ctl_1;
+                    next_data_counter = 0;
+                end
+                IPG: begin
+                    if (ipg_counter < IPG_SIZE)
+                        tx_next_state = IPG;
+                    else
+                        tx_next_state = IDLE;
 
-                xgmii_txd = IDLE_FRAME;
-                xgmii_txc = '1;
-                next_data_counter = 0;
-            end
+                    xgmii_txd = IDLE_FRAME;
+                    xgmii_txc = '1;
+                    next_data_counter = 0;
+                end
 
-        endcase
+            endcase
+        end
+
+        
 
     end
 
@@ -162,7 +176,7 @@ module tx_mac (
     // Construct the final two tx frames depending on number of bytes in last axis frame
     // first term frame is used without reg
     always @(*) begin
-        case (tx_data_keep)
+        case (tx_data_keep_del)
             8'b11111111: begin
                 tx_term_data_0 = data_del;
                 tx_term_ctl_0 = 8'b00000000;
@@ -208,7 +222,7 @@ module tx_mac (
         tx_term_ctl_1 <= '0;
         initial_ipg_count <= '0;
     end else if (tlast_del) begin
-        case (tx_data_keep)
+        case (tx_data_keep_del)
             8'b11111111: begin
                 tx_term_data_1 <= {{3{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24]};
                 tx_term_ctl_1 <= 8'b11110000;

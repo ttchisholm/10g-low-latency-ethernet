@@ -84,7 +84,10 @@ module tx_mac (
             tx_data_keep_del <= tx_data_keep;
         end
 
-        data_counter <= next_data_counter;
+        if (!min_packet_size_reached) begin
+            data_counter <= next_data_counter;
+        end
+        
         ipg_counter <= (tx_state == IPG) ? ipg_counter + 8 : initial_ipg_count;
 
         

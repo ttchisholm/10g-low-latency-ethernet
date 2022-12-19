@@ -78,7 +78,7 @@ module rx_mac (
                     rx_next_state = DATA;
                 
                 m00_axis_tdata = masked_data;
-                m00_axis_tvalid = 1'b1;
+                m00_axis_tvalid = phy_rx_valid;
                 m00_axis_tkeep = |sfd_found_loc ? start_keep :
                                   term_found    ? term_keep  :
                                                 8'b11111111; 
@@ -146,10 +146,11 @@ module rx_mac (
     always @(*) begin
         if (!term_found) begin
             frame_crc = xgmii_rxd[63:32]; // Assume term is first in next frame for now
-            rx_crc_input_valid = m00_axis_tkeep;
+            rx_crc_input_valid = m00_axis_tkeep & {8{phy_rx_valid}};
             delayed_crc_input_valid = rx_crc_input_valid_del;
         end else begin
             delayed_crc_input_valid = rx_crc_input_valid_del;
+            rx_crc_input_valid = m00_axis_tkeep & {8{phy_rx_valid}};
 
             case (term_loc)
                 8'b00000001: begin
@@ -170,15 +171,19 @@ module rx_mac (
                 end
                 8'b00010000: begin
                     frame_crc = xgmii_rxd[31:0];
+                    rx_crc_input_valid = 8'b00000000;
                 end
                 8'b00100000: begin
                     frame_crc = xgmii_rxd[39:8];
+                    rx_crc_input_valid = 8'b00000001;
                 end
                 8'b01000000: begin
                     frame_crc = xgmii_rxd[47:16];
+                    rx_crc_input_valid = 8'b00000011;
                 end
                 8'b10000000: begin
                     frame_crc = xgmii_rxd[55:24];
+                    rx_crc_input_valid = 8'b00000111;
                 end
             endcase
 
@@ -198,7 +203,8 @@ module rx_mac (
                        
     
 
-    crc32 #(.INPUT_WIDTH_BYTES(8)) u_rx_crc(
+    crc32 #(.INPUT_WIDTH_BYTES(8),
+        .REGISTER_OUTPUT(0)) u_rx_crc(
         
         .i_clk(i_clk),
         .i_data(rx_crc_input),

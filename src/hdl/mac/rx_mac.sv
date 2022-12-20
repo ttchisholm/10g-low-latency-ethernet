@@ -14,7 +14,6 @@ module rx_mac (
     output logic [63:0] m00_axis_tdata,
     output logic [7:0] m00_axis_tkeep,
     output logic m00_axis_tvalid,
-    input wire m00_axis_tready,
     output logic m00_axis_tlast,
     output logic m00_axis_tuser
 );

@@ -3,9 +3,9 @@ Needed:
 - rename encoder_pkg and move to common folder
 - File headers
 - Handle MAC User Rx not ready - buffer up to end of IPG?
+- Take out rx axis tready
 
 Nice to have:
-- MAC: Non-8 octet aligned data/padding (rx)
 - MAC: Deficit IPG
 - 32-bit datapath
 - Clearer PCS encoding without functions?

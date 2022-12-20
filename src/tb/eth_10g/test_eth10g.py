@@ -1,6 +1,7 @@
 import random
 
 import numpy as np
+import yaml
 
 from cocotb.triggers import RisingEdge, FallingEdge
 from cocotb.queue import QueueEmpty, Queue
@@ -74,20 +75,69 @@ class Monitor(uvm_component):
             self.logger.debug(f"MONITORED {datum}")
             self.ap.write(datum)
 
+class Scoreboard(uvm_component):
+    def build_phase(self):
+        self.tx_frame_fifo = uvm_tlm_analysis_fifo("tx_frame_fifo", self)
+        self.rx_frame_fifo = uvm_tlm_analysis_fifo("rx_frame_fifo", self)
+        self.tx_frame_port = uvm_get_port("tx_frame_port", self)
+        self.rx_frame_port = uvm_get_port("rx_frame_port", self)
+        self.tx_frame_export = self.tx_frame_fifo.analysis_export
+        self.rx_frame_export = self.rx_frame_fifo.analysis_export
+
+    def connect_phase(self):
+        self.tx_frame_port.connect(self.tx_frame_fifo.get_export)
+        self.rx_frame_port.connect(self.rx_frame_fifo.get_export)
+
+    def check_phase(self):
+        while self.rx_frame_port.can_get():
+            _, rx_frame = self.rx_frame_port.try_get()
+            tx_success, tx_frame = self.tx_frame_port.try_get()
+
+            if not tx_success:
+                self.logger.critical(f'tx_frame {tx_frame} error')
+            else:
+                if (rx_frame.tdata[:-4] == tx_frame.tdata):
+                    self.logger.info(f"PASSED: {rx_frame}, {tx_frame}")
+                else:
+                    self.logger.critical(f"FAILED: {rx_frame}, {tx_frame}")
+                    assert False
+
+
+
 class EthEnv(uvm_env):
     def build_phase(self):
-        np.random.seed(0)
+        self.config = ConfigDB().get(self, "", 'run_config')
+        
         self.seqr = uvm_sequencer('seqr', self)
         ConfigDB().set(None, '*', 'SEQR', self.seqr)
+        
+        self.bfm = Eth10gBfm()
+        self.bfm.set_axis_log(self.config['print_axis'])
+        
         self.driver = TxDriver.create('driver', self)
         self.tx_mon = Monitor("tx_mon", self, "get_tx_frame")
+        self.rx_mon = Monitor("rx_mon", self, "get_rx_frame")
+        self.scoreboard = Scoreboard("scoreboard", self)
         
     def connect_phase(self):
         self.driver.seq_item_port.connect(self.seqr.seq_item_export)
+        self.tx_mon.ap.connect(self.scoreboard.tx_frame_export)
+        self.rx_mon.ap.connect(self.scoreboard.rx_frame_export)
 
 
 class Eth10gTest(uvm_test):
     def build_phase(self):
+        with open('eth_10g_config.yaml', 'r') as f:
+            self.config = yaml.safe_load(f)
+        ConfigDB().set(None, '*', 'run_config', self.config)
+
+        np.random.seed(self.config['seed'])
+
+        if self.config['debug']:
+            debugpy.listen(5678)
+            debugpy.wait_for_client()
+            debugpy.breakpoint()
+
         self.env = EthEnv("env", self)
 
     def end_of_elaboration_phase(self):
@@ -98,9 +148,9 @@ class Eth10gTest(uvm_test):
         await self.test_random.start()
         self.drop_objection()
 
+
+
 @cocotb.test()
 async def test_run_Eth10gTest(_):
-    # debugpy.listen(5678)
-    # debugpy.wait_for_client()
-    # debugpy.breakpoint()
+    # 
     await uvm_root().run_test(Eth10gTest)

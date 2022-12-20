@@ -16,7 +16,6 @@ module eth_10g #(
     output logic [63:0] m00_axis_tdata,
     output logic [7:0] m00_axis_tkeep,
     output logic m00_axis_tvalid,
-    input wire m00_axis_tready,
     output logic m00_axis_tlast,
     output logic m00_axis_tuser,
 
@@ -60,7 +59,6 @@ module eth_10g #(
         .m00_axis_tdata(m00_axis_tdata),
         .m00_axis_tkeep(m00_axis_tkeep),
         .m00_axis_tvalid(m00_axis_tvalid),
-        .m00_axis_tready(m00_axis_tready),
         .m00_axis_tlast(m00_axis_tlast),
         .m00_axis_tuser(m00_axis_tuser)
     );

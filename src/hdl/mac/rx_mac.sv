@@ -146,27 +146,27 @@ module rx_mac (
         if (!term_found) begin
             frame_crc = xgmii_rxd[63:32]; // Assume term is first in next frame for now
             rx_crc_input_valid = m00_axis_tkeep & {8{phy_rx_valid}};
-            delayed_crc_input_valid = rx_crc_input_valid_del;
+            delayed_crc_input_valid = rx_crc_input_valid_del & {8{phy_rx_valid}}; // This is required to pause the delay pipeline when data invalid
         end else begin
-            delayed_crc_input_valid = rx_crc_input_valid_del;
+            delayed_crc_input_valid = rx_crc_input_valid_del & {8{phy_rx_valid}};
             rx_crc_input_valid = m00_axis_tkeep & {8{phy_rx_valid}};
 
             case (term_loc)
                 8'b00000001: begin
                     frame_crc = prev_frame_crc;
-                    delayed_crc_input_valid = 8'b00001111; // This means the last 4 bytes of the previous frame were the crc
+                    delayed_crc_input_valid = 8'b00001111 & {8{phy_rx_valid}}; // This means the last 4 bytes of the previous frame were the crc
                 end
                 8'b00000010: begin
                     frame_crc = {xgmii_rxd[7:0], prev_frame_crc[31:8]};
-                    delayed_crc_input_valid = 8'b00011111; 
+                    delayed_crc_input_valid = 8'b00011111 & {8{phy_rx_valid}}; 
                 end
                 8'b00000100: begin
                     frame_crc = {xgmii_rxd[15:0], prev_frame_crc[31:16]};
-                    delayed_crc_input_valid = 8'b00111111; 
+                    delayed_crc_input_valid = 8'b00111111 & {8{phy_rx_valid}}; 
                 end
                 8'b00001000: begin
                     frame_crc = {xgmii_rxd[23:0], prev_frame_crc[31:24]};
-                    delayed_crc_input_valid = 8'b01111111; 
+                    delayed_crc_input_valid = 8'b01111111 & {8{phy_rx_valid}}; 
                 end
                 8'b00010000: begin
                     frame_crc = xgmii_rxd[31:0];
@@ -194,7 +194,7 @@ module rx_mac (
     always @(posedge i_clk)
     if (i_reset) begin
         prev_frame_crc <= '0;
-    end else begin
+    end else if (phy_rx_valid) begin
         prev_frame_crc <= frame_crc;
     end
     
@@ -216,7 +216,7 @@ module rx_mac (
     if (i_reset) begin
         rx_crc_input_del <= '0;
         rx_crc_input_valid_del <= '0;
-    end else begin
+    end else if (phy_rx_valid) begin
         rx_crc_input_del <= rx_crc_input;
         rx_crc_input_valid_del <= rx_crc_input_valid;
     end
@@ -246,7 +246,7 @@ module rx_mac (
     // Finally set tuser
     wire [31:0] frame_crc_byteswapped;
     assign frame_crc_byteswapped = {frame_crc[0+:8], frame_crc[8+:8], frame_crc[16+:8], frame_crc[24+:8]};
-    assign m00_axis_tuser = term_found && term_loc < 8'b00000100  ? term_crc == frame_crc :
+    assign m00_axis_tuser = term_found && term_loc < 8'b00010000  ? term_crc == frame_crc :
                             term_found ? rx_crc == frame_crc : 1'b0;
 
     

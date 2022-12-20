@@ -103,7 +103,7 @@ module rx_mac (
     // Term detect
     genvar gi;
     generate for (gi = 0; gi < 8; gi++) begin
-        assign term_loc[gi] = xgmii_rxd[gi*8 +: 8] == RS_TERM && xgmii_rxc[gi];
+        assign term_loc[gi] = phy_rx_valid && xgmii_rxd[gi*8 +: 8] == RS_TERM && xgmii_rxc[gi];
     end endgenerate
 
     assign term_found = |term_loc;

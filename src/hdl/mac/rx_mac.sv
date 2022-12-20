@@ -89,8 +89,8 @@ module rx_mac (
     end
 
     // Start detect
-    assign sfd_found_0 = (xgmii_rxd[7:0] == RS_START) && (xgmii_rxc[0] == 1'b1);
-    assign sfd_found_4 = (xgmii_rxd[39:32] == RS_START) && (xgmii_rxc[4] == 1'b1);
+    assign sfd_found_0 = phy_rx_valid && (xgmii_rxd[7:0] == RS_START) && (xgmii_rxc[0] == 1'b1);
+    assign sfd_found_4 = phy_rx_valid && (xgmii_rxd[39:32] == RS_START) && (xgmii_rxc[4] == 1'b1);
     assign sfd_found = sfd_found_0 || sfd_found_4; 
 
     always @(posedge i_clk) // Record sfd loc for next cycle output

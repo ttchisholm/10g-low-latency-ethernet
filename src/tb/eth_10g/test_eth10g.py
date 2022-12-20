@@ -28,21 +28,26 @@ class EthTxSeqItem(uvm_sequence_item):
 
 class EthTxSeqRandom(uvm_sequence):
 
+    def __init__(self, name, length):
+        super().__init__(name)
+        self.length = length
+
     async def body(self):
-        for i in range(10):
+        for i in range(self.length):
             seq_item = EthTxSeqItem(f'p{i}', np.random.randint(64, 256, 1))
             await self.start_item(seq_item)
             await self.finish_item(seq_item)
 
 class TestAllSeq(uvm_sequence):
-
     async def body(self):
+        self.config = ConfigDB().get(None, "", 'run_config')
         seqr = ConfigDB().get(None, "", "SEQR")
-        random = EthTxSeqRandom("random")
+        random = EthTxSeqRandom("random", self.config['tx_seq_length'])
         await random.start(seqr)
 
 class TxDriver(uvm_driver):
     def build_phase(self):
+        self.config = ConfigDB().get(self, "", 'run_config')
         self.ap = uvm_analysis_port('ap', self)
 
     def start_of_simulation_phase(self):
@@ -50,7 +55,7 @@ class TxDriver(uvm_driver):
 
     async def launch_tb(self):
         await self.bfm.start_bfm()
-        await self.bfm.pause(100)
+        await self.bfm.pause(self.config['startup_pause'])
 
     async def run_phase(self):
         await self.launch_tb()

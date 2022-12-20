@@ -78,7 +78,7 @@ module tx_mac (
         tx_state <= tx_next_state;
 
         if (phy_tx_ready) begin
-            data_del <= s00_axis_tdata;
+            data_del <= (tx_next_state == PADDING) ? '0 : s00_axis_tdata;
             tlast_del <= s00_axis_tlast;
             tvalid_del <= s00_axis_tvalid;
             tx_data_keep_del <= tx_data_keep;
@@ -224,7 +224,7 @@ module tx_mac (
         tx_term_data_1 <= '0;
         tx_term_ctl_1 <= '0;
         initial_ipg_count <= '0;
-    end else if (tlast_del) begin
+    end else if (tx_next_state == TERM) begin
         case (tx_data_keep_del)
             8'b11111111: begin
                 tx_term_data_1 <= {{3{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24]};

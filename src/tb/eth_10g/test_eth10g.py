@@ -34,7 +34,7 @@ class EthTxSeqRandom(uvm_sequence):
 
     async def body(self):
         for i in range(self.length):
-            seq_item = EthTxSeqItem(f'p{i}', np.random.randint(64, 256, 1))
+            seq_item = EthTxSeqItem(f'p{i}', np.random.randint(16, 256, 1))
             await self.start_item(seq_item)
             await self.finish_item(seq_item)
 
@@ -102,7 +102,13 @@ class Scoreboard(uvm_component):
                 self.logger.critical(f'tx_frame {tx_frame} error')
             else:
 
-                data_eq = rx_frame.tdata[:-4] == tx_frame.tdata
+                if len(tx_frame.tdata) < 48:
+                    data_eq = rx_frame.tdata[0:len(tx_frame.tdata)] == tx_frame.tdata and \
+                                all([x == 0 for x in rx_frame.tdata[len(tx_frame.tdata):-4]])
+                else:
+                    data_eq = rx_frame.tdata[:-4] == tx_frame.tdata
+
+                
 
               
 

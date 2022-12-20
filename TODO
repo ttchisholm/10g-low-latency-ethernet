@@ -1,3 +1,7 @@
+In progress:
+- Padding tb
+- tb coverage
+
 Needed:
 - Better module signal names
 - rename encoder_pkg and move to common folder
@@ -10,3 +14,4 @@ Nice to have:
 - 32-bit datapath
 - Clearer PCS encoding without functions?
 - Fix or note non-standard rx AXIS TUSER when TKEEP = 0
+- Payloads less than 48 are padded (rather then min size of 46)

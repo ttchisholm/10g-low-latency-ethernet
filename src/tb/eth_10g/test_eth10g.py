@@ -101,11 +101,26 @@ class Scoreboard(uvm_component):
             if not tx_success:
                 self.logger.critical(f'tx_frame {tx_frame} error')
             else:
-                if (rx_frame.tdata[:-4] == tx_frame.tdata):
-                    self.logger.info(f"PASSED: {rx_frame}, {tx_frame}")
+
+                data_eq = rx_frame.tdata[:-4] == tx_frame.tdata
+
+              
+
+                try:
+                    iter(rx_frame.tuser)
+                    rx_crc_valid = rx_frame.tuser[-1] == 1
+                except TypeError:
+                    rx_crc_valid = False    
+                    
+
+                if not data_eq:
+                    self.logger.critical(f"FAILED (Data Not Equal): {rx_frame}, {tx_frame}")
+                elif not rx_crc_valid:
+                    self.logger.critical(f"FAILED (CRC Valid Flag Not Set): {rx_frame}, {tx_frame}")
                 else:
-                    self.logger.critical(f"FAILED: {rx_frame}, {tx_frame}")
-                    assert False
+                    self.logger.info(f"PASSED: {rx_frame}, {tx_frame}")
+
+                assert data_eq and rx_crc_valid
 
 
 

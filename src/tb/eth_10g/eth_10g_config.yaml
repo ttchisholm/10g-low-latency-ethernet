@@ -1,4 +1,4 @@
-debug: False
+debug: True
 print_axis: False
 seed: 0
 startup_pause: 100

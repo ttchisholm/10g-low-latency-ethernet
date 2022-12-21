@@ -19,14 +19,14 @@ VERILOG_SOURCES += $(PWD)/../../hdl/mac/tx_mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/rx_mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/crc32.sv
 
-VERILOG_SOURCES += $(PWD)/../../hdl/eth_10g.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/mac_pcs.sv
 
 
 CUSTOM_SIM_DEPS += crc32.mem
 
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
-TOPLEVEL = eth_10g
+TOPLEVEL = mac_pcs
 
 # MODULE is the basename of the Python test file
 MODULE = test_eth10g

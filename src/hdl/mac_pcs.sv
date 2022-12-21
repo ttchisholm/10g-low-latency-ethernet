@@ -1,6 +1,6 @@
 `default_nettype none
 
-module eth_10g #(
+module mac_pcs #(
     parameter SCRAMBLER_BYPASS = 0
 ) (
     input wire i_reset,

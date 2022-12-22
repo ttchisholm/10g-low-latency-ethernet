@@ -55,7 +55,11 @@
 // demonstration purposes
 // =====================================================================================================================
 
-module gtwizard_wrapper (
+// Modified to remove pattern gen/check, expose user data and usrclk2
+
+module gtwizard_wrapper #( 
+    parameter real INIT_CLK_FREQ = 100.0
+) (
 
   // Differential reference clock inputs
   input  wire mgtrefclk0_x0y3_p,
@@ -87,7 +91,11 @@ module gtwizard_wrapper (
 
   // Transceiver user clock outputs
   output wire hb0_gtwiz_userclk_tx_usrclk2,
-  output wire hb0_gtwiz_userclk_rx_usrclk2
+  output wire hb0_gtwiz_userclk_rx_usrclk2,
+
+  // Transceiver ready/error outputs
+  output wire tx_ready,
+  output wire rx_ready
 );
 
 
@@ -441,7 +449,9 @@ module gtwizard_wrapper (
   // or data connections. It also resets the receiver in the event of link loss in an attempt to regain link, so please
   // note the possibility that this behavior can have the effect of overriding or disturbing user-provided inputs that
   // destabilize the data stream. It is a demonstration only and can be modified to suit your system needs.
-  gtwizard_ultrascale_0_example_init example_init_inst (
+  gtwizard_ultrascale_0_example_init #(
+    .P_FREERUN_FREQUENCY(INIT_CLK_FREQ)
+  ) example_init_inst (
     .clk_freerun_in  (hb_gtwiz_reset_clk_freerun_buf_int),
     .reset_all_in    (hb_gtwiz_reset_all_int),
     .tx_init_done_in (gtwiz_reset_tx_done_int && gtwiz_buffbypass_tx_done_int),
@@ -616,6 +626,10 @@ module gtwizard_wrapper (
     ,.probe_out4 (hb_gtwiz_reset_rx_datapath_vio_int)
     ,.probe_out5 (link_down_latched_reset_vio_int)
   );
+
+  // Ready outputs
+  assign tx_ready = gtwiz_reset_tx_done_int && gtwiz_buffbypass_tx_done_int;
+  assign rx_ready = gtwiz_reset_rx_done_int && gtwiz_buffbypass_rx_done_int;
 
 
   // ===================================================================================================================

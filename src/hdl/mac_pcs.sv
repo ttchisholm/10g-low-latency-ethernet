@@ -3,7 +3,8 @@
 module mac_pcs #(
     parameter SCRAMBLER_BYPASS = 0
 ) (
-    input wire i_reset,
+    input wire i_tx_reset,
+    input wire i_rx_reset,
 
     // Tx AXIS
     input wire [63:0] s00_axis_tdata,
@@ -34,7 +35,8 @@ module mac_pcs #(
 
     mac u_mac (
         
-        .i_reset(i_reset),
+        .i_tx_reset(i_tx_reset),
+        .i_rx_reset(i_rx_reset),
 
         // Tx PHY
         .i_txc(i_xver_txc),
@@ -68,7 +70,8 @@ module mac_pcs #(
     ) u_pcs (
         
         // Reset logic
-        .i_reset(i_reset),
+        .i_tx_reset(i_tx_reset),
+        .i_rx_reset(i_rx_reset),
 
         // Rx from tranceiver
         .i_rxc(i_xver_rxc),

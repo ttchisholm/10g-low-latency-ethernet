@@ -3,7 +3,8 @@ module pcs #(
 )(
     
     // Reset logic
-    input wire i_reset,
+    input wire i_tx_reset,
+    input wire i_rx_reset,
 
     // Rx from tranceiver
     input wire i_rxc,
@@ -23,20 +24,6 @@ module pcs #(
     output wire [63:0] o_txd
 );
 
-    // ************* RESET ************* //
-    logic [1:0] rx_reset_sync, tx_reset_sync;
-    wire rx_reset, tx_reset;
-
-    always @(posedge i_rxc) begin
-        rx_reset_sync <= {rx_reset_sync[0], i_reset};
-    end
-    assign rx_reset = rx_reset_sync[1];
-
-    always @(posedge i_txc) begin
-        tx_reset_sync <= {tx_reset_sync[0], i_reset};
-    end
-    assign tx_reset = tx_reset_sync[1];
-
     // ************* TX DATAPATH ************* //
     wire [63:0] tx_encoded_data, tx_scrambled_data;
     wire [1:0] tx_header;
@@ -44,8 +31,8 @@ module pcs #(
 
     // Encoder
     encode_6466b u_encoder(
-        .i_reset(tx_reset),
-        .i_init_done(!tx_reset),
+        .i_reset(i_tx_reset),
+        .i_init_done(!i_tx_reset),
         .i_txc(i_txc),
         .i_txd(i_txd),
         .i_txctl(i_txctl),
@@ -60,8 +47,8 @@ module pcs #(
             assign tx_scrambled_data = tx_encoded_data;
         end else begin
             scrambler u_scrambler(
-                .i_reset(tx_reset),
-                .i_init_done(!tx_reset),
+                .i_reset(i_tx_reset),
+                .i_init_done(!i_tx_reset),
                 .i_txc(i_txc),
                 .i_tx_pause(tx_gearbox_pause),
                 .i_txd(tx_encoded_data),
@@ -73,8 +60,8 @@ module pcs #(
     // Gearbox
     gearbox #(.INPUT_WIDTH(66), .OUTPUT_WIDTH(64)) 
     u_tx_gearbox(
-        .i_reset(tx_reset),
-        .i_init_done(!tx_reset),
+        .i_reset(i_tx_reset),
+        .i_init_done(!i_tx_reset),
         .i_clk(i_txc),
         .i_data({tx_scrambled_data, tx_header}),
         .i_slip(1'b0),
@@ -95,8 +82,8 @@ module pcs #(
     // Gearbox
     gearbox  #(.INPUT_WIDTH(64), .OUTPUT_WIDTH(66)) 
     u_rx_gearbox(
-        .i_reset(rx_reset),
-        .i_init_done(!rx_reset),
+        .i_reset(i_rx_reset),
+        .i_init_done(!i_rx_reset),
         .i_clk(i_rxc),
         .i_data(i_rxd),
         .i_slip(rx_gearbox_slip),
@@ -110,7 +97,7 @@ module pcs #(
     // Lock state machine
     lock_state u_lock_state(
         .i_clk(i_rxc),
-        .i_reset(rx_reset),
+        .i_reset(i_rx_reset),
         .i_header(rx_header),
         .i_valid(o_rx_valid),
         .o_slip(rx_gearbox_slip)
@@ -122,8 +109,8 @@ module pcs #(
             assign rx_descrambled_data = rx_gearbox_data_out;
         end else begin
             descrambler u_descrambler(
-                .i_reset(rx_reset),
-                .i_init_done(!rx_reset),
+                .i_reset(i_rx_reset),
+                .i_init_done(!i_rx_reset),
                 .i_rx_valid(o_rx_valid),
                 .i_rxc(i_rxc),
                 .i_rxd(rx_gearbox_data_out),
@@ -135,8 +122,8 @@ module pcs #(
     // Decoder
 
     decode_6466b u_decoder(
-        .i_reset(rx_reset),
-        .i_init_done(!rx_reset),
+        .i_reset(i_rx_reset),
+        .i_init_done(!i_rx_reset),
         .i_rxc(i_rxc),
         .i_rxd(rx_descrambled_data),
         .i_rx_header(rx_header),

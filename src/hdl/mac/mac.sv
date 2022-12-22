@@ -2,7 +2,8 @@
 
 module mac (
     
-    input wire i_reset,
+    input wire i_tx_reset,
+    input wire i_rx_reset,
 
     // Tx PHY
     input wire i_txc,
@@ -38,23 +39,9 @@ module mac (
     localparam MIN_PAYLOAD_SIZE = 46;
     localparam IPG_SIZE = 12;
 
-    // ************* RESET ************* //
-    logic [1:0] rx_reset_sync, tx_reset_sync;
-    wire rx_reset, tx_reset;
-
-    always @(posedge i_rxc) begin
-        rx_reset_sync <= {rx_reset_sync[0], i_reset};
-    end
-    assign rx_reset = rx_reset_sync[1];
-
-    always @(posedge i_txc) begin
-        tx_reset_sync <= {tx_reset_sync[0], i_reset};
-    end
-    assign tx_reset = tx_reset_sync[1];
-
     tx_mac u_tx(
     
-        .i_reset(i_reset),
+        .i_reset(i_tx_reset),
         .i_clk(i_txc),
 
         // Tx PHY
@@ -72,7 +59,7 @@ module mac (
 
     rx_mac u_rx (
     
-        .i_reset(i_reset),
+        .i_reset(i_rx_reset),
         .i_clk(i_rxc),
 
         // Rx PHY

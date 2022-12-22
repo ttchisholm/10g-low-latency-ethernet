@@ -19,15 +19,15 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
         self.rx_monitor_queue = Queue(maxsize=0)
 
         self.tx_axis_source = AxiStreamSource(AxiStreamBus.from_prefix(self.dut, "s00_axis"), 
-                                                self.dut.i_xver_txc, self.dut.i_reset)
+                                                self.dut.i_xver_txc, self.dut.i_rx_reset)
         
 
         self.tx_axis_monitor = AxiStreamMonitor(AxiStreamBus.from_prefix(self.dut, "s00_axis"), 
-                                                self.dut.i_xver_txc, self.dut.i_reset)
+                                                self.dut.i_xver_txc, self.dut.i_rx_reset)
         
 
         self.rx_axis_monitor = AxiStreamMonitor(AxiStreamBus.from_prefix(self.dut, "m00_axis"), 
-                                                self.dut.i_xver_rxc, self.dut.i_reset)
+                                                self.dut.i_xver_rxc, self.dut.i_tx_reset)
         
 
     def set_axis_log(self, enable):
@@ -44,7 +44,8 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
         await self.tx_driver_queue.put(packet)
 
     async def reset(self):
-        self.dut.i_reset.value = 1
+        self.dut.i_tx_reset.value = 1
+        self.dut.i_rx_reset.value = 1
         self.dut.i_xver_rxc.value = 0
         self.dut.i_xver_rxd.value = 0
         self.dut.i_xver_txc.value = 0
@@ -52,7 +53,8 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
         await RisingEdge(self.dut.i_xver_txc)
         await FallingEdge(self.dut.i_xver_rxc)
         await FallingEdge(self.dut.i_xver_txc)
-        self.dut.i_reset.value = 0
+        self.dut.i_tx_reset.value = 0
+        self.dut.i_rx_reset.value = 0
         await RisingEdge(self.dut.i_xver_rxc)
         await RisingEdge(self.dut.i_xver_txc)
 

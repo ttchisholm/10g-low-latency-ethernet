@@ -1,3 +1,6 @@
+# Designed to be run in 'gen' subdirectory
+
+
 # IP project setup
 create_project -in_memory -part xczu49dr-ffvf1760-2-e
 set_property target_language Verilog [current_project]

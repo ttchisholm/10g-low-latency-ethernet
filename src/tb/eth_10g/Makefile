@@ -32,10 +32,12 @@ TOPLEVEL = mac_pcs
 MODULE = test_eth10g
 
 # module parameters
-export SCRAMBLER_BYPASS ?= 1
+export SCRAMBLER_BYPASS ?= 0
 
 ifeq ($(SIM), icarus)
 	PLUSARGS += -fst
+
+	COMPILE_ARGS += -P $(TOPLEVEL).SCRAMBLER_BYPASS=$(SCRAMBLER_BYPASS)
 
 	ifeq ($(WAVES), 1)
 		VERILOG_SOURCES += iverilog_dump.v

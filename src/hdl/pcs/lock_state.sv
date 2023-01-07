@@ -1,10 +1,10 @@
 module lock_state(
-    input i_clk,
-    input i_reset,
-    input [1:0] i_header,
-    input i_valid,
+    input wire i_clk,
+    input wire i_reset,
+    input wire [1:0] i_header,
+    input wire i_valid,
     
-    output o_slip
+    output wire o_slip
 );
 
     typedef enum logic[3:0] { LOCK_INIT, RESET_CNT, TEST_SH, 

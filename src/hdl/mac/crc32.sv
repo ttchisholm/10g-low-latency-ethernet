@@ -6,12 +6,12 @@ module crc32 #(
     parameter INPUT_WIDTH_BYTES = 8,
     parameter REGISTER_OUTPUT = 1
 ) (
-    input i_clk,
-    input [INPUT_WIDTH_BYTES*8 -1:0] i_data,
-    input [INPUT_WIDTH_BYTES-1 : 0] i_valid,
-    input i_reset,
+    input wire i_clk,
+    input wire [INPUT_WIDTH_BYTES*8 -1:0] i_data,
+    input wire [INPUT_WIDTH_BYTES-1 : 0] i_valid,
+    input wire i_reset,
 
-    output [31:0] o_crc
+    output wire [31:0] o_crc
 );
 
 

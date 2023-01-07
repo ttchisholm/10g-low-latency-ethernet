@@ -30,9 +30,14 @@ proc init {} {
 proc add_sources {} {
 
     read_verilog [glob $::src_dir/hdl/*.sv] -sv
-    read_verilog [glob $::core_src_dir/hdl/**/*.svh] -sv
     read_verilog [glob $::core_src_dir/hdl/*.sv] -sv
     read_verilog [glob $::core_src_dir/hdl/**/*.sv] -sv
+    read_verilog [glob $::core_src_dir/hdl/**/*.v]
+
+    # remove the gtwiz functions source as this wont synth on its own
+    # todo better way?
+    remove_files [get_files -filter {NAME =~ */gtwizard_ultrascale_0_example_wrapper_functions.v}] 
+    
 
     read_ip [glob $::ip_dir/**/*.xci]
 
@@ -41,12 +46,13 @@ proc add_sources {} {
 
 # todo out-of-context runs?
 proc gen_ip {} {
-    generate_target all [get_ips]
+    set_property GENERATE_SYNTH_CHECKPOINT true [get_files -filter {NAME =~ *.xci}]
+    synth_ip [get_ips]
 }
 
 proc synth {} {
-    synth_design -top $::project_name -flatten_hierarchy $::flatten_hierarchy 
-    # -include_dirs $::core_src_include_dir
+    
+    synth_design -top $::project_name -flatten_hierarchy $::flatten_hierarchy -include_dirs $::core_src_include_dir
     write_checkpoint -force $::output_dir/post_synth.dcp
     report_timing_summary -file $::output_dir/post_synth_timing_summary.rpt
     report_utilization -file $::output_dir/post_synth_util.rpt
@@ -106,8 +112,7 @@ proc all {} {
 proc start_synth {} {
     init
     add_sources
-    gen_bd
-    finish_bd
+    gen_ip
     synth
 }
 

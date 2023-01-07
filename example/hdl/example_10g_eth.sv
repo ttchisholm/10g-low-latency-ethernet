@@ -64,7 +64,7 @@ module example_10g_eth (
     assign s00_axis_tdata = {packet_vio_data[63:16], packet_length_cnt}; // Set lower 16 bits to packet index counter 
     assign s00_axis_tkeep = '1;
     assign s00_axis_tlast = packet_length_cnt == packet_length;
-    assign s00_axis_tvalid = !reset;
+    assign s00_axis_tvalid = !vio_reset_out;
 
     // Packet Gen VIO
     eth_core_control_vio u_core_control_vio (
@@ -98,7 +98,7 @@ module example_10g_eth (
         .SCRAMBLER_BYPASS(0),
         .INIT_CLK_FREQ(100.0)
     ) u_eth_10g (
-        .reset(reset),
+        .reset(core_reset),
         .init_clk(init_clk),
         .mgtrefclk0_x0y3_p(mgtrefclk0_x0y3_p),
         .mgtrefclk0_x0y3_n(mgtrefclk0_x0y3_n),

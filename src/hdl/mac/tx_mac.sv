@@ -109,7 +109,7 @@ module tx_mac (
             tx_next_state = tx_state;
             xgmii_txd = ERROR_FRAME;
             xgmii_txc = '1;
-            next_data_counter = next_data_counter;
+            next_data_counter = data_counter;
         end else begin
             case (tx_state)
                 IDLE: begin
@@ -164,6 +164,12 @@ module tx_mac (
                         tx_next_state = IDLE;
 
                     xgmii_txd = IDLE_FRAME;
+                    xgmii_txc = '1;
+                    next_data_counter = 0;
+                end
+                default: begin
+                    tx_next_state = IDLE;
+                    xgmii_txd = ERROR_FRAME;
                     xgmii_txc = '1;
                     next_data_counter = 0;
                 end

@@ -69,7 +69,7 @@ module encode_6466b (
     endfunction
 
     function bit is_all_lanes_data(input logic [7:0] ictl, input bit[3:0] lanes);
-        for(int i = 0; i < 8; i++) begin
+        for(int i = 0; i < 4; i++) begin
             if(lanes[i] == 1)
                 if (ictl[lanes[i]] == 1'b0) return 0;
         end

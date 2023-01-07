@@ -84,6 +84,13 @@ module rx_mac (
                                                 8'b11111111; 
                 m00_axis_tlast = term_found;
             end
+            default: begin
+                rx_next_state = IDLE;
+                m00_axis_tdata = '0;
+                m00_axis_tvalid = '0;
+                m00_axis_tkeep = '0;
+                m00_axis_tlast = '0;
+            end
 
         endcase
 
@@ -184,6 +191,10 @@ module rx_mac (
                 8'b10000000: begin
                     frame_crc = xgmii_rxd[55:24];
                     rx_crc_input_valid = 8'b00000111;
+                end
+                default: begin
+                    frame_crc = '0;
+                    rx_crc_input_valid = '0;
                 end
             endcase
 

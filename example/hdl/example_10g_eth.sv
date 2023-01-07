@@ -55,7 +55,7 @@ module example_10g_eth (
     assign core_reset = reset_cdc[1]; 
 
     always @(posedge s00_axis_aclk)
-    if (packet_gen_reset) begin
+    if (vio_reset_out) begin
         packet_length_cnt <= '0;
     end else if (s00_axis_tready) begin
         packet_length_cnt <= (packet_length_cnt == packet_length) ? '0 : packet_length_cnt + 1;

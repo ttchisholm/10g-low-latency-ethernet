@@ -5,7 +5,7 @@ SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 WAVES ?= 1
 
-VERILOG_SOURCES += $(PWD)/../../hdl/pcs/encoder_pkg.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/include/code_defs_pkg.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/pcs.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/decoder.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/descrambler.sv

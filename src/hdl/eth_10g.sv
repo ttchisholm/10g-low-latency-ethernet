@@ -38,7 +38,7 @@ module eth_10g #(
     input  wire ch1_gtyrxn_in,
     input  wire ch1_gtyrxp_in,
     output wire ch1_gtytxn_out,
-    output wire ch1_gtytxp_out,
+    output wire ch1_gtytxp_out
 );
 
     // MAC/PCS reset
@@ -79,7 +79,7 @@ module eth_10g #(
         .i_xver_rxc(gtwiz_rx_usrclk2),
         .i_xver_rxd(pcs_xver_rx_data),
         .i_xver_txc(gtwiz_tx_usrclk2),
-        .o_xver_txd(pcs_xver_tx_data),
+        .o_xver_txd(pcs_xver_tx_data)
     );
 
 
@@ -121,8 +121,8 @@ module eth_10g #(
         .hb0_gtwiz_userclk_rx_usrclk2(gtwiz_rx_usrclk2),
 
         // Transceiver ready/error outputs
-        .tx_ready(tx_ready),
-        .rx_ready(rx_ready),
+        .tx_ready(gtwiz_tx_ready),
+        .rx_ready(gtwiz_rx_ready)
     );
 
 

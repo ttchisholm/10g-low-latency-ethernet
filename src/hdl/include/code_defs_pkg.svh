@@ -1,4 +1,7 @@
-package encoder_pkg;
+`ifndef CODE_DEFS_PACKAGE
+`define CODE_DEFS_PACKAGE
+
+package code_defs_pkg;
      //********** Code Definitions **********//
 
     typedef enum logic [1:0] {
@@ -94,3 +97,5 @@ package encoder_pkg;
     endfunction
 
 endpackage
+
+`endif

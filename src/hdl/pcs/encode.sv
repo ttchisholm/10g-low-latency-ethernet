@@ -1,4 +1,4 @@
-
+`include "code_defs_pkg.svh"
 
 module encode_6466b (
 
@@ -18,7 +18,7 @@ module encode_6466b (
     output wire [1:0] o_tx_header
 );
 
-    import encoder_pkg::*;
+    import code_defs_pkg::*;
     
     //*********** Transmit **********//
 

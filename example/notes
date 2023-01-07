@@ -1,0 +1,6 @@
+- create wrapper around top
+    - free run clock, reset vio, test data gen / ilas
+
+- constraints
+
+- build script (ref zrf16)

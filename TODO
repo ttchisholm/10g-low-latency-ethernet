@@ -1,10 +1,7 @@
-In progress:
-- Padding tb
-- tb coverage
-
 Needed:
+- Customise xver quad/lanes
+- Build script/gen as per Xilinx IP
 - Better module signal names
-- rename encoder_pkg and move to common folder
 - File headers
 - Handle MAC User Rx not ready - buffer up to end of IPG?
 - Document dual rx crc approach

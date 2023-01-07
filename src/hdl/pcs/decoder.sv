@@ -1,4 +1,4 @@
-
+`include "code_defs_pkg.svh"
 
 module decode_6466b (
 
@@ -14,7 +14,7 @@ module decode_6466b (
     output wire [7:0] o_rxctl
 );
 
-    import encoder_pkg::*;
+    import code_defs_pkg::*;
 
    typedef struct packed {
         logic [63:0] odata; 

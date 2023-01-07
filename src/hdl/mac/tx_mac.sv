@@ -1,4 +1,5 @@
 `default_nettype none
+`include "code_defs_pkg.svh"
 
 module tx_mac (
     
@@ -24,8 +25,8 @@ module tx_mac (
     //  - tidy
 
     // *********** Tx Datapath *********** //
-
-    import encoder_pkg::*;
+    
+    import code_defs_pkg::*;
 
     localparam MIN_PAYLOAD_SIZE = 46;
     localparam MAX_PAYLOAD_SIZE = 1500; //todo not true

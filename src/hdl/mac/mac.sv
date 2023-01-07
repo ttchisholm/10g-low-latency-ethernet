@@ -1,4 +1,5 @@
 `default_nettype none
+`include "code_defs_pkg.svh"
 
 module mac (
     
@@ -33,7 +34,7 @@ module mac (
     output logic m00_axis_tuser
 );
 
-    import encoder_pkg::*;
+    import code_defs_pkg::*;
     
 
     localparam MIN_PAYLOAD_SIZE = 46;

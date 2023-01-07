@@ -1,4 +1,5 @@
 `default_nettype none
+`include "code_defs_pkg.svh"
 
 module rx_mac (
     
@@ -20,7 +21,7 @@ module rx_mac (
 
     // *********** Rx Datapath *********** //
 
-    import encoder_pkg::*;
+    import code_defs_pkg::*;
 
 
     // Rx states

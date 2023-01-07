@@ -58,8 +58,8 @@ module eth_10g #(
     wire gtwiz_tx_usrclk2;
     wire gtwiz_rx_usrclk2;
 
-    assign m00_axis_aclk = gtwiz_tx_usrclk2;
-    assign s00_axis_aclk = gtwiz_rx_usrclk2;
+    assign m00_axis_aclk = gtwiz_rx_usrclk2;
+    assign s00_axis_aclk = gtwiz_tx_usrclk2;
     
     mac_pcs #(
         .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS)

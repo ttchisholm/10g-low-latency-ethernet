@@ -56,7 +56,7 @@ module tx_mac (
     logic [7:0] tx_term_ctl_0, tx_term_ctl_1;
 
     // Min payload counter
-    logic [$clog2(MIN_PAYLOAD_SIZE):0] data_counter, next_data_counter; 
+    logic [$clog2(MIN_PAYLOAD_SIZE):0] data_counter, next_data_counter; // Extra bit for overflow
     logic min_packet_size_reached;
 
     // IPG counter
@@ -85,9 +85,9 @@ module tx_mac (
             tx_data_keep_del <= tx_data_keep;
         end
 
-        if (!min_packet_size_reached) begin
-            data_counter <= next_data_counter;
-        end
+        
+        data_counter <= next_data_counter; 
+        
         
         ipg_counter <= (tx_state == IPG) ? ipg_counter + 8 : initial_ipg_count;
 
@@ -138,7 +138,9 @@ module tx_mac (
                     xgmii_txc = (!tvalid_del) ? '1 : 
                                 (tx_next_state == TERM)       ? tx_term_ctl_0 : '0;
 
-                    next_data_counter = data_counter + 8; // todo use keep rather than assume all bytes are valid
+                    // todo use keep rather than assume all bytes are valid
+                    // stop counting when min size reached
+                    next_data_counter = (data_counter[$clog2(MIN_PAYLOAD_SIZE)]) ? data_counter : data_counter + 8; 
                 end
                 PADDING: begin
                     if (!min_packet_size_reached) 

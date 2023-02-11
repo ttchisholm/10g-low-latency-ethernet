@@ -1,8 +1,6 @@
 module pcs #(
     parameter SCRAMBLER_BYPASS = 0,
-    parameter INTERNAL_GEARBOX = 1,
-
-    localparam XVER_DATA_WIDTH = INTERNAL_GEARBOX ? 64 : 66
+    parameter EXTERNAL_GEARBOX = 0
 )(
 
     // Clocks
@@ -14,7 +12,10 @@ module pcs #(
     input wire rx_reset,
 
     // Rx from tranceiver
-    input wire [XVER_DATA_WIDTH-1:0] xver_rx_data,
+    input wire [63:0] xver_rx_data,
+    input wire [1:0] xver_rx_header,
+    input wire xver_rx_gearbox_valid,
+    output wire xver_rx_gearbox_slip,
 
     // Rx XGMII
     output logic [63:0] xgmii_rx_data,
@@ -27,8 +28,9 @@ module pcs #(
     output wire xgmii_tx_ready, // Non standard XGMII - required for no CDC
 
     // TX Interface out
-    output wire [XVER_DATA_WIDTH-1:0] xver_tx_data
-
+    output wire [63:0] xver_tx_data,
+    output wire [1:0] xver_tx_header,
+    output wire [5:0] xver_tx_gearbox_sequence
 );
 
     // ************* TX DATAPATH ************* //
@@ -65,17 +67,41 @@ module pcs #(
     endgenerate
 
     // Gearbox
-    gearbox #(.INPUT_WIDTH(66), .OUTPUT_WIDTH(64)) 
-    u_tx_gearbox(
-        .i_reset(tx_reset),
-        .i_init_done(!tx_reset),
-        .i_clk(xver_tx_clk),
-        .i_data({tx_scrambled_data, tx_header}),
-        .i_slip(1'b0),
-        .o_data(xver_tx_data),
-        .o_pause(tx_gearbox_pause),
-        .o_valid() // Always valid when gearing down
-    );
+    generate
+        if (EXTERNAL_GEARBOX) begin
+
+            assign xver_tx_data = tx_scrambled_data;
+            assign xver_tx_header = tx_header;
+
+            gearbox_seq #(.WIDTH(6), .MAX_VAL(32), .PAUSE_VAL(32)) 
+            u_tx_gearbox_seq (
+                .clk(xver_tx_clk),
+                .reset(tx_reset),
+                .count(xver_tx_gearbox_sequence),
+                .pause(tx_gearbox_pause)
+            );
+
+        end else begin
+
+            wire [63:0] int_tx_gearbox_data;
+
+            assign xver_tx_data = int_tx_gearbox_data;
+            assign xver_tx_header = '0;
+            assign xver_tx_gearbox_sequence = '0;
+            
+            gearbox #(.INPUT_WIDTH(66), .OUTPUT_WIDTH(64)) 
+            u_tx_gearbox (
+                .i_reset(tx_reset),
+                .i_init_done(!tx_reset),
+                .i_clk(xver_tx_clk),
+                .i_data({tx_scrambled_data, tx_header}),
+                .i_slip(1'b0),
+                .o_data(int_tx_gearbox_data),
+                .o_pause(tx_gearbox_pause),
+                .o_valid() // Always valid when gearing down
+            );
+        end 
+    endgenerate
 
     assign xgmii_tx_ready = !tx_gearbox_pause;
 
@@ -85,21 +111,34 @@ module pcs #(
     wire [1:0] rx_header;
     wire rx_gearbox_slip;
 
+    generate
+        if (EXTERNAL_GEARBOX) begin
 
-    // Gearbox
-    gearbox  #(.INPUT_WIDTH(64), .OUTPUT_WIDTH(66)) 
-    u_rx_gearbox(
-        .i_reset(rx_reset),
-        .i_init_done(!rx_reset),
-        .i_clk(xver_rx_clk),
-        .i_data(xver_rx_data),
-        .i_slip(rx_gearbox_slip),
-        .o_data(rx_gearbox_out),
-        .o_pause(), // Never pauses when gearing up
-        .o_valid(xgmii_rx_valid)
-    );
-    assign rx_gearbox_data_out = rx_gearbox_out[65:2];
-    assign rx_header = rx_gearbox_out[1:0];
+            assign xver_rx_gearbox_slip = rx_gearbox_slip;
+            assign rx_gearbox_data_out = xver_rx_data;
+            assign rx_header = xver_rx_header;
+            assign xgmii_rx_valid = xver_rx_gearbox_valid;
+
+        end else begin
+
+            assign xver_rx_gearbox_slip = 1'b0;
+
+            // Gearbox
+            gearbox  #(.INPUT_WIDTH(64), .OUTPUT_WIDTH(66)) 
+            u_rx_gearbox(
+                .i_reset(rx_reset),
+                .i_init_done(!rx_reset),
+                .i_clk(xver_rx_clk),
+                .i_data(xver_rx_data),
+                .i_slip(rx_gearbox_slip),
+                .o_data(rx_gearbox_out),
+                .o_pause(), // Never pauses when gearing up
+                .o_valid(xgmii_rx_valid)
+            );
+            assign rx_gearbox_data_out = rx_gearbox_out[65:2];
+            assign rx_header = rx_gearbox_out[1:0];
+        end
+    endgenerate
 
     // Lock state machine
     lock_state u_lock_state(

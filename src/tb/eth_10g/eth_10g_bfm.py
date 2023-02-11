@@ -19,15 +19,15 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
         self.rx_monitor_queue = Queue(maxsize=0)
 
         self.tx_axis_source = AxiStreamSource(AxiStreamBus.from_prefix(self.dut, "s00_axis"), 
-                                                self.dut.i_xver_txc, self.dut.i_rx_reset)
+                                                self.dut.xver_tx_clk, self.dut.i_rx_reset)
         
 
         self.tx_axis_monitor = AxiStreamMonitor(AxiStreamBus.from_prefix(self.dut, "s00_axis"), 
-                                                self.dut.i_xver_txc, self.dut.i_rx_reset)
+                                                self.dut.xver_tx_clk, self.dut.i_rx_reset)
         
 
         self.rx_axis_monitor = AxiStreamMonitor(AxiStreamBus.from_prefix(self.dut, "m00_axis"), 
-                                                self.dut.i_xver_rxc, self.dut.i_tx_reset)
+                                                self.dut.xver_rx_clk, self.dut.i_tx_reset)
         
 
     def set_axis_log(self, enable):
@@ -37,8 +37,10 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
        
     async def loopback(self):
         while True:
-            await Edge(self.dut.o_xver_txd)
-            self.dut.i_xver_rxd.value = self.dut.o_xver_txd.value
+            await Edge(self.dut.xver_tx_data)
+            self.dut.xver_rx_data.value = self.dut.xver_tx_data.value
+            self.dut.xver_rx_header.value = self.dut.xver_tx_header.value
+            self.dut.xver_rx_gearbox_valid.value = self.dut.xver_tx_gearbox_sequence.value != 32
 
     async def send_tx_packet(self, packet):
         await self.tx_driver_queue.put(packet)
@@ -46,21 +48,21 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
     async def reset(self):
         self.dut.i_tx_reset.value = 1
         self.dut.i_rx_reset.value = 1
-        self.dut.i_xver_rxc.value = 0
-        self.dut.i_xver_rxd.value = 0
-        self.dut.i_xver_txc.value = 0
-        await RisingEdge(self.dut.i_xver_rxc)
-        await RisingEdge(self.dut.i_xver_txc)
-        await FallingEdge(self.dut.i_xver_rxc)
-        await FallingEdge(self.dut.i_xver_txc)
+        self.dut.xver_rx_clk.value = 0
+        self.dut.xver_rx_data.value = 0
+        self.dut.xver_tx_clk.value = 0
+        await RisingEdge(self.dut.xver_rx_clk)
+        await RisingEdge(self.dut.xver_tx_clk)
+        await FallingEdge(self.dut.xver_rx_clk)
+        await FallingEdge(self.dut.xver_tx_clk)
         self.dut.i_tx_reset.value = 0
         self.dut.i_rx_reset.value = 0
-        await RisingEdge(self.dut.i_xver_rxc)
-        await RisingEdge(self.dut.i_xver_txc)
+        await RisingEdge(self.dut.xver_rx_clk)
+        await RisingEdge(self.dut.xver_tx_clk)
 
     async def pause(self, cycles):
         for _ in range(cycles):
-            await RisingEdge(self.dut.i_xver_txc)
+            await RisingEdge(self.dut.xver_tx_clk)
 
     async def driver_bfm(self):
         while True:
@@ -90,8 +92,8 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
     async def start_bfm(self):
         self.clk_period = round(1 / (10.3125 / 64), 3) # ps precision
 
-        cocotb.start_soon(Clock(self.dut.i_xver_txc, self.clk_period, units="ns").start())
-        cocotb.start_soon(Clock(self.dut.i_xver_rxc, self.clk_period, units="ns").start())
+        cocotb.start_soon(Clock(self.dut.xver_tx_clk, self.clk_period, units="ns").start())
+        cocotb.start_soon(Clock(self.dut.xver_rx_clk, self.clk_period, units="ns").start())
         cocotb.start_soon(self.loopback())
 
         await self.reset()

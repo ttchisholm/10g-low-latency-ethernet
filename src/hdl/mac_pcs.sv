@@ -1,7 +1,8 @@
 `default_nettype none
 
 module mac_pcs #(
-    parameter SCRAMBLER_BYPASS = 0
+    parameter SCRAMBLER_BYPASS = 0,
+    parameter EXTERNAL_GEARBOX = 0
 ) (
     input wire i_tx_reset,
     input wire i_rx_reset,
@@ -21,12 +22,17 @@ module mac_pcs #(
     output logic m00_axis_tuser,
 
     // Rx XVER
-    input wire i_xver_rxc,
-    input wire [63:0] i_xver_rxd,
+    input wire xver_rx_clk,
+    input wire [63:0] xver_rx_data,
+    input wire [1:0] xver_rx_header,
+    input wire xver_rx_gearbox_valid,
+    output wire xver_rx_gearbox_slip,
 
     // TX XVER
-    input wire i_xver_txc,
-    output wire [63:0] o_xver_txd
+    input wire xver_tx_clk,
+    output wire [63:0] xver_tx_data,
+    output wire [1:0] xver_tx_header,
+    output wire [5:0] xver_tx_gearbox_sequence
 );
 
     wire [63:0] xgmii_rxd, xgmii_txd;
@@ -39,7 +45,7 @@ module mac_pcs #(
         .i_rx_reset(i_rx_reset),
 
         // Tx PHY
-        .i_txc(i_xver_txc),
+        .i_txc(xver_tx_clk),
         .xgmii_txd(xgmii_txd),
         .xgmii_txc(xgmii_txc),
         .phy_tx_ready(phy_tx_ready),
@@ -52,7 +58,7 @@ module mac_pcs #(
         .s00_axis_tlast(s00_axis_tlast),
 
         // Rx PHY
-        .i_rxc(i_xver_rxc),
+        .i_rxc(xver_rx_clk),
         .xgmii_rxd(xgmii_rxd),
         .xgmii_rxc(xgmii_rxc),
         .phy_rx_valid(phy_rx_valid),
@@ -66,7 +72,8 @@ module mac_pcs #(
     );
 
     pcs #(
-        .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS)
+        .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS),
+        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
     ) u_pcs (
         
         // Reset logic
@@ -74,21 +81,26 @@ module mac_pcs #(
         .rx_reset(i_rx_reset),
 
         // Rx from tranceiver
-        .xver_rx_clk(i_xver_rxc),
-        .xver_rx_data(i_xver_rxd),
+        .xver_rx_clk(xver_rx_clk),
+        .xver_rx_data(xver_rx_data),
+        .xver_rx_header(xver_rx_header),
+        .xver_rx_gearbox_valid(xver_rx_gearbox_valid),
+        .xver_rx_gearbox_slip(xver_rx_gearbox_slip),
 
         //Rx interface out
         .xgmii_rx_data(xgmii_rxd),
         .xgmii_rx_ctl(xgmii_rxc),
         .xgmii_rx_valid(phy_rx_valid), // Non standard XGMII - required for no CDC
         
-        .xver_tx_clk(i_xver_txc),
+        .xver_tx_clk(xver_tx_clk),
         .xgmii_tx_data(xgmii_txd),
         .xgmii_tx_ctl(xgmii_txc),
         .xgmii_tx_ready(phy_tx_ready), // Non standard XGMII - required for no CDC
 
         // TX Interface out
-        .xver_tx_data(o_xver_txd)
+        .xver_tx_data(xver_tx_data),
+        .xver_tx_header(xver_tx_header),
+        .xver_tx_gearbox_sequence(xver_tx_gearbox_sequence)
     );
 
 endmodule

@@ -11,6 +11,7 @@ VERILOG_SOURCES += $(PWD)/../../hdl/pcs/decoder.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/descrambler.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/encode.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/gearbox.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/gearbox_seq.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/lock_state.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/scrambler.sv
 
@@ -35,11 +36,13 @@ MODULE = test_eth10g
 
 # module parameters
 export SCRAMBLER_BYPASS ?= 0
+export EXTERNAL_GEARBOX ?= 0
 
 ifeq ($(SIM), icarus)
 	PLUSARGS += -fst
 
 	COMPILE_ARGS += -P $(TOPLEVEL).SCRAMBLER_BYPASS=$(SCRAMBLER_BYPASS)
+	COMPILE_ARGS += -P $(TOPLEVEL).EXTERNAL_GEARBOX=$(EXTERNAL_GEARBOX)
 	COMPILE_ARGS += -I $(PWD)/../../hdl/include
 
 	ifeq ($(WAVES), 1)

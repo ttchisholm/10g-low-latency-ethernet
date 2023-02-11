@@ -45,7 +45,7 @@ module gearbox #(
             end
 
             assign o_valid = count != INPUT_WIDTH / GCD;
-            assign o_data = o_valid ? output_buf[(count * GCD) +: OUTPUT_WIDTH] : '0;
+            assign o_data = output_buf[(count * GCD) +: OUTPUT_WIDTH];
 
         end else if (INPUT_WIDTH > OUTPUT_WIDTH) begin
             assign o_valid = 1'b1;

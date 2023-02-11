@@ -59,6 +59,12 @@ module rx_mac (
     end
 
     always @(*) begin
+
+        m00_axis_tdata = xgmii_rxd;
+        m00_axis_tkeep = |sfd_found_loc ? start_keep :
+                                  term_found    ? term_keep  :
+                                                8'b11111111; 
+
         case (rx_state)
             IDLE: begin
                 if (sfd_found)
@@ -66,9 +72,7 @@ module rx_mac (
                 else
                     rx_next_state = IDLE;
                 
-                m00_axis_tdata = '0;
                 m00_axis_tvalid = '0;
-                m00_axis_tkeep = '0;
                 m00_axis_tlast = '0;
             end
             DATA: begin
@@ -77,18 +81,14 @@ module rx_mac (
                 else
                     rx_next_state = DATA;
                 
-                m00_axis_tdata = masked_data;
+                
                 m00_axis_tvalid = phy_rx_valid;
-                m00_axis_tkeep = |sfd_found_loc ? start_keep :
-                                  term_found    ? term_keep  :
-                                                8'b11111111; 
+                
                 m00_axis_tlast = term_found;
             end
             default: begin
                 rx_next_state = IDLE;
-                m00_axis_tdata = '0;
                 m00_axis_tvalid = '0;
-                m00_axis_tkeep = '0;
                 m00_axis_tlast = '0;
             end
 
@@ -153,11 +153,11 @@ module rx_mac (
     always @(*) begin
         if (!term_found) begin
             frame_crc = xgmii_rxd[63:32]; // Assume term is first in next frame for now
-            rx_crc_input_valid = m00_axis_tkeep & {8{phy_rx_valid}};
+            rx_crc_input_valid = m00_axis_tvalid ? (m00_axis_tkeep & {8{phy_rx_valid}}) : '0;
             delayed_crc_input_valid = rx_crc_input_valid_del & {8{phy_rx_valid}}; // This is required to pause the delay pipeline when data invalid
         end else begin
             delayed_crc_input_valid = rx_crc_input_valid_del & {8{phy_rx_valid}};
-            rx_crc_input_valid = m00_axis_tkeep & {8{phy_rx_valid}};
+            rx_crc_input_valid = m00_axis_tvalid ? (m00_axis_tkeep & {8{phy_rx_valid}}) : '0;
 
             case (term_loc)
                 8'b00000001: begin
@@ -178,19 +178,19 @@ module rx_mac (
                 end
                 8'b00010000: begin
                     frame_crc = xgmii_rxd[31:0];
-                    rx_crc_input_valid = 8'b00000000;
+                    rx_crc_input_valid = m00_axis_tvalid ? 8'b00000000 : '0;
                 end
                 8'b00100000: begin
                     frame_crc = xgmii_rxd[39:8];
-                    rx_crc_input_valid = 8'b00000001;
+                    rx_crc_input_valid = m00_axis_tvalid ? 8'b00000001 : '0;
                 end
                 8'b01000000: begin
                     frame_crc = xgmii_rxd[47:16];
-                    rx_crc_input_valid = 8'b00000011;
+                    rx_crc_input_valid = m00_axis_tvalid ? 8'b00000011 : '0;
                 end
                 8'b10000000: begin
                     frame_crc = xgmii_rxd[55:24];
-                    rx_crc_input_valid = 8'b00000111;
+                    rx_crc_input_valid = m00_axis_tvalid ? 8'b00000111 : '0;
                 end
                 default: begin
                     frame_crc = '0;

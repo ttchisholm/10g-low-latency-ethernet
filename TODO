@@ -1,4 +1,5 @@
 Needed:
+- Better IP gen flow
 - Customise xver quad/lanes
 - Build script/gen as per Xilinx IP
 - Better module signal names

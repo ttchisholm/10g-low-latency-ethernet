@@ -64,8 +64,6 @@ module gtwizard_wrapper #(
   // Differential reference clock inputs
   input  wire mgtrefclk0_x0y3_p,
   input  wire mgtrefclk0_x0y3_n,
-  input  wire mgtrefclk0_x0y4_p,
-  input  wire mgtrefclk0_x0y4_n,
 
   // Serial data ports for transceiver channel 0
   input  wire ch0_gtyrxn_in,
@@ -73,21 +71,20 @@ module gtwizard_wrapper #(
   output wire ch0_gtytxn_out,
   output wire ch0_gtytxp_out,
 
-  // Serial data ports for transceiver channel 1
-  input  wire ch1_gtyrxn_in,
-  input  wire ch1_gtyrxp_in,
-  output wire ch1_gtytxn_out,
-  output wire ch1_gtytxp_out,
-
   // User-provided ports for reset helper block(s)
   input  wire hb_gtwiz_reset_clk_freerun_in,
   input  wire hb_gtwiz_reset_all_in,
 
   // User data ports
   input wire [63:0] hb0_gtwiz_userdata_tx_int,
-  input wire [63:0] hb1_gtwiz_userdata_tx_int,
+  input wire [1:0] hb0_gtwiz_header_tx,
   output wire [63:0] hb0_gtwiz_userdata_rx_int,
-  output wire [63:0] hb1_gtwiz_userdata_rx_int,
+  output wire [1:0] hb0_gtwiz_header_rx,
+
+  // Gearbox ports
+  input wire hb0_gtwiz_rx_gearbox_slip,
+  output wire hb0_gtwiz_rx_gearbox_valid,
+  input wire [5:0] hb0_gtwiz_tx_gearbox_sequence,
 
   // Transceiver user clock outputs
   output wire hb0_gtwiz_userclk_tx_usrclk2,
@@ -110,24 +107,20 @@ module gtwizard_wrapper #(
   // are prefixed "ch#", where "#" is the sequential resource number.
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] gtyrxn_int;
+  wire [0:0] gtyrxn_int;
   assign gtyrxn_int[0:0] = ch0_gtyrxn_in;
-  assign gtyrxn_int[1:1] = ch1_gtyrxn_in;
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] gtyrxp_int;
+  wire [0:0] gtyrxp_int;
   assign gtyrxp_int[0:0] = ch0_gtyrxp_in;
-  assign gtyrxp_int[1:1] = ch1_gtyrxp_in;
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] gtytxn_int;
+  wire [0:0] gtytxn_int;
   assign ch0_gtytxn_out = gtytxn_int[0:0];
-  assign ch1_gtytxn_out = gtytxn_int[1:1];
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] gtytxp_int;
+  wire [0:0] gtytxp_int;
   assign ch0_gtytxp_out = gtytxp_int[0:0];
-  assign ch1_gtytxp_out = gtytxp_int[1:1];
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [0:0] gtwiz_userclk_tx_reset_int;
@@ -265,62 +258,68 @@ module gtwizard_wrapper #(
   //--------------------------------------------------------------------------------------------------------------------
   wire [127:0] gtwiz_userdata_tx_int;
   assign gtwiz_userdata_tx_int[63:0] = hb0_gtwiz_userdata_tx_int;
-  assign gtwiz_userdata_tx_int[127:64] = hb1_gtwiz_userdata_tx_int;
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [127:0] gtwiz_userdata_rx_int;
   assign hb0_gtwiz_userdata_rx_int = gtwiz_userdata_rx_int[63:0];
-  assign hb1_gtwiz_userdata_rx_int = gtwiz_userdata_rx_int[127:64];
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] gtrefclk00_int;
+  wire [0:0] gtrefclk00_int;
   wire [0:0] cm0_gtrefclk00_int;
-  wire [0:0] cm1_gtrefclk00_int;
   assign gtrefclk00_int[0:0] = cm0_gtrefclk00_int;
-  assign gtrefclk00_int[1:1] = cm1_gtrefclk00_int;
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] qpll0outclk_int;
+  wire [0:0] qpll0outclk_int;
   wire [0:0] cm0_qpll0outclk_int;
-  wire [0:0] cm1_qpll0outclk_int;
   assign cm0_qpll0outclk_int = qpll0outclk_int[0:0];
-  assign cm1_qpll0outclk_int = qpll0outclk_int[1:1];
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] qpll0outrefclk_int;
+  wire [0:0] qpll0outrefclk_int;
   wire [0:0] cm0_qpll0outrefclk_int;
-  wire [0:0] cm1_qpll0outrefclk_int;
   assign cm0_qpll0outrefclk_int = qpll0outrefclk_int[0:0];
-  assign cm1_qpll0outrefclk_int = qpll0outrefclk_int[1:1];
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] gtpowergood_int;
+  wire [0:0] gtpowergood_int;
   wire [0:0] ch0_gtpowergood_int;
-  wire [0:0] ch1_gtpowergood_int;
   assign ch0_gtpowergood_int = gtpowergood_int[0:0];
-  assign ch1_gtpowergood_int = gtpowergood_int[1:1];
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] rxpmaresetdone_int;
+  wire [0:0] rxpmaresetdone_int;
   wire [0:0] ch0_rxpmaresetdone_int;
-  wire [0:0] ch1_rxpmaresetdone_int;
   assign ch0_rxpmaresetdone_int = rxpmaresetdone_int[0:0];
-  assign ch1_rxpmaresetdone_int = rxpmaresetdone_int[1:1];
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] txpmaresetdone_int;
+  wire [0:0] txpmaresetdone_int;
   wire [0:0] ch0_txpmaresetdone_int;
-  wire [0:0] ch1_txpmaresetdone_int;
   assign ch0_txpmaresetdone_int = txpmaresetdone_int[0:0];
-  assign ch1_txpmaresetdone_int = txpmaresetdone_int[1:1];
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [1:0] txprgdivresetdone_int;
+  wire [0:0] txprgdivresetdone_int;
   wire [0:0] ch0_txprgdivresetdone_int;
-  wire [0:0] ch1_txprgdivresetdone_int;
   assign ch0_txprgdivresetdone_int = txprgdivresetdone_int[0:0];
-  assign ch1_txprgdivresetdone_int = txprgdivresetdone_int[1:1];
 
+  //--------------------------------------------------------------------------------------------------------------------
+  wire [0:0] rxgearboxslip_int;
+  assign rxgearboxslip_int[0:0] = hb0_gtwiz_rx_gearbox_slip;
+
+  //--------------------------------------------------------------------------------------------------------------------
+  wire [5:0] txheader_int;
+  assign txheader_int[5:0] = {3'b0, hb0_gtwiz_header_tx};
+
+  //--------------------------------------------------------------------------------------------------------------------
+  wire [6:0] txsequence_int;
+  assign txsequence_int[6:0] = {1'b0, hb0_gtwiz_tx_gearbox_sequence};
+
+  //--------------------------------------------------------------------------------------------------------------------
+  wire [1:0] rxdatavalid_int;
+
+  //--------------------------------------------------------------------------------------------------------------------
+  wire [5:0] rxheader_int;
+  assign hb0_gtwiz_header_rx = rxheader_int[1:0];
+
+  //--------------------------------------------------------------------------------------------------------------------
+  wire [1:0] rxheadervalid_int;
+  assign hb0_gtwiz_rx_gearbox_valid = rxheadervalid_int[0] && rxdatavalid_int[0]; // TODO assume header + data always valid together
 
   // ===================================================================================================================
   // BUFFERS
@@ -366,23 +365,7 @@ module gtwizard_wrapper #(
     .ODIV2 ()
   );
 
-  // Differential reference clock buffer for MGTREFCLK0_X0Y4
-  wire mgtrefclk0_x0y4_int;
-
-  IBUFDS_GTE4 #(
-    .REFCLK_EN_TX_PATH  (1'b0),
-    .REFCLK_HROW_CK_SEL (2'b00),
-    .REFCLK_ICNTL_RX    (2'b00)
-  ) IBUFDS_GTE4_MGTREFCLK0_X0Y4_INST (
-    .I     (mgtrefclk0_x0y4_p),
-    .IB    (mgtrefclk0_x0y4_n),
-    .CEB   (1'b0),
-    .O     (mgtrefclk0_x0y4_int),
-    .ODIV2 ()
-  );
-
   assign cm0_gtrefclk00_int = mgtrefclk0_x0y3_int;
-  assign cm1_gtrefclk00_int = mgtrefclk0_x0y4_int;
 
 
   // ===================================================================================================================
@@ -638,7 +621,7 @@ module gtwizard_wrapper #(
 
   // Instantiate the example design wrapper, mapping its enabled ports to per-channel internal signals and example
   // resources as appropriate
-  gtwizard_ultrascale_0_example_wrapper example_wrapper_inst (
+    gtwizard_ultrascale_0_example_wrapper example_wrapper_inst (
     .gtyrxn_in                               (gtyrxn_int)
    ,.gtyrxp_in                               (gtyrxp_int)
    ,.gtytxn_out                              (gtytxn_int)
@@ -675,8 +658,15 @@ module gtwizard_wrapper #(
    ,.gtrefclk00_in                           (gtrefclk00_int)
    ,.qpll0outclk_out                         (qpll0outclk_int)
    ,.qpll0outrefclk_out                      (qpll0outrefclk_int)
+   ,.rxgearboxslip_in                        (rxgearboxslip_int)
+   ,.txheader_in                             (txheader_int)
+   ,.txsequence_in                           (txsequence_int)
    ,.gtpowergood_out                         (gtpowergood_int)
+   ,.rxdatavalid_out                         (rxdatavalid_int)
+   ,.rxheader_out                            (rxheader_int)
+   ,.rxheadervalid_out                       (rxheadervalid_int)
    ,.rxpmaresetdone_out                      (rxpmaresetdone_int)
+   ,.rxstartofseq_out                        (rxstartofseq_int)
    ,.txpmaresetdone_out                      (txpmaresetdone_int)
    ,.txprgdivresetdone_out                   (txprgdivresetdone_int)
 );

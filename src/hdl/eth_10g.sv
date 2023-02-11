@@ -7,10 +7,8 @@ module eth_10g #(
     input wire init_clk,
 
     // Differential reference clock inputs
-    input  wire mgtrefclk0_x0y3_p,
-    input  wire mgtrefclk0_x0y3_n,
-    input  wire mgtrefclk0_x0y4_p,
-    input  wire mgtrefclk0_x0y4_n,
+    input wire mgtrefclk0_x0y3_p,
+    input wire mgtrefclk0_x0y3_n,
 
     // Tx AXIS
     output wire s00_axis_aclk,
@@ -32,13 +30,7 @@ module eth_10g #(
     input  wire ch0_gtyrxn_in,
     input  wire ch0_gtyrxp_in,
     output wire ch0_gtytxn_out,
-    output wire ch0_gtytxp_out,
-
-    // Serial data ports for transceiver channel 1
-    input  wire ch1_gtyrxn_in,
-    input  wire ch1_gtyrxp_in,
-    output wire ch1_gtytxn_out,
-    output wire ch1_gtytxp_out
+    output wire ch0_gtytxp_out
 );
 
     // MAC/PCS reset
@@ -52,17 +44,25 @@ module eth_10g #(
 
     // Datapath
     wire [63:0] pcs_xver_tx_data;
+    wire [1:0] pcs_xver_tx_header;
     wire [63:0] pcs_xver_rx_data;
+    wire [1:0] pcs_xver_rx_header;
 
     // Clock
     wire gtwiz_tx_usrclk2;
     wire gtwiz_rx_usrclk2;
 
+    // Gearbox
+    wire [5:0] pcs_xver_tx_gearbox_sequence;
+    wire pcs_xver_rx_gearbox_valid;
+    wire pcs_xver_rx_gearbox_slip;
+
     assign m00_axis_aclk = gtwiz_rx_usrclk2;
     assign s00_axis_aclk = gtwiz_tx_usrclk2;
     
     mac_pcs #(
-        .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS)
+        .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS),
+        .EXTERNAL_GEARBOX(1)
     ) u_mac_pcs (
         .i_tx_reset(mac_pcs_tx_reset),
         .i_rx_reset(mac_pcs_rx_reset),
@@ -76,10 +76,15 @@ module eth_10g #(
         .m00_axis_tvalid(m00_axis_tvalid),
         .m00_axis_tlast(m00_axis_tlast),
         .m00_axis_tuser(m00_axis_tuser),
-        .i_xver_rxc(gtwiz_rx_usrclk2),
-        .i_xver_rxd(pcs_xver_rx_data),
-        .i_xver_txc(gtwiz_tx_usrclk2),
-        .o_xver_txd(pcs_xver_tx_data)
+        .xver_rx_clk(gtwiz_rx_usrclk2),
+        .xver_rx_data(pcs_xver_rx_data),
+        .xver_rx_header(pcs_xver_rx_header),
+        .xver_rx_gearbox_valid(pcs_xver_rx_gearbox_valid),
+        .xver_rx_gearbox_slip(pcs_xver_rx_gearbox_slip),
+        .xver_tx_clk(gtwiz_tx_usrclk2),
+        .xver_tx_data(pcs_xver_tx_data),
+        .xver_tx_header(pcs_xver_tx_header),
+        .xver_tx_gearbox_sequence(pcs_xver_tx_gearbox_sequence)
     );
 
 
@@ -91,8 +96,6 @@ module eth_10g #(
         // Differential reference clock inputs
         .mgtrefclk0_x0y3_p(mgtrefclk0_x0y3_p),
         .mgtrefclk0_x0y3_n(mgtrefclk0_x0y3_n),
-        .mgtrefclk0_x0y4_p(mgtrefclk0_x0y4_p),
-        .mgtrefclk0_x0y4_n(mgtrefclk0_x0y4_n),
 
         // Serial data ports for transceiver channel 0
         .ch0_gtyrxn_in(ch0_gtyrxn_in),
@@ -100,21 +103,19 @@ module eth_10g #(
         .ch0_gtytxn_out(ch0_gtytxn_out),
         .ch0_gtytxp_out(ch0_gtytxp_out),
 
-        // Serial data ports for transceiver channel 1
-        .ch1_gtyrxn_in(ch1_gtyrxn_in),
-        .ch1_gtyrxp_in(ch1_gtyrxp_in),
-        .ch1_gtytxn_out(ch1_gtytxn_out),
-        .ch1_gtytxp_out(ch1_gtytxp_out),
-
         // User-provided ports for reset helper block(s)
         .hb_gtwiz_reset_clk_freerun_in(init_clk),
         .hb_gtwiz_reset_all_in(reset),
 
         // User data ports
-        .hb0_gtwiz_userdata_tx_int(pcs_xver_tx_data), // Configuration for external loopback - tx / rx on different quads
-        .hb1_gtwiz_userdata_tx_int(),
-        .hb0_gtwiz_userdata_rx_int(),
-        .hb1_gtwiz_userdata_rx_int(pcs_xver_rx_data),
+        .hb0_gtwiz_userdata_tx_int(pcs_xver_tx_data),
+        .hb0_gtwiz_header_tx(pcs_xver_tx_header),
+        .hb0_gtwiz_userdata_rx_int(pcs_xver_rx_data),
+        .hb0_gtwiz_header_rx(pcs_xver_rx_header),
+
+        .hb0_gtwiz_rx_gearbox_slip(pcs_xver_rx_gearbox_slip),
+        .hb0_gtwiz_rx_gearbox_valid(pcs_xver_rx_gearbox_valid),
+        .hb0_gtwiz_tx_gearbox_sequence(pcs_xver_tx_gearbox_sequence),
 
         // Transceiver user clock outputs
         .hb0_gtwiz_userclk_tx_usrclk2(gtwiz_tx_usrclk2),

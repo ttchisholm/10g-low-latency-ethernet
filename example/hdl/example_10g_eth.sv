@@ -5,20 +5,12 @@ module example_10g_eth (
     // Differential reference clock inputs
     input  wire mgtrefclk0_x0y3_p,
     input  wire mgtrefclk0_x0y3_n,
-    input  wire mgtrefclk0_x0y4_p,
-    input  wire mgtrefclk0_x0y4_n,
 
     // Serial data ports for transceiver channel 0
     input  wire ch0_gtyrxn_in,
     input  wire ch0_gtyrxp_in,
     output wire ch0_gtytxn_out,
-    output wire ch0_gtytxp_out,
-
-    // Serial data ports for transceiver channel 1
-    input  wire ch1_gtyrxn_in,
-    input  wire ch1_gtyrxp_in,
-    output wire ch1_gtytxn_out,
-    output wire ch1_gtytxp_out
+    output wire ch0_gtytxp_out
 );
 
     wire vio_reset_out;
@@ -102,8 +94,6 @@ module example_10g_eth (
         .init_clk(init_clk),
         .mgtrefclk0_x0y3_p(mgtrefclk0_x0y3_p),
         .mgtrefclk0_x0y3_n(mgtrefclk0_x0y3_n),
-        .mgtrefclk0_x0y4_p(mgtrefclk0_x0y4_p),
-        .mgtrefclk0_x0y4_n(mgtrefclk0_x0y4_n),
         .s00_axis_aclk(s00_axis_aclk),
         .s00_axis_tdata(s00_axis_tdata),
         .s00_axis_tkeep(s00_axis_tkeep),
@@ -119,11 +109,7 @@ module example_10g_eth (
         .ch0_gtyrxn_in(ch0_gtyrxn_in),
         .ch0_gtyrxp_in(ch0_gtyrxp_in),
         .ch0_gtytxn_out(ch0_gtytxn_out),
-        .ch0_gtytxp_out(ch0_gtytxp_out),
-        .ch1_gtyrxn_in(ch1_gtyrxn_in),
-        .ch1_gtyrxp_in(ch1_gtyrxp_in),
-        .ch1_gtytxn_out(ch1_gtytxn_out),
-        .ch1_gtytxp_out(ch1_gtytxp_out)
+        .ch0_gtytxp_out(ch0_gtytxp_out)
     );
 
 

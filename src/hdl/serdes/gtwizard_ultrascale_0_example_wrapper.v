@@ -55,10 +55,10 @@
 // =====================================================================================================================
 
 module gtwizard_ultrascale_0_example_wrapper (
-  input  wire [1:0] gtyrxn_in
- ,input  wire [1:0] gtyrxp_in
- ,output wire [1:0] gtytxn_out
- ,output wire [1:0] gtytxp_out
+  input  wire [0:0] gtyrxn_in
+ ,input  wire [0:0] gtyrxp_in
+ ,output wire [0:0] gtytxn_out
+ ,output wire [0:0] gtytxp_out
  ,input  wire [0:0] gtwiz_userclk_tx_reset_in
  ,output wire [0:0] gtwiz_userclk_tx_srcclk_out
  ,output wire [0:0] gtwiz_userclk_tx_usrclk_out
@@ -86,15 +86,22 @@ module gtwizard_ultrascale_0_example_wrapper (
  ,output wire [0:0] gtwiz_reset_rx_cdr_stable_out
  ,output wire [0:0] gtwiz_reset_tx_done_out
  ,output wire [0:0] gtwiz_reset_rx_done_out
- ,input  wire [127:0] gtwiz_userdata_tx_in
- ,output wire [127:0] gtwiz_userdata_rx_out
- ,input  wire [1:0] gtrefclk00_in
- ,output wire [1:0] qpll0outclk_out
- ,output wire [1:0] qpll0outrefclk_out
- ,output wire [1:0] gtpowergood_out
- ,output wire [1:0] rxpmaresetdone_out
- ,output wire [1:0] txpmaresetdone_out
- ,output wire [1:0] txprgdivresetdone_out
+ ,input  wire [63:0] gtwiz_userdata_tx_in
+ ,output wire [63:0] gtwiz_userdata_rx_out
+ ,input  wire [0:0] gtrefclk00_in
+ ,output wire [0:0] qpll0outclk_out
+ ,output wire [0:0] qpll0outrefclk_out
+ ,input  wire [0:0] rxgearboxslip_in
+ ,input  wire [5:0] txheader_in
+ ,input  wire [6:0] txsequence_in
+ ,output wire [0:0] gtpowergood_out
+ ,output wire [1:0] rxdatavalid_out
+ ,output wire [5:0] rxheader_out
+ ,output wire [1:0] rxheadervalid_out
+ ,output wire [0:0] rxpmaresetdone_out
+ ,output wire [1:0] rxstartofseq_out
+ ,output wire [0:0] txpmaresetdone_out
+ ,output wire [0:0] txprgdivresetdone_out
 );
 
 
@@ -103,7 +110,7 @@ module gtwizard_ultrascale_0_example_wrapper (
   // ===================================================================================================================
 
   // Declare and initialize local parameters and functions used for HDL generation
-  localparam [191:0] P_CHANNEL_ENABLE = 192'b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010001000000000000;
+  localparam [191:0] P_CHANNEL_ENABLE = 192'b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000;
   `include "gtwizard_ultrascale_0_example_wrapper_functions.v"
   localparam integer P_TX_MASTER_CH_PACKED_IDX = f_calc_pk_mc_idx(12);
   localparam integer P_RX_MASTER_CH_PACKED_IDX = f_calc_pk_mc_idx(12);
@@ -115,7 +122,7 @@ module gtwizard_ultrascale_0_example_wrapper (
 
   // Any helper blocks which the user chose to exclude from the core will appear below. In addition, some signal
   // assignments related to optionally-enabled ports may appear below.
-  wire [1:0] gtpowergood_int;
+  wire [0:0] gtpowergood_int;
 
   // Required assignment to expose the GTPOWERGOOD port per user request
   assign gtpowergood_out = gtpowergood_int;
@@ -163,8 +170,15 @@ module gtwizard_ultrascale_0_example_wrapper (
    ,.gtrefclk00_in                           (gtrefclk00_in)
    ,.qpll0outclk_out                         (qpll0outclk_out)
    ,.qpll0outrefclk_out                      (qpll0outrefclk_out)
+   ,.rxgearboxslip_in                        (rxgearboxslip_in)
+   ,.txheader_in                             (txheader_in)
+   ,.txsequence_in                           (txsequence_in)
    ,.gtpowergood_out                         (gtpowergood_int)
+   ,.rxdatavalid_out                         (rxdatavalid_out)
+   ,.rxheader_out                            (rxheader_out)
+   ,.rxheadervalid_out                       (rxheadervalid_out)
    ,.rxpmaresetdone_out                      (rxpmaresetdone_out)
+   ,.rxstartofseq_out                        (rxstartofseq_out)
    ,.txpmaresetdone_out                      (txpmaresetdone_out)
    ,.txprgdivresetdone_out                   (txprgdivresetdone_out)
 );

@@ -21,8 +21,10 @@ VERILOG_SOURCES += $(PWD)/../../hdl/mac/crc32.sv
 
 VERILOG_SOURCES += $(PWD)/../../hdl/mac_pcs.sv
 
+VERILOG_SOURCES += $(PWD)/../../ip/slicing_crc/hdl/slicing_crc.sv
 
-CUSTOM_SIM_DEPS += crc32.mem
+
+CUSTOM_SIM_DEPS += crc_tables.mem
 
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
@@ -50,7 +52,7 @@ endif
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
-crc32.mem: $(PWD)/../../hdl/mac/crc32.mem 
+crc_tables.mem: $(PWD)/../../ip/slicing_crc/hdl/crc_tables.mem 
 	cp $< $@
 
 iverilog_dump.v:
@@ -63,5 +65,5 @@ iverilog_dump.v:
 
 clean::
 	@rm -rf iverilog_dump.v
-	@rm -rf crc32.mem
+	@rm -rf crc_tables.mem
 	@rm -rf dump.fst $(TOPLEVEL).fst

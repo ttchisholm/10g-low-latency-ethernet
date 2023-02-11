@@ -211,17 +211,17 @@ module rx_mac (
     end
     
 
-                       
-    
-
-    crc32 #(.INPUT_WIDTH_BYTES(8),
-        .REGISTER_OUTPUT(0)) u_rx_crc(
-        
-        .i_clk(i_clk),
-        .i_data(rx_crc_input),
-        .i_valid(rx_crc_input_valid),
-        .i_reset(rx_crc_reset),
-        .o_crc(rx_crc)
+    slicing_crc #(
+        .SLICE_LENGTH(8),
+        .INITIAL_CRC(32'hFFFFFFFF),
+        .INVERT_OUTPUT(1),
+        .REGISTER_OUTPUT(0)
+    ) u_rx_crc (
+        .clk(i_clk),
+        .reset(rx_crc_reset),
+        .data(rx_crc_input),
+        .valid(rx_crc_input_valid),
+        .crc(rx_crc)
     );
 
     always @(posedge i_clk)
@@ -243,16 +243,17 @@ module rx_mac (
 
     //assign delayed_crc_input_valid = term_loc[0] ? 8'b00001111 : rx_crc_input_valid_del;
 
-    crc32 #(
-        .INPUT_WIDTH_BYTES(8),
+    slicing_crc #(
+        .SLICE_LENGTH(8),
+        .INITIAL_CRC(32'hFFFFFFFF),
+        .INVERT_OUTPUT(1),
         .REGISTER_OUTPUT(0)
-    ) u_rx_crc_del(
-        
-        .i_clk(i_clk),
-        .i_data(rx_crc_input_del),
-        .i_valid(delayed_crc_input_valid),
-        .i_reset(rx_crc_reset),
-        .o_crc(term_crc)
+    ) u_rx_crc_del (
+        .clk(i_clk),
+        .reset(rx_crc_reset),
+        .data(rx_crc_input_del),
+        .valid(delayed_crc_input_valid),
+        .crc(term_crc)
     );
 
     // Finally set tuser

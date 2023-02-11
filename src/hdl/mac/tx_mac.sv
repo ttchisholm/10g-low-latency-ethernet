@@ -283,13 +283,17 @@ module tx_mac (
         endcase
     end
 
-    crc32 #(.INPUT_WIDTH_BYTES(8)) u_tx_crc(
-        
-        .i_clk(i_clk),
-        .i_data(tx_crc_input),
-        .i_valid(tx_crc_input_valid),
-        .i_reset(tx_crc_reset),
-        .o_crc(tx_crc)
+    slicing_crc #(
+        .SLICE_LENGTH(8),
+        .INITIAL_CRC(32'hFFFFFFFF),
+        .INVERT_OUTPUT(1),
+        .REGISTER_OUTPUT(1)
+    ) u_tx_crc (
+        .clk(i_clk),
+        .reset(tx_crc_reset),
+        .data(tx_crc_input),
+        .valid(tx_crc_input_valid),
+        .crc(tx_crc)
     );
     
     assign tx_crc_byteswapped = {tx_crc[0+:8], tx_crc[8+:8], tx_crc[16+:8], tx_crc[24+:8]};

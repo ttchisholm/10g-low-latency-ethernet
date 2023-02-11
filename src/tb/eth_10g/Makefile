@@ -21,7 +21,7 @@ VERILOG_SOURCES += $(PWD)/../../hdl/mac/crc32.sv
 
 VERILOG_SOURCES += $(PWD)/../../hdl/mac_pcs.sv
 
-VERILOG_SOURCES += $(PWD)/../../ip/slicing_crc/hdl/slicing_crc.sv
+VERILOG_SOURCES += $(PWD)/../../lib/slicing_crc/hdl/slicing_crc.sv
 
 
 CUSTOM_SIM_DEPS += crc_tables.mem
@@ -52,7 +52,7 @@ endif
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
-crc_tables.mem: $(PWD)/../../ip/slicing_crc/hdl/crc_tables.mem 
+crc_tables.mem: $(PWD)/../../lib/slicing_crc/hdl/crc_tables.mem 
 	cp $< $@
 
 iverilog_dump.v:

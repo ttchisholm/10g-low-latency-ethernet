@@ -1,5 +1,7 @@
 # Vivado build script
 
+# todo find better way to deal with non-ip sources
+
 global output_dir
 global src_dir
 global build_dir
@@ -15,8 +17,10 @@ set build_dir ../build
 set ip_dir ../../src/ip/gen
 set core_src_dir ../../src
 set core_src_include_dir ../../src/hdl/include
+set lib_src_dir ../../src/lib
 
-set flatten_hierarchy none
+set flatten_hierarchy rebuilt
+set directive PerformanceOptimized
 
 proc init {} {
     
@@ -33,6 +37,7 @@ proc add_sources {} {
     read_verilog [glob $::core_src_dir/hdl/*.sv] -sv
     read_verilog [glob $::core_src_dir/hdl/**/*.sv] -sv
     read_verilog [glob $::core_src_dir/hdl/**/*.v]
+    read_verilog [glob $::lib_src_dir/**/**/*.sv]
 
     # remove the gtwiz functions source as this wont synth on its own
     # todo better way?
@@ -52,7 +57,7 @@ proc gen_ip {} {
 
 proc synth {} {
     
-    synth_design -top $::project_name -flatten_hierarchy $::flatten_hierarchy -include_dirs $::core_src_include_dir
+    synth_design -top $::project_name -flatten_hierarchy $::flatten_hierarchy -directive $::directive -include_dirs $::core_src_include_dir
     write_checkpoint -force $::output_dir/post_synth.dcp
     report_timing_summary -file $::output_dir/post_synth_timing_summary.rpt
     report_utilization -file $::output_dir/post_synth_util.rpt
@@ -101,8 +106,7 @@ proc write_xsa {} {
 proc all {} {
     init
     add_sources
-    gen_bd
-    finish_bd
+    gen_ip
     synth
     impl
     output

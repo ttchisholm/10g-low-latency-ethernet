@@ -70,25 +70,25 @@ module mac_pcs #(
     ) u_pcs (
         
         // Reset logic
-        .i_tx_reset(i_tx_reset),
-        .i_rx_reset(i_rx_reset),
+        .tx_reset(i_tx_reset),
+        .rx_reset(i_rx_reset),
 
         // Rx from tranceiver
-        .i_rxc(i_xver_rxc),
-        .i_rxd(i_xver_rxd),
+        .xver_rx_clk(i_xver_rxc),
+        .xver_rx_data(i_xver_rxd),
 
         //Rx interface out
-        .o_rxd(xgmii_rxd),
-        .o_rxctl(xgmii_rxc),
-        .o_rx_valid(phy_rx_valid), // Non standard XGMII - required for no CDC
+        .xgmii_rx_data(xgmii_rxd),
+        .xgmii_rx_ctl(xgmii_rxc),
+        .xgmii_rx_valid(phy_rx_valid), // Non standard XGMII - required for no CDC
         
-        .i_txc(i_xver_txc),
-        .i_txd(xgmii_txd),
-        .i_txctl(xgmii_txc),
-        .o_tx_ready(phy_tx_ready), // Non standard XGMII - required for no CDC
+        .xver_tx_clk(i_xver_txc),
+        .xgmii_tx_data(xgmii_txd),
+        .xgmii_tx_ctl(xgmii_txc),
+        .xgmii_tx_ready(phy_tx_ready), // Non standard XGMII - required for no CDC
 
         // TX Interface out
-        .o_txd(o_xver_txd)
+        .xver_tx_data(o_xver_txd)
     );
 
 endmodule

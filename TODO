@@ -6,6 +6,7 @@ Needed:
 - File headers
 - Handle MAC User Rx not ready - buffer up to end of IPG?
 - Document dual rx crc approach
+- TX_INT_DATAWIDTH = TX_DATA_WIDTH gearbox seq
 
 Nice to have:
 - MAC: Deficit IPG
@@ -13,3 +14,4 @@ Nice to have:
 - Clearer PCS encoding without functions?
 - Fix or note non-standard rx AXIS TUSER when TKEEP = 0
 - Payloads less than 48 are padded (rather then min size of 46)
+- Way to have 0 latency encoder? (know type byte in advance)

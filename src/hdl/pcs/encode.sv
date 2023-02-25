@@ -1,20 +1,24 @@
 `include "code_defs_pkg.svh"
 
-module encode_6466b (
+module encode_6466b #(
+    parameter DATA_WIDTH = 32,
+
+    localparam DATA_NBYTES = DATA_WIDTH / 8
+) (
 
     input wire i_reset,
     input wire i_init_done,
 
     // TX Interface from MAC
     input wire i_txc,
-    input wire[63:0] i_txd,
-    input wire[7:0] i_txctl,
+    input wire[DATA_WIDTH-1:0] i_txd,
+    input wire[DATA_NBYTES-1:0] i_txctl,
 
     // Input from gearbox
     input wire i_tx_pause, 
 
     // TX Interface out
-    output wire [63:0] o_txd,
+    output wire [DATA_WIDTH-1:0] o_txd,
     output wire [1:0] o_tx_header
 );
 
@@ -22,33 +26,63 @@ module encode_6466b (
     
     //*********** Transmit **********//
 
-    // 32-bit input to 64 bit internal
-    // wire [63:0] internal_txd;
-    // wire [7:0] internal_txctl;
-    // logic [31:0] delayed_i_txd;
-    // logic [3:0] delayed_i_txctl;
+    //32-bit input to 64 bit internal
 
-    // always @(posedge i_txc) begin
-    //     if(i_reset) begin
-    //         delayed_i_txd <= '0;
-    //         delayed_i_txctl <= '0;
-    //     end else begin
-    //         if(!i_tx_pause) begin
-    //             delayed_i_txd <= i_txd;
-    //             delayed_i_txctl <= i_txctl;
-    //         end
-    //     end
-    // end
+    wire [63:0] internal_txd;
+    wire [7:0] internal_txctl;
+    wire [63:0] internal_otxd;
+    wire [1:0] internal_header;
 
-    // assign internal_txd = {i_txd, delayed_i_txd};
-    // assign internal_txctl = {i_txctl, delayed_i_txctl};
+    generate if (DATA_WIDTH == 32) begin
+        
+        logic [31:0] delayed_i_txd;
+        logic [3:0] delayed_i_txctl;
+        logic [63:0] delayed_int_otxd;
+        logic [1:0] delayed_header;
+        logic tick;
+
+        always @(posedge i_txc) begin
+            if(i_reset) begin
+                delayed_i_txd <= '0;
+                delayed_i_txctl <= '0;
+                delayed_int_otxd <= '0;
+                delayed_header <= '0;
+                tick <= '0;
+            end else begin
+                if(!i_tx_pause) begin
+                    delayed_i_txd <= i_txd;
+                    delayed_i_txctl <= i_txctl;
+                    tick <= ~tick;
+                    
+                    if (tick) begin
+                        delayed_int_otxd <= internal_otxd;
+                        delayed_header <= internal_header;
+                    end
+
+
+                end
+            end
+        end
+
+        assign internal_txd = {i_txd, delayed_i_txd};
+        assign internal_txctl = {i_txctl, delayed_i_txctl};
+
+        assign o_tx_header = delayed_header;
+        assign o_txd = tick ? delayed_int_otxd[32 +: 32] : internal_otxd[0 +: 32];
+
+    end else begin
+        assign internal_txd = i_txd;
+        assign internal_txctl = i_txctl;
+        assign o_txd = internal_otxd;
+        assign o_tx_header = internal_header;
+    end endgenerate
 
     // Tx encoding
     wire [7:0] tx_type;
     logic [63:0] enc_tx_data;
     wire [63:0] tx_ctl_mask, tx_ctl_mask_data;
 
-    assign o_tx_header = (i_txctl == '0) ? SYNC_DATA : SYNC_CTL;
+    assign internal_header = (internal_txctl == '0) ? SYNC_DATA : SYNC_CTL;
 
     // Data is transmitted lsb first, first byte is in txd[7:0]
     function logic [7:0] get_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lane);
@@ -56,7 +90,8 @@ module encode_6466b (
         return ictl[lane] == 1'b1 ? idata[8*lane +: 8] : RS_ERROR;
     endfunction
 
-    function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input bit [7:0] lanes, input logic[7:0] code);
+    function bit get_all_rs_code(input logic [63:0] idata, input logic [8:0] ictl, 
+                                    input bit [8:0] lanes, input logic[7:0] code);
         for(int i = 0; i < 8; i++) begin
             if(lanes[i] == 1)
                 if(get_rs_code(idata, ictl, i) != code) return 0;
@@ -68,7 +103,7 @@ module encode_6466b (
         return code == RS_OSEQ || code == RS_OSIG;
     endfunction
 
-    function bit is_all_lanes_data(input logic [7:0] ictl, input bit[3:0] lanes);
+    function bit is_all_lanes_data(input logic [63:0] ictl, input bit[3:0] lanes);
         for(int i = 0; i < 4; i++) begin
             if(lanes[i] == 1)
                 if (ictl[lanes[i]] == 1'b0) return 0;
@@ -124,8 +159,8 @@ module encode_6466b (
         end
     endfunction
 
-    assign enc_tx_data = encode_frame(i_txd, i_txctl);
+    assign enc_tx_data = encode_frame(internal_txd, internal_txctl);
 
-    assign o_txd = (i_reset || !i_init_done) ? {{7{RS_ERROR}}, BT_IDLE} : enc_tx_data;
+    assign internal_otxd = (i_reset || !i_init_done) ? {{7{RS_ERROR}}, BT_IDLE} : enc_tx_data;
 
 endmodule

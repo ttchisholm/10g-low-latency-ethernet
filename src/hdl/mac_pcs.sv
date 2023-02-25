@@ -2,44 +2,49 @@
 
 module mac_pcs #(
     parameter SCRAMBLER_BYPASS = 0,
-    parameter EXTERNAL_GEARBOX = 0
+    parameter EXTERNAL_GEARBOX = 0,
+    parameter DATA_WIDTH = 32,
+
+    localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (
     input wire i_tx_reset,
     input wire i_rx_reset,
 
     // Tx AXIS
-    input wire [63:0] s00_axis_tdata,
-    input wire [7:0] s00_axis_tkeep,
+    input wire [DATA_WIDTH-1:0] s00_axis_tdata,
+    input wire [DATA_NBYTES-1:0] s00_axis_tkeep,
     input wire s00_axis_tvalid,
     output logic s00_axis_tready,
     input wire s00_axis_tlast,
 
     // Rx AXIS
-    output logic [63:0] m00_axis_tdata,
-    output logic [7:0] m00_axis_tkeep,
+    output logic [DATA_WIDTH-1:0] m00_axis_tdata,
+    output logic [DATA_NBYTES-1:0] m00_axis_tkeep,
     output logic m00_axis_tvalid,
     output logic m00_axis_tlast,
     output logic m00_axis_tuser,
 
     // Rx XVER
     input wire xver_rx_clk,
-    input wire [63:0] xver_rx_data,
+    input wire [DATA_WIDTH-1:0] xver_rx_data,
     input wire [1:0] xver_rx_header,
     input wire xver_rx_gearbox_valid,
     output wire xver_rx_gearbox_slip,
 
     // TX XVER
     input wire xver_tx_clk,
-    output wire [63:0] xver_tx_data,
+    output wire [DATA_WIDTH-1:0] xver_tx_data,
     output wire [1:0] xver_tx_header,
     output wire [5:0] xver_tx_gearbox_sequence
 );
 
-    wire [63:0] xgmii_rxd, xgmii_txd;
-    wire [7:0] xgmii_rxc, xgmii_txc;
+    wire [DATA_WIDTH-1:0] xgmii_rxd, xgmii_txd;
+    wire [DATA_NBYTES-1:0] xgmii_rxc, xgmii_txc;
     wire phy_rx_valid, phy_tx_ready;
 
-    mac u_mac (
+    mac #(
+        .DATA_WIDTH(DATA_WIDTH)
+    ) u_mac (
         
         .i_tx_reset(i_tx_reset),
         .i_rx_reset(i_rx_reset),
@@ -73,7 +78,8 @@ module mac_pcs #(
 
     pcs #(
         .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS),
-        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
+        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX),
+        .DATA_WIDTH(DATA_WIDTH)
     ) u_pcs (
         
         // Reset logic

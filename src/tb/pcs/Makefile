@@ -5,12 +5,13 @@ SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 WAVES ?= 1
 
-VERILOG_SOURCES += $(PWD)/../../hdl/include/code_defs_pkg.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/include/code_defs_pkg.svh
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/pcs.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/decoder.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/descrambler.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/encode.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/gearbox.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/gearbox_seq.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/lock_state.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/scrambler.sv
 # use VHDL_SOURCES for VHDL files
@@ -25,11 +26,16 @@ MODULE = test_pcs
 
 # module parameters
 export SCRAMBLER_BYPASS ?= 0
+export EXTERNAL_GEARBOX ?= 1
+export DATA_WIDTH ?= 32
 
 ifeq ($(SIM), icarus)
 	PLUSARGS += -fst
 
 	COMPILE_ARGS += -P $(TOPLEVEL).SCRAMBLER_BYPASS=$(SCRAMBLER_BYPASS)
+	COMPILE_ARGS += -P $(TOPLEVEL).EXTERNAL_GEARBOX=$(EXTERNAL_GEARBOX)
+	COMPILE_ARGS += -P $(TOPLEVEL).DATA_WIDTH=$(DATA_WIDTH)
+	COMPILE_ARGS += -I $(PWD)/../../hdl/include
 
 	ifeq ($(WAVES), 1)
 		VERILOG_SOURCES += iverilog_dump.v

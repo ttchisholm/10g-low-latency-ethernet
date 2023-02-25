@@ -60,10 +60,22 @@ module pcs #(
         if(SCRAMBLER_BYPASS) begin
             assign tx_scrambled_data = tx_encoded_data;
         end else begin
+
+            // Delay the scrambler reset if 32-bit interface
+            // TODO this only helps with tb?
+            logic scram_reset;
+            if (DATA_WIDTH == 32)
+                always @ (posedge xver_tx_clk)
+                    scram_reset <= tx_reset;
+            else
+                assign scram_reset = tx_reset;
+            
+            
+
             scrambler #(
                 .DATA_WIDTH(DATA_WIDTH)
             ) u_scrambler(
-                .i_reset(tx_reset),
+                .i_reset(scram_reset),
                 .i_init_done(!tx_reset),
                 .i_txc(xver_tx_clk),
                 .i_tx_pause(tx_gearbox_pause),

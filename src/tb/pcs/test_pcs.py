@@ -6,12 +6,19 @@ from cocotb.result import TestFailure
 
 from pcs_test_vector import PCSTestVector
 
+import debugpy
+
 class PCS_TB:
     def __init__(self, dut, loopback=False):
         self.dut = dut
 
+        # debugpy.listen(5678)
+        # debugpy.wait_for_client()
+        # debugpy.breakpoint()
+
         self.data_width = len(self.dut.xgmii_tx_data)
-        self.clk_period = round(1 / (10.3125 / self.data_width), 3) # ps precision
+        self.data_nbytes = self.data_width // 8
+        self.clk_period = round(1 / (10.3125 / self.data_width), 2) # ps precision
 
         cocotb.start_soon(Clock(dut.xver_tx_clk, self.clk_period, units="ns").start())
         cocotb.start_soon(Clock(dut.xver_rx_clk, self.clk_period, units="ns").start())
@@ -19,8 +26,8 @@ class PCS_TB:
         if loopback: cocotb.start_soon(self.loopback())
 
         # default to idle frame
-        self.dut.xgmii_tx_data.value = int("0x0707070707070707", 16) 
-        self.dut.xgmii_tx_ctl.value = int("0b11111111", 2) 
+        self.dut.xgmii_tx_data.value = int(''.join(["07" for _ in range(self.data_nbytes)]), 16) 
+        self.dut.xgmii_tx_ctl.value = int(''.join(["1" for _ in range(self.data_nbytes)]), 2)
         self.dut.xgmii_rx_data.value = int("0x0", 16)
 
 
@@ -81,17 +88,17 @@ async def encode_scramble_test(dut):
                 
                 if frame_index != 0: # ensure frames are correct sequentially
                     assert (tb.dut.tx_header.value, tb.dut.tx_scrambled_data.value) == \
-                            test_vector.eg_scrambled_data[frame_index], \
+                            test_vector.eg_scrambled_data[tb.data_width][frame_index], \
                             f'tx frame index {frame_index} incorrect. ' + \
                             f'({tb.dut.tx_header.value},{tb.dut.tx_scrambled_data.value.integer:08x}) != ' + \
-                            f'({test_vector.eg_scrambled_data[frame_index][0]:02b}, {test_vector.eg_scrambled_data[frame_index][1]:08x})'
+                            f'({test_vector.eg_scrambled_data[tb.data_width][frame_index][0]:02b}, {test_vector.eg_scrambled_data[tb.data_width][frame_index][1]:08x})'
 
                 if (tb.dut.tx_header.value, tb.dut.tx_scrambled_data.value) == \
-                    test_vector.eg_scrambled_data[frame_index]:
+                    test_vector.eg_scrambled_data[tb.data_width][frame_index]:
                     print(f'Found frame {frame_index}')
                     frame_index += 1
                     timeout_index = 0
-                    if(frame_index == len(test_vector.eg_scrambled_data)):
+                    if(frame_index == len(test_vector.eg_scrambled_data[tb.data_width])):
                         return
                         
             if timeout_index >= 10:
@@ -100,7 +107,7 @@ async def encode_scramble_test(dut):
     tx_monitor = cocotb.start_soon(monitor_tx_scrambled_data())
 
     # tx example frame
-    for ctl, data in test_vector.eg_xgmii_data[1:]: # skip first idle frame as this 
+    for ctl, data in test_vector.eg_xgmii_data[tb.data_width][1:]: # skip first idle frame as this 
                                                     # throws scrambler off wrt example data
         await RisingEdge(tb.dut.xver_tx_clk)
         if tb.dut.xgmii_tx_ready.value:

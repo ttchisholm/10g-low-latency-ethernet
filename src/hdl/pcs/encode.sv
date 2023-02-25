@@ -67,8 +67,8 @@ module encode_6466b #(
         assign internal_txd = {i_txd, delayed_i_txd};
         assign internal_txctl = {i_txctl, delayed_i_txctl};
 
-        assign o_tx_header = delayed_header;
-        assign o_txd = tick ? delayed_int_otxd[32 +: 32] : internal_otxd[0 +: 32];
+        assign o_tx_header = !tick ? delayed_header : internal_header;
+        assign o_txd = !tick ? delayed_int_otxd[32 +: 32] : internal_otxd[0 +: 32];
 
     end else begin
         assign internal_txd = i_txd;

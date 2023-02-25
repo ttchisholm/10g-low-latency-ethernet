@@ -37,10 +37,12 @@ module scrambler #(
     // ...
     // S127 = D127 + S88 + S69
 
+    // For 32-bit mode, as we only shift the scrambler data by 32 each time, need to offset index with (64-DATA_WIDTH)
+
     genvar gi;
     generate;
         for (gi = 0; gi < DATA_WIDTH; gi++) begin
-            assign o_txd[gi] = next_scrambler_data[6+gi] ^ next_scrambler_data[25+gi] ^ i_txd[gi];
+            assign o_txd[gi] = next_scrambler_data[(64-DATA_WIDTH) + 6+gi] ^ next_scrambler_data[(64-DATA_WIDTH) + 25+gi] ^ i_txd[gi];
         end
     endgenerate
     

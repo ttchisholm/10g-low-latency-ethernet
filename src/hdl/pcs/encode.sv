@@ -121,8 +121,8 @@ module encode_6466b #(
             else if (is_rs_ocode(get_rs_code(idata, ictl, 4)) && is_all_lanes_data(ictl, 8'h07))
                 return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), {4{CC_IDLE}}, BT_O4};
 
-            else if (get_all_rs_code(idata, ictl, 8'hF0, RS_IDLE) && (get_rs_code(idata, ictl, 4) == RS_START) && 
-                    is_all_lanes_data(ictl, 8'h07))
+            else if (get_all_rs_code(idata, ictl, 8'h0F, RS_IDLE) && (get_rs_code(idata, ictl, 4) == RS_START) && 
+                    is_all_lanes_data(ictl, 8'hE0))
                 return {idata[63:40], 4'b0, {4{CC_IDLE}}, BT_S4};
 
             else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && get_rs_code(idata, ictl, 4) == RS_START)

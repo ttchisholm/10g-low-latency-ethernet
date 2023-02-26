@@ -1,8 +1,10 @@
 from asyncore import loop
+import asyncio
 import cocotb
-from cocotb.triggers import Timer, RisingEdge, FallingEdge, Edge, NextTimeStep
+from cocotb.triggers import Timer, RisingEdge, FallingEdge, Edge, NextTimeStep, First
 from cocotb.clock import Clock
 from cocotb.result import TestFailure
+from cocotb.queue import Queue
 
 from pcs_test_vector import PCSTestVector
 
@@ -19,6 +21,7 @@ class PCS_TB:
         self.data_width = len(self.dut.xgmii_tx_data)
         self.data_nbytes = self.data_width // 8
         self.clk_period = round(1 / (10.3125 / self.data_width), 2) # ps precision
+        self.gearbox_pause_val = 31 if self.data_width == 32 else 32
 
         cocotb.start_soon(Clock(dut.xver_tx_clk, self.clk_period, units="ns").start())
         cocotb.start_soon(Clock(dut.xver_rx_clk, self.clk_period, units="ns").start())
@@ -60,10 +63,52 @@ class PCS_TB:
         self.dut.tx_reset.value = 0
         self.dut.rx_reset.value = 0
 
-    async def loopback(self):
-        while True:
-            await Edge(self.dut.xgmii_tx_data)
-            self.dut.xgmii_rx_data.value = self.dut.xgmii_tx_data.value
+    async def loopback(self, delay=1):
+        # while True:
+        #     await First(*[Edge(self.dut.xver_tx_data), 
+        #                            Edge(self.dut.xver_tx_header), 
+        #                            Edge(self.dut.xver_tx_gearbox_sequence)])
+            
+        #     xver_tx_data = self.dut.xver_tx_data.value
+        #     xver_tx_header = self.dut.xver_tx_header.value
+        #     xver_tx_gearbox_sequence = self.dut.xver_tx_gearbox_sequence.value != self.gearbox_pause_val
+            
+        #     if delay:
+        #         await RisingEdge(self.dut.xver_rx_clk)
+
+        #     self.dut.xver_rx_data.value = xver_tx_data
+        #     self.dut.xver_rx_header.value = xver_tx_header
+        #     self.dut.xver_rx_gearbox_valid.value = xver_tx_gearbox_sequence
+
+        
+        async def capture_outputs(self, q, delay):
+            for _ in range(delay): await q.put([0, 0, 0])
+            while True:
+                await RisingEdge(self.dut.xver_tx_clk)
+                
+                xver_tx_data = self.dut.xver_tx_data.value
+                xver_tx_header = self.dut.xver_tx_header.value
+                xver_tx_gearbox_sequence = self.dut.xver_tx_gearbox_sequence.value != self.gearbox_pause_val
+
+                await q.put([xver_tx_data, xver_tx_header, xver_tx_gearbox_sequence])
+
+        async def apply_input(self, q):
+            while True:
+                await RisingEdge(self.dut.xver_rx_clk)
+                [xver_tx_data, xver_tx_header, xver_tx_gearbox_sequence] = await q.get()
+                
+                self.dut.xver_rx_data.value = xver_tx_data
+                self.dut.xver_rx_header.value = xver_tx_header
+                self.dut.xver_rx_gearbox_valid.value = xver_tx_gearbox_sequence
+
+                
+
+        q = Queue()
+        cocotb.start_soon(capture_outputs(self, q, delay))
+        cocotb.start_soon(apply_input(self, q))
+
+
+
 
 #
 #   Test transmit encoding and scrambling with sample test vector
@@ -121,55 +166,55 @@ async def encode_scramble_test(dut):
 #   Test tx -> rx chain in loopback with sample test vector
 #
 
-# @cocotb.test()
-# async def tx_rx_loopback_test(dut):
+@cocotb.test()
+async def tx_rx_loopback_test(dut):
     
-#     tb = PCS_TB(dut, loopback=True)
-#     test_vector = PCSTestVector()
+    tb = PCS_TB(dut, loopback=True)
+    test_vector = PCSTestVector()
 
-#     await tb.reset()
+    await tb.reset()
 
-#     # set up tx output monitor
-#     async def monitor_rx_data():
-#         start_frame = 1 # wait on first non-idle frame 
-#         frame_index = start_frame 
-#         timeout_index = 0 
-#         while True:
-#             await RisingEdge(tb.dut.xver_rx_clk)
-#             timeout_index += 1
-#             if tb.dut.o_rx_valid.value:
+    # set up tx output monitor
+    async def monitor_rx_data():
+        start_frame = 1 if tb.data_width == 64 else 2 # wait on first non-idle frame 
+        frame_index = start_frame 
+        timeout_index = 0 
+        while True:
+            await RisingEdge(tb.dut.xver_rx_clk)
+            timeout_index += 1
+            if tb.dut.xgmii_rx_valid.value:
                 
-#                 if frame_index != start_frame: # ensure frames are correct sequentially
-#                     assert (tb.dut.o_rxctl.value, tb.dut.o_rxd.value) == \
-#                             test_vector.eg_xgmii_data[frame_index], \
-#                             f'rx frame index {frame_index} incorrect. ' + \
-#                             f'({tb.dut.o_rxctl.value},{tb.dut.o_rxd.value.integer:08x}) != ' + \
-#                             f'({test_vector.eg_xgmii_data[frame_index][0]:08b}, {test_vector.eg_xgmii_data[frame_index][1]:08x})'
+                if frame_index != start_frame: # ensure frames are correct sequentially
+                    assert (tb.dut.xgmii_rx_ctl.value, tb.dut.xgmii_rx_data.value) == \
+                            test_vector.eg_xgmii_data[tb.data_width][frame_index], \
+                            f'rx frame index {frame_index} incorrect. ' + \
+                            f'({tb.dut.xgmii_rx_ctl.value},{tb.dut.xgmii_rx_data.value.integer:08x}) != ' + \
+                            f'({test_vector.eg_xgmii_data[tb.data_width][frame_index][0]:08b}, {test_vector.eg_xgmii_data[tb.data_width][frame_index][1]:08x})'
 
-#                 if (tb.dut.o_rxctl.value, tb.dut.o_rxd.value) == \
-#                     test_vector.eg_xgmii_data[frame_index]:
-#                     print(f'Found frame {frame_index}')
-#                     frame_index += 1
-#                     timeout_index = 0
-#                     if(frame_index == len(test_vector.eg_xgmii_data)):
-#                         return
+                if (tb.dut.xgmii_rx_ctl.value, tb.dut.xgmii_rx_data.value) == \
+                    test_vector.eg_xgmii_data[tb.data_width][frame_index]:
+                    print(f'Found frame {frame_index}')
+                    frame_index += 1
+                    timeout_index = 0
+                    if(frame_index == len(test_vector.eg_xgmii_data[tb.data_width])):
+                        return
                         
-#             if timeout_index >= 10:
-#                 raise TestFailure('Waiting for rx frame timed out')
+            if timeout_index >= 10:
+                raise TestFailure('Waiting for rx frame timed out')
 
     
 
-#     # transmit idles to allow gearbox to sync
-#     for _ in range(200):
-#         await RisingEdge(tb.dut.xver_tx_clk)
+    # transmit idles to allow gearbox to sync
+    for _ in range(200):
+        await RisingEdge(tb.dut.xver_tx_clk)
 
-#     rx_monitor = cocotb.start_soon(monitor_rx_data())
+    rx_monitor = cocotb.start_soon(monitor_rx_data())
 
-#     # tx example frame
-#     for ctl, data in test_vector.eg_xgmii_data: 
-#         await RisingEdge(tb.dut.xver_tx_clk)
-#         if tb.dut.xgmii_tx_ready.value:
-#             tb.dut.xgmii_tx_data.value = data
-#             tb.dut.xgmii_tx_ctl.value = ctl        
+    # tx example frame
+    for ctl, data in test_vector.eg_xgmii_data[tb.data_width]: 
+        await RisingEdge(tb.dut.xver_tx_clk)
+        if tb.dut.xgmii_tx_ready.value:
+            tb.dut.xgmii_tx_data.value = data
+            tb.dut.xgmii_tx_ctl.value = ctl        
 
-#     await rx_monitor
+    await rx_monitor

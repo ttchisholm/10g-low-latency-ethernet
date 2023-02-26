@@ -1,31 +1,30 @@
 module scrambler #(
-    parameter DATA_WIDTH = 32
+    parameter DATA_WIDTH = 32,
+    parameter DESCRAMBLE = 0
 ) (
-    input wire i_reset,
-    input wire i_init_done,
-    input wire i_tx_pause,
-
-    input wire i_txc,
-    input wire [DATA_WIDTH-1:0] i_txd,
-
-    output wire [DATA_WIDTH-1:0] o_txd
-
+    input wire clk,
+    input wire reset,
+    input wire init_done,
+    input wire pause,
+    input wire [DATA_WIDTH-1:0] idata,
+    output wire [DATA_WIDTH-1:0] odata
 );
 
     logic[127:0] scrambler_data;
     logic [127:0] next_scrambler_data;
 
-    always @(posedge i_txc) begin
-        if (i_reset || !i_init_done) begin
+    always @(posedge clk) begin
+        if (reset || !init_done) begin
             scrambler_data <= '1;
         end
-        else if (!i_tx_pause) begin
+        else if (!pause) begin
             scrambler_data <= next_scrambler_data;
         end
     end
 
     // Data here is reversed wrt. polynomial index
-    assign next_scrambler_data = {{o_txd}, {scrambler_data[DATA_WIDTH +: 128 - DATA_WIDTH]}};
+    assign next_scrambler_data = DESCRAMBLE ? {{idata}, {scrambler_data[DATA_WIDTH +: 128 - DATA_WIDTH]}} :
+                                              {{odata}, {scrambler_data[DATA_WIDTH +: 128 - DATA_WIDTH]}};
 
     // Parallel scrambler
     // Polynomial is 1 + x^39 + x^58, easier to write as inverse 1 + x^19 + x^58
@@ -42,7 +41,7 @@ module scrambler #(
     genvar gi;
     generate;
         for (gi = 0; gi < DATA_WIDTH; gi++) begin
-            assign o_txd[gi] = next_scrambler_data[(64-DATA_WIDTH) + 6+gi] ^ next_scrambler_data[(64-DATA_WIDTH) + 25+gi] ^ i_txd[gi];
+            assign odata[gi] = next_scrambler_data[(64-DATA_WIDTH) + 6+gi] ^ next_scrambler_data[(64-DATA_WIDTH) + 25+gi] ^ idata[gi];
         end
     endgenerate
     

@@ -75,12 +75,12 @@ module pcs #(
             scrambler #(
                 .DATA_WIDTH(DATA_WIDTH)
             ) u_scrambler(
-                .i_reset(scram_reset),
-                .i_init_done(!tx_reset),
-                .i_txc(xver_tx_clk),
-                .i_tx_pause(tx_gearbox_pause),
-                .i_txd(tx_encoded_data),
-                .o_txd(tx_scrambled_data)
+                .clk(xver_tx_clk),
+                .reset(scram_reset),
+                .init_done(!tx_reset),
+                .pause(tx_gearbox_pause),
+                .idata(tx_encoded_data),
+                .odata(tx_scrambled_data)
             );
         end
     endgenerate
@@ -178,19 +178,24 @@ module pcs #(
         if(SCRAMBLER_BYPASS) begin
             assign rx_descrambled_data = rx_gearbox_data_out;
         end else begin
-            descrambler u_descrambler(
-                .i_reset(rx_reset),
-                .i_init_done(!rx_reset),
-                .i_rx_valid(xgmii_rx_valid),
-                .i_rxc(xver_rx_clk),
-                .i_rxd(rx_gearbox_data_out),
-                .o_rxd(rx_descrambled_data)
+            scrambler #(
+                .DATA_WIDTH(DATA_WIDTH),
+                .DESCRAMBLE(1)
+            ) u_descrambler(
+                .clk(xver_rx_clk),
+                .reset(rx_reset),
+                .init_done(!rx_reset),
+                .pause(!xgmii_rx_valid),
+                .idata(rx_gearbox_data_out),
+                .odata(rx_descrambled_data)
             );
         end
     endgenerate
 
     // Decoder
-    decode_6466b u_decoder(
+    decode_6466b #(
+        .DATA_WIDTH(DATA_WIDTH)
+    ) u_decoder(
         .i_reset(rx_reset),
         .i_init_done(!rx_reset),
         .i_rxc(xver_rx_clk),

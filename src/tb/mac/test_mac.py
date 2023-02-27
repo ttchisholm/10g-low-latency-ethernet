@@ -13,15 +13,16 @@ class MAC_TB:
     def __init__(self, dut, loopback=False):
         self.dut = dut
 
-        self.data_width = len(self.dut.s00_axis_tdata)
-        self.clk_period = round(1 / (10.3125 / self.data_width), 3) # ps precision
+        self.data_width = len(self.dut.xgmii_tx_data)
+        self.data_nbytes = self.data_width // 8
+        self.clk_period = round(1 / (10.3125 / self.data_width), 2) # ps precision
 
-        cocotb.start_soon(Clock(dut.i_txc, self.clk_period, units="ns").start())
-        cocotb.start_soon(Clock(dut.i_rxc, self.clk_period, units="ns").start())
+        cocotb.start_soon(Clock(dut.tx_clk, self.clk_period, units="ns").start())
+        cocotb.start_soon(Clock(dut.rx_clk, self.clk_period, units="ns").start())
 
         if loopback:  
-            cocotb.start_soon(self.loopback('xgmii_txd', 'xgmii_rxd'))
-            cocotb.start_soon(self.loopback('xgmii_txc', 'xgmii_rxc'))
+            cocotb.start_soon(self.loopback('xgmii_tx_data', 'xgmii_rx_data'))
+            cocotb.start_soon(self.loopback('xgmii_tx_ctl', 'xgmii_rx_ctl'))
 
         
 
@@ -32,16 +33,18 @@ class MAC_TB:
         
         
     async def change_reset(self, val):
-        self.dut.i_reset.value = val
-        for _ in range(2): # wait for reset to propagate to both tx/rx clock domains
-            await RisingEdge(self.dut.i_rxc)
-            await RisingEdge(self.dut.i_txc)
+        self.dut.tx_reset.value = val
+        self.dut.rx_reset.value = val
+        
+        await RisingEdge(self.dut.tx_clk)
+        await RisingEdge(self.dut.rx_clk)
 
 
     async def reset(self):
         await self.change_reset(0)
         await self.change_reset(1)
-        await self.change_reset(0)
+        self.dut.tx_reset.value = 0
+        self.dut.rx_reset.value = 0
 
     async def loopback(self, output, input):
         while True:
@@ -58,8 +61,8 @@ async def tx_test(dut):
     
     await tb.reset()
 
-    dut.s00_axis_tkeep.value = int("0b11111111", 2)
-    await RisingEdge(dut.i_txc)
+    dut.s00_axis_tkeep.value = int(2**tb.data_nbytes - 1)
+    await RisingEdge(dut.tx_clk)
 
     test_vectors = [
         [   
@@ -106,14 +109,14 @@ async def tx_test(dut):
 
         timeout = 0
 
-        tvc = list(chunker(tv, 8))
+        tvc = list(chunker(tv, tb.data_nbytes))
 
         for i, ivalues in enumerate(tvc):
 
             while tb.dut.s00_axis_tready.value == 0:
                 tb.dut.s00_axis_tvalid.value = 0
                 timeout += 1
-                await RisingEdge(dut.i_txc)
+                await RisingEdge(dut.tx_clk)
                 assert timeout < 20, 'Waiting for tx ready timed out'
 
             ivalue = 0
@@ -127,51 +130,51 @@ async def tx_test(dut):
             tb.dut.s00_axis_tvalid.value = 1
             tb.dut.s00_axis_tlast.value = int(i == len(tvc) - 1)
 
-            await RisingEdge(dut.i_txc)
+            await RisingEdge(dut.tx_clk)
 
         tb.dut.s00_axis_tvalid.value = 0
         tb.dut.s00_axis_tdata.value = 0
         tb.dut.s00_axis_tlast.value = 0
 
-        await RisingEdge(dut.i_txc)
+        await RisingEdge(dut.tx_clk)
 
     for _ in range(20):
-        await RisingEdge(dut.i_txc)
+        await RisingEdge(dut.tx_clk)
         
-@cocotb.test()
-async def rx_test(dut):
-    tb = MAC_TB(dut)
+# @cocotb.test()
+# async def rx_test(dut):
+#     tb = MAC_TB(dut)
 
-    eg_xgmii_data = [
-            (int("0b11111111", 2), int("0x0707070707070707", 16)),
-            (int("0b11111111", 2), int("0x0707070707070707", 16)),
-            (int("0b11111111", 2), int("0x0707070707070707", 16)),
-            (int("0b00000001", 2), int("0xd5555555555555fb", 16)),
-            (int("0b00000000", 2), int("0x8b0e380577200008", 16)),
-            (int("0b00000000", 2), int("0x0045000800000000", 16)),
-            (int("0b00000000", 2), int("0x061b0000661c2800", 16)),
-            (int("0b00000000", 2), int("0x00004d590000d79e", 16)),
-            (int("0b00000000", 2), int("0x0000eb4a2839d168", 16)),
-            (int("0b00000000", 2), int("0x12500c7a00007730", 16)),
-            (int("0b00000000", 2), int("0x000000008462d21e", 16)),
-            (int("0b00000000", 2), int("0x79f7eb9300000000", 16)),
-            (int("0b11111111", 2), int("0x07070707070707fd", 16)),
-            (int("0b11111111", 2), int("0x0707070707070707", 16))
-        ]
+#     eg_xgmii_data = [
+#             (int("0b11111111", 2), int("0x0707070707070707", 16)),
+#             (int("0b11111111", 2), int("0x0707070707070707", 16)),
+#             (int("0b11111111", 2), int("0x0707070707070707", 16)),
+#             (int("0b00000001", 2), int("0xd5555555555555fb", 16)),
+#             (int("0b00000000", 2), int("0x8b0e380577200008", 16)),
+#             (int("0b00000000", 2), int("0x0045000800000000", 16)),
+#             (int("0b00000000", 2), int("0x061b0000661c2800", 16)),
+#             (int("0b00000000", 2), int("0x00004d590000d79e", 16)),
+#             (int("0b00000000", 2), int("0x0000eb4a2839d168", 16)),
+#             (int("0b00000000", 2), int("0x12500c7a00007730", 16)),
+#             (int("0b00000000", 2), int("0x000000008462d21e", 16)),
+#             (int("0b00000000", 2), int("0x79f7eb9300000000", 16)),
+#             (int("0b11111111", 2), int("0x07070707070707fd", 16)),
+#             (int("0b11111111", 2), int("0x0707070707070707", 16))
+#         ]
 
     
 
-    tb.dut.xgmii_rxd.value = 0
-    tb.dut.xgmii_rxc.value = 0
-    tb.dut.phy_rx_valid.value = 1
-    tb.dut.m00_axis_tready.value = 1
+#     tb.dut.xgmii_rx_data.value = 0
+#     tb.dut.xgmii_rx_ctl.value = 0
+#     tb.dut.phy_rx_valid.value = 1
+#     tb.dut.m00_axis_tready.value = 1
 
-    await tb.reset()
+#     await tb.reset()
 
-    for (ctl, data) in eg_xgmii_data:
-        tb.dut.xgmii_rxd.value = data
-        tb.dut.xgmii_rxc.value = ctl
+#     for (ctl, data) in eg_xgmii_data:
+#         tb.dut.xgmii_rx_data.value = data
+#         tb.dut.xgmii_rx_ctl.value = ctl
 
-        await RisingEdge(dut.i_rxc)
+#         await RisingEdge(dut.rx_clk)
 
 

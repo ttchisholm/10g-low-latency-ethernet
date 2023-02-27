@@ -1,7 +1,11 @@
 `default_nettype none
 `include "code_defs_pkg.svh"
 
-module rx_mac (
+module rx_mac #(
+    parameter DATA_WIDTH = 32,
+
+    localparam DATA_NBYTES = DATA_WIDTH / 8
+) (
     
     input wire i_reset,
     input wire i_clk,

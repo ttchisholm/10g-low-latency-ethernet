@@ -5,15 +5,16 @@ SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 WAVES ?= 1
 
-VERILOG_SOURCES += $(PWD)/../../hdl/include/code_defs_pkg.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/include/code_defs_pkg.svh
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/tx_mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/rx_mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/crc32.sv
+VERILOG_SOURCES += $(PWD)/../../lib/slicing_crc/hdl/slicing_crc.sv
 
 
 
-CUSTOM_SIM_DEPS += crc32.mem
+CUSTOM_SIM_DEPS += crc_tables.mem
 
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
@@ -25,10 +26,13 @@ MODULE = test_mac
 
 
 # module parameters
-export INPUT_WIDTH_BYTES ?= 8
+export DATA_WIDTH ?= 32
 
 ifeq ($(SIM), icarus)
 	PLUSARGS += -fst
+
+	COMPILE_ARGS += -P $(TOPLEVEL).DATA_WIDTH=$(DATA_WIDTH)
+	COMPILE_ARGS += -I $(PWD)/../../hdl/include
 
 	ifeq ($(WAVES), 1)
 		VERILOG_SOURCES += iverilog_dump.v
@@ -42,7 +46,7 @@ include $(shell cocotb-config --makefiles)/Makefile.sim
 
 
 
-crc32.mem: $(PWD)/../../hdl/mac/crc32.mem 
+crc_tables.mem: $(PWD)/../../lib/slicing_crc/hdl/crc_tables.mem 
 	cp $< $@
 
 iverilog_dump.v:

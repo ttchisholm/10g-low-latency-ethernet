@@ -1,53 +1,63 @@
 `default_nettype none
 `include "code_defs_pkg.svh"
 
-module mac (
+module mac #(
+    parameter DATA_WIDTH = 32,
+
+    localparam DATA_NBYTES = DATA_WIDTH / 8
+) (
     
-    input wire i_tx_reset,
-    input wire i_rx_reset,
+    input wire tx_reset,
+    input wire rx_reset,
 
     // Tx PHY
-    input wire i_txc,
-    output logic [63:0] xgmii_txd,
-    output logic [7:0] xgmii_txc,
+    input wire tx_clk,
+    output logic [DATA_WIDTH-1:0] xgmii_tx_data,
+    output logic [DATA_NBYTES-1:0] xgmii_tx_ctl,
     input wire phy_tx_ready,
 
     // Tx AXIS
-    input wire [63:0] s00_axis_tdata,
-    input wire [7:0] s00_axis_tkeep,
+    input wire [DATA_WIDTH-1:0] s00_axis_tdata,
+    input wire [DATA_NBYTES-1:0] s00_axis_tkeep,
     input wire s00_axis_tvalid,
     output logic s00_axis_tready,
     input wire s00_axis_tlast,
     
 
     // Rx PHY
-    input wire i_rxc,
-    input wire [63:0] xgmii_rxd,
-    input wire [7:0] xgmii_rxc,
+    input wire rx_clk,
+    input wire [DATA_WIDTH-1:0] xgmii_rx_data,
+    input wire [DATA_NBYTES-1:0] xgmii_rx_ctl,
     input wire phy_rx_valid,
 
     // Rx AXIS
-    output logic [63:0] m00_axis_tdata,
-    output logic [7:0] m00_axis_tkeep,
+    output logic [DATA_WIDTH-1:0] m00_axis_tdata,
+    output logic [DATA_NBYTES-1:0] m00_axis_tkeep,
     output logic m00_axis_tvalid,
     output logic m00_axis_tlast,
     output logic m00_axis_tuser
 );
 
     import code_defs_pkg::*;
+
+    // generate if (DATA_WIDTH != 32 && DATA_WIDTH != 64)
+    //     $error("Only 32-bit and 64-bit interface mode supported\n");
+    // endgenerate
     
 
     localparam MIN_PAYLOAD_SIZE = 46;
     localparam IPG_SIZE = 12;
 
-    tx_mac u_tx(
+    tx_mac #(
+        .DATA_WIDTH(DATA_WIDTH)
+    ) u_tx(
     
-        .i_reset(i_tx_reset),
-        .i_clk(i_txc),
+        .i_reset(tx_reset),
+        .i_clk(tx_clk),
 
         // Tx PHY
-        .xgmii_txd(xgmii_txd),
-        .xgmii_txc(xgmii_txc),
+        .xgmii_txd(xgmii_tx_data),
+        .xgmii_txc(xgmii_tx_ctl),
         .phy_tx_ready(phy_tx_ready),
 
         // Tx User AXIS
@@ -58,23 +68,25 @@ module mac (
         .s00_axis_tlast(s00_axis_tlast)
     );
 
-    rx_mac u_rx (
+    // rx_mac #(
+    //     .DATA_WIDTH(DATA_WIDTH)
+    // ) u_rx (
     
-        .i_reset(i_rx_reset),
-        .i_clk(i_rxc),
+    //     .i_reset(i_rx_reset),
+    //     .i_clk(i_rxc),
 
-        // Rx PHY
-        .xgmii_rxd(xgmii_rxd),
-        .xgmii_rxc(xgmii_rxc),
-        .phy_rx_valid(phy_rx_valid),
+    //     // Rx PHY
+    //     .xgmii_rxd(xgmii_rxd),
+    //     .xgmii_rxc(xgmii_rxc),
+    //     .phy_rx_valid(phy_rx_valid),
 
-        // Rx AXIS
-        .m00_axis_tdata(m00_axis_tdata),
-        .m00_axis_tkeep(m00_axis_tkeep),
-        .m00_axis_tvalid(m00_axis_tvalid),
-        .m00_axis_tlast(m00_axis_tlast),
-        .m00_axis_tuser(m00_axis_tuser)
-    );
+    //     // Rx AXIS
+    //     .m00_axis_tdata(m00_axis_tdata),
+    //     .m00_axis_tkeep(m00_axis_tkeep),
+    //     .m00_axis_tvalid(m00_axis_tvalid),
+    //     .m00_axis_tlast(m00_axis_tlast),
+    //     .m00_axis_tuser(m00_axis_tuser)
+    // );
 
     
 

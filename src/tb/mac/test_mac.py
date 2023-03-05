@@ -141,40 +141,63 @@ async def tx_test(dut):
     for _ in range(20):
         await RisingEdge(dut.tx_clk)
         
-# @cocotb.test()
-# async def rx_test(dut):
-#     tb = MAC_TB(dut)
+@cocotb.test()
+async def rx_test(dut):
+    tb = MAC_TB(dut)
 
-#     eg_xgmii_data = [
-#             (int("0b11111111", 2), int("0x0707070707070707", 16)),
-#             (int("0b11111111", 2), int("0x0707070707070707", 16)),
-#             (int("0b11111111", 2), int("0x0707070707070707", 16)),
-#             (int("0b00000001", 2), int("0xd5555555555555fb", 16)),
-#             (int("0b00000000", 2), int("0x8b0e380577200008", 16)),
-#             (int("0b00000000", 2), int("0x0045000800000000", 16)),
-#             (int("0b00000000", 2), int("0x061b0000661c2800", 16)),
-#             (int("0b00000000", 2), int("0x00004d590000d79e", 16)),
-#             (int("0b00000000", 2), int("0x0000eb4a2839d168", 16)),
-#             (int("0b00000000", 2), int("0x12500c7a00007730", 16)),
-#             (int("0b00000000", 2), int("0x000000008462d21e", 16)),
-#             (int("0b00000000", 2), int("0x79f7eb9300000000", 16)),
-#             (int("0b11111111", 2), int("0x07070707070707fd", 16)),
-#             (int("0b11111111", 2), int("0x0707070707070707", 16))
-#         ]
+    eg_xgmii_data = {64: [
+            (int("0b11111111", 2), int("0x0707070707070707", 16)),
+            (int("0b00000001", 2), int("0xd5555555555555fb", 16)),
+            (int("0b00000000", 2), int("0x8b0e380577200008", 16)),
+            (int("0b00000000", 2), int("0x0045000800000000", 16)),
+            (int("0b00000000", 2), int("0x061b0000661c2800", 16)),
+            (int("0b00000000", 2), int("0x00004d590000d79e", 16)),
+            (int("0b00000000", 2), int("0x0000eb4a2839d168", 16)),
+            (int("0b00000000", 2), int("0x12500c7a00007730", 16)),
+            (int("0b00000000", 2), int("0x000000008462d21e", 16)),
+            (int("0b00000000", 2), int("0x79f7eb9300000000", 16)),
+            (int("0b11111111", 2), int("0x07070707070707fd", 16)),
+            (int("0b11111111", 2), int("0x0707070707070707", 16))
+        ],
+        32: [
+            (int("0b1111", 2), int("0x07070707", 16)),
+            (int("0b1111", 2), int("0x07070707", 16)),
+            (int("0b0001", 2), int("0x555555fb", 16)),
+            (int("0b0000", 2), int("0xd5555555", 16)),
+            (int("0b0000", 2), int("0x77200008", 16)),
+            (int("0b0000", 2), int("0x8b0e3805", 16)),
+            (int("0b0000", 2), int("0x00000000", 16)),
+            (int("0b0000", 2), int("0x00450008", 16)),
+            (int("0b0000", 2), int("0x661c2800", 16)),
+            (int("0b0000", 2), int("0x061b0000", 16)),
+            (int("0b0000", 2), int("0x0000d79e", 16)),
+            (int("0b0000", 2), int("0x00004d59", 16)),
+            (int("0b0000", 2), int("0x2839d168", 16)),
+            (int("0b0000", 2), int("0x0000eb4a", 16)),
+            (int("0b0000", 2), int("0x00007730", 16)),
+            (int("0b0000", 2), int("0x12500c7a", 16)),
+            (int("0b0000", 2), int("0x8462d21e", 16)),
+            (int("0b0000", 2), int("0x00000000", 16)),
+            (int("0b0000", 2), int("0x00000000", 16)),
+            (int("0b0000", 2), int("0x79f7eb93", 16)),
+            (int("0b1111", 2), int("0x070707fd", 16)),
+            (int("0b1111", 2), int("0x07070707", 16)),
+            (int("0b1111", 2), int("0x07070707", 16)),
+            (int("0b1111", 2), int("0x07070707", 16))
+        ]}
 
     
 
-#     tb.dut.xgmii_rx_data.value = 0
-#     tb.dut.xgmii_rx_ctl.value = 0
-#     tb.dut.phy_rx_valid.value = 1
-#     tb.dut.m00_axis_tready.value = 1
+    tb.dut.xgmii_rx_data.value = 0
+    tb.dut.xgmii_rx_ctl.value = 0
+    tb.dut.phy_rx_valid.value = 1
 
-#     await tb.reset()
+    await tb.reset()
 
-#     for (ctl, data) in eg_xgmii_data:
-#         tb.dut.xgmii_rx_data.value = data
-#         tb.dut.xgmii_rx_ctl.value = ctl
+    for (ctl, data) in eg_xgmii_data[tb.data_width]:
+        tb.dut.xgmii_rx_data.value = data
+        tb.dut.xgmii_rx_ctl.value = ctl
 
-#         await RisingEdge(dut.rx_clk)
+        await RisingEdge(dut.rx_clk)
 
 

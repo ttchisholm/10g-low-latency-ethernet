@@ -36,13 +36,15 @@ MODULE = test_eth10g
 
 # module parameters
 export SCRAMBLER_BYPASS ?= 0
-export EXTERNAL_GEARBOX ?= 0
+export EXTERNAL_GEARBOX ?= 1
+export DATA_WIDTH ?= 32
 
 ifeq ($(SIM), icarus)
 	PLUSARGS += -fst
 
 	COMPILE_ARGS += -P $(TOPLEVEL).SCRAMBLER_BYPASS=$(SCRAMBLER_BYPASS)
 	COMPILE_ARGS += -P $(TOPLEVEL).EXTERNAL_GEARBOX=$(EXTERNAL_GEARBOX)
+	COMPILE_ARGS += -P $(TOPLEVEL).DATA_WIDTH=$(DATA_WIDTH)
 	COMPILE_ARGS += -I $(PWD)/../../hdl/include
 
 	ifeq ($(WAVES), 1)

@@ -52,12 +52,12 @@ module mac #(
         .DATA_WIDTH(DATA_WIDTH)
     ) u_tx(
     
-        .i_reset(tx_reset),
-        .i_clk(tx_clk),
+        .reset(tx_reset),
+        .clk(tx_clk),
 
         // Tx PHY
-        .xgmii_txd(xgmii_tx_data),
-        .xgmii_txc(xgmii_tx_ctl),
+        .xgmii_tx_data(xgmii_tx_data),
+        .xgmii_tx_ctl(xgmii_tx_ctl),
         .phy_tx_ready(phy_tx_ready),
 
         // Tx User AXIS
@@ -68,25 +68,25 @@ module mac #(
         .s00_axis_tlast(s00_axis_tlast)
     );
 
-    // rx_mac #(
-    //     .DATA_WIDTH(DATA_WIDTH)
-    // ) u_rx (
+    rx_mac #(
+        .DATA_WIDTH(DATA_WIDTH)
+    ) u_rx (
     
-    //     .i_reset(i_rx_reset),
-    //     .i_clk(i_rxc),
+        .i_reset(rx_reset),
+        .i_clk(rx_clk),
 
-    //     // Rx PHY
-    //     .xgmii_rxd(xgmii_rxd),
-    //     .xgmii_rxc(xgmii_rxc),
-    //     .phy_rx_valid(phy_rx_valid),
+        // Rx PHY
+        .xgmii_rxd(xgmii_rx_data),
+        .xgmii_rxc(xgmii_rx_ctl),
+        .phy_rx_valid(phy_rx_valid),
 
-    //     // Rx AXIS
-    //     .m00_axis_tdata(m00_axis_tdata),
-    //     .m00_axis_tkeep(m00_axis_tkeep),
-    //     .m00_axis_tvalid(m00_axis_tvalid),
-    //     .m00_axis_tlast(m00_axis_tlast),
-    //     .m00_axis_tuser(m00_axis_tuser)
-    // );
+        // Rx AXIS
+        .m00_axis_tdata(m00_axis_tdata),
+        .m00_axis_tkeep(m00_axis_tkeep),
+        .m00_axis_tvalid(m00_axis_tvalid),
+        .m00_axis_tlast(m00_axis_tlast),
+        .m00_axis_tuser(m00_axis_tuser)
+    );
 
     
 

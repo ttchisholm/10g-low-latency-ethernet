@@ -35,12 +35,30 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
         self.tx_axis_monitor.log.propagate = enable
         self.rx_axis_monitor.log.propagate = enable
        
-    async def loopback(self):
-        while True:
-            await Edge(self.dut.xver_tx_data)
-            self.dut.xver_rx_data.value = self.dut.xver_tx_data.value
-            self.dut.xver_rx_header.value = self.dut.xver_tx_header.value
-            self.dut.xver_rx_gearbox_valid.value = self.dut.xver_tx_gearbox_sequence.value != 32
+    async def loopback(self, delay=1):
+        async def capture_outputs(self, q, delay):
+            for _ in range(delay): await q.put([0, 0, 0])
+            while True:
+                await RisingEdge(self.dut.xver_tx_clk)
+                
+                xver_tx_data = self.dut.xver_tx_data.value
+                xver_tx_header = self.dut.xver_tx_header.value
+                xver_tx_gearbox_sequence = self.dut.xver_tx_gearbox_sequence.value != self.gearbox_pause_val
+
+                await q.put([xver_tx_data, xver_tx_header, xver_tx_gearbox_sequence])
+
+        async def apply_input(self, q):
+            while True:
+                await RisingEdge(self.dut.xver_rx_clk)
+                [xver_tx_data, xver_tx_header, xver_tx_gearbox_sequence] = await q.get()
+                
+                self.dut.xver_rx_data.value = xver_tx_data
+                self.dut.xver_rx_header.value = xver_tx_header
+                self.dut.xver_rx_gearbox_valid.value = xver_tx_gearbox_sequence
+
+        q = Queue()
+        cocotb.start_soon(capture_outputs(self, q, delay))
+        cocotb.start_soon(apply_input(self, q))
 
     async def send_tx_packet(self, packet):
         await self.tx_driver_queue.put(packet)
@@ -90,13 +108,17 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
             
 
     async def start_bfm(self):
-        self.clk_period = round(1 / (10.3125 / 64), 3) # ps precision
-
+        self.data_width = len(self.dut.xgmii_tx_data)
+        self.data_nbytes = self.data_width // 8
+        self.gearbox_pause_val = 31 if self.data_width == 32 else 32
+        self.clk_period = round(1 / (10.3125 / self.data_width), 2) # ps precision
+        
         cocotb.start_soon(Clock(self.dut.xver_tx_clk, self.clk_period, units="ns").start())
         cocotb.start_soon(Clock(self.dut.xver_rx_clk, self.clk_period, units="ns").start())
-        cocotb.start_soon(self.loopback())
+        
 
         await self.reset()
+        cocotb.start_soon(self.loopback())
         cocotb.start_soon(self.driver_bfm())
         cocotb.start_soon(self.tx_monitor_bfm())
         cocotb.start_soon(self.rx_monitor_bfm())

@@ -38,21 +38,21 @@ module mac_pcs #(
     output wire [5:0] xver_tx_gearbox_sequence
 );
 
-    wire [DATA_WIDTH-1:0] xgmii_rxd, xgmii_txd;
-    wire [DATA_NBYTES-1:0] xgmii_rxc, xgmii_txc;
+    wire [DATA_WIDTH-1:0] xgmii_rx_data, xgmii_tx_data;
+    wire [DATA_NBYTES-1:0] xgmii_rx_ctl, xgmii_tx_ctl;
     wire phy_rx_valid, phy_tx_ready;
 
     mac #(
         .DATA_WIDTH(DATA_WIDTH)
     ) u_mac (
         
-        .i_tx_reset(i_tx_reset),
-        .i_rx_reset(i_rx_reset),
+        .tx_reset(i_tx_reset),
+        .rx_reset(i_rx_reset),
 
         // Tx PHY
-        .i_txc(xver_tx_clk),
-        .xgmii_txd(xgmii_txd),
-        .xgmii_txc(xgmii_txc),
+        .tx_clk(xver_tx_clk),
+        .xgmii_tx_data(xgmii_tx_data),
+        .xgmii_tx_ctl(xgmii_tx_ctl),
         .phy_tx_ready(phy_tx_ready),
 
         // Tx AXIS
@@ -63,9 +63,9 @@ module mac_pcs #(
         .s00_axis_tlast(s00_axis_tlast),
 
         // Rx PHY
-        .i_rxc(xver_rx_clk),
-        .xgmii_rxd(xgmii_rxd),
-        .xgmii_rxc(xgmii_rxc),
+        .rx_clk(xver_rx_clk),
+        .xgmii_rx_data(xgmii_rx_data),
+        .xgmii_rx_ctl(xgmii_rx_ctl),
         .phy_rx_valid(phy_rx_valid),
 
         // Rx AXIS
@@ -94,13 +94,13 @@ module mac_pcs #(
         .xver_rx_gearbox_slip(xver_rx_gearbox_slip),
 
         //Rx interface out
-        .xgmii_rx_data(xgmii_rxd),
-        .xgmii_rx_ctl(xgmii_rxc),
+        .xgmii_rx_data(xgmii_rx_data),
+        .xgmii_rx_ctl(xgmii_rx_ctl),
         .xgmii_rx_valid(phy_rx_valid), // Non standard XGMII - required for no CDC
         
         .xver_tx_clk(xver_tx_clk),
-        .xgmii_tx_data(xgmii_txd),
-        .xgmii_tx_ctl(xgmii_txc),
+        .xgmii_tx_data(xgmii_tx_data),
+        .xgmii_tx_ctl(xgmii_tx_ctl),
         .xgmii_tx_ready(phy_tx_ready), // Non standard XGMII - required for no CDC
 
         // TX Interface out

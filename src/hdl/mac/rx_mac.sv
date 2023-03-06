@@ -48,10 +48,11 @@ module rx_mac #(
     wire [DATA_WIDTH-1:0] masked_data;
 
     // CRC
-    logic [31:0] rx_crc, rx_crc_del, term_crc, frame_crc, prev_frame_crc;
+    logic [31:0] rx_calc_crc, rx_crc_del, term_crc, frame_crc, prev_frame_crc;
     logic [DATA_NBYTES-1:0] rx_crc_input_valid, rx_crc_input_valid_del;
     wire  rx_crc_reset;
     logic [DATA_WIDTH-1:0] rx_crc_input, rx_crc_input_del;
+    logic [31:0] rx_captured_crc;
 
 
 
@@ -92,7 +93,7 @@ module rx_mac #(
                 m00_axis_tkeep = |sfd_found_loc ? start_keep :
                                   term_found    ? term_keep  :
                                                 '1; 
-                m00_axis_tuser = term_found && (rx_crc == rx_crc_input_del);
+                m00_axis_tuser = term_found && (rx_calc_crc == rx_captured_crc);
             end
             default: begin
                 rx_next_state = IDLE;
@@ -166,15 +167,48 @@ module rx_mac #(
     if (i_reset) begin
         rx_crc_input_del <= '0;
         rx_crc_input_valid_del <= '0;
+        rx_captured_crc <= '0;
     end else begin
         rx_crc_input_del <= m00_axis_tdata;
-        rx_crc_input_valid_del <= m00_axis_tkeep;
+        rx_crc_input_valid_del <= m00_axis_tkeep & {DATA_NBYTES{phy_rx_valid}};
+
+        if (!term_found) begin
+            
+        end else begin
+            
+        end
     end
 
-    assign rx_crc_reset = rx_state == IDLE;
-    wire[DATA_NBYTES-1:0] crc_input_valid;
+    logic[DATA_NBYTES-1:0] crc_input_valid;
+    always @(*) begin
+        if (!term_found) begin
+            crc_input_valid = rx_crc_input_valid_del & {DATA_NBYTES{rx_state != IDLE}};
+            rx_captured_crc = xgmii_rxd;
+        end else begin
+            // We need to stop the CRC itself from being input
+            case (term_loc) 
+                1: crc_input_valid = DATA_WIDTH == 32 ? 4'b0000 : 8'b00001111;
+                2: crc_input_valid = DATA_WIDTH == 32 ? 4'b0001 : 8'b00011111;
+                4: crc_input_valid = DATA_WIDTH == 32 ? 4'b0011 : 8'b00111111;
+                8: crc_input_valid = DATA_WIDTH == 32 ? 4'b0111 : 8'b01111111;
+                default: crc_input_valid = DATA_WIDTH == 32 ? 4'b1111 : 8'b11111111;
+            endcase
 
-    assign crc_input_valid = rx_crc_input_valid_del & {DATA_NBYTES{!term_found}};
+            case (term_loc) 
+                1: rx_captured_crc = rx_crc_input_del;
+                2: rx_captured_crc = {xgmii_rxd[0+:8], rx_crc_input_del[8+:24]};
+                4: rx_captured_crc = {xgmii_rxd[0+:16], rx_crc_input_del[16+:16]};
+                8: rx_captured_crc = {xgmii_rxd[0+:24], rx_crc_input_del[24+:8]};
+                default: rx_captured_crc = xgmii_rxd;
+            endcase
+        end
+    end
+
+
+    assign rx_crc_reset = rx_state == IDLE;
+    
+
+    //assign crc_input_valid = rx_crc_input_valid_del;// & {DATA_NBYTES{!term_found}};
 
     slicing_crc #(
         .SLICE_LENGTH(DATA_NBYTES),
@@ -186,7 +220,7 @@ module rx_mac #(
         .reset(rx_crc_reset),
         .data(rx_crc_input_del),
         .valid(crc_input_valid),
-        .crc(rx_crc)
+        .crc(rx_calc_crc)
     );
 
     // assign rx_crc_input = m00_axis_tdata;

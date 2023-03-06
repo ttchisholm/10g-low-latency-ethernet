@@ -113,10 +113,12 @@ module tx_mac #(
                     input_del.tkeep[gi] <= tx_data_keep;
                 end
             end else begin
-                input_del.tdata[gi] <= input_del.tdata[gi-1];
-                input_del.tlast[gi] <= input_del.tlast[gi-1];
-                input_del.tvalid[gi] <= input_del.tvalid[gi-1];
-                input_del.tkeep[gi] <= input_del.tkeep[gi-1];
+                if (phy_tx_ready) begin
+                    input_del.tdata[gi] <= input_del.tdata[gi-1];
+                    input_del.tlast[gi] <= input_del.tlast[gi-1];
+                    input_del.tvalid[gi] <= input_del.tvalid[gi-1];
+                    input_del.tkeep[gi] <= input_del.tkeep[gi-1];
+                end
             end
         end
 
@@ -221,9 +223,10 @@ module tx_mac #(
     assign min_packet_size_reached = next_data_counter >= MIN_PAYLOAD_SIZE;
     assign s00_axis_tready = phy_tx_ready && !input_del.tlast[PIPE_END] && (tx_state == IDLE || tx_state == PREAMBLE  || tx_state == DATA);
     assign tx_crc_input_valid = tx_data_keep;
-    assign tx_crc_reset = reset || (tx_state == TERM);
+    assign tx_crc_reset = reset || (tx_next_state == IDLE);
     assign tx_crc_input = s00_axis_tdata;
-    assign tx_data_keep = {DATA_NBYTES{phy_tx_ready && (s00_axis_tvalid || tx_state == PADDING)}};
+    assign tx_data_keep = {DATA_NBYTES{phy_tx_ready}} & ({DATA_NBYTES{tx_state == PADDING}} | 
+                                                         (s00_axis_tkeep & {DATA_NBYTES{s00_axis_tvalid}}));
 
 
     /**** Termination Data ****/
@@ -261,13 +264,16 @@ module tx_mac #(
         8'b00001111: begin
             tx_next_term_data_64[0] = {tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], input_del.tdata[PIPE_END][31:0]};
             tx_next_term_ctl_64[0] = 8'b00000000;
+            tx_next_term_data_64[1] = {{7{RS_IDLE}}, RS_TERM};
+            tx_next_term_ctl_64[1] = 8'b11111111;
+            initial_ipg_count = 7;
         end
         8'b00000111: begin
             tx_next_term_data_64[0] = {RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], input_del.tdata[PIPE_END][23:0]};
             tx_next_term_ctl_64[0] = 8'b10000000;
-            tx_next_term_data_64[1] = {{7{RS_IDLE}}, RS_TERM};
+            tx_next_term_data_64[1] = {{8{RS_IDLE}}};
             tx_next_term_ctl_64[1] = 8'b11111111;
-            initial_ipg_count = 7;
+            initial_ipg_count = 8;
         end
         8'b00000011: begin
             tx_next_term_data_64[0] = {RS_IDLE, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], input_del.tdata[PIPE_END][15:0]};
@@ -288,7 +294,7 @@ module tx_mac #(
             tx_next_term_ctl_64[0] = 8'b11110000;
             tx_next_term_data_64[1] = {{8{RS_IDLE}}};
             tx_next_term_ctl_64[1] = 8'b11111111;
-            initial_ipg_count = 10;
+            initial_ipg_count = 11;
         end
         default: begin
             tx_next_term_data_64[0] = {8{RS_ERROR}};

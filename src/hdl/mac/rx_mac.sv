@@ -117,8 +117,8 @@ module rx_mac #(
         sfd_found_loc <= '0;
         sfd_found_del <= '0;
     end else begin
-        sfd_found_loc <= {sfd_found_4, sfd_found_0};
-        sfd_found_del <= sfd_found;
+        sfd_found_loc <= (phy_rx_valid) ? {sfd_found_4, sfd_found_0} : sfd_found_loc;
+        sfd_found_del <= (phy_rx_valid) ? sfd_found : sfd_found_del; 
     end
 
     // Term detect
@@ -169,20 +169,18 @@ module rx_mac #(
         rx_crc_input_valid_del <= '0;
         rx_captured_crc <= '0;
     end else begin
-        rx_crc_input_del <= m00_axis_tdata;
-        rx_crc_input_valid_del <= m00_axis_tkeep & {DATA_NBYTES{phy_rx_valid}};
-
-        if (!term_found) begin
-            
-        end else begin
-            
-        end
+        rx_crc_input_del <= phy_rx_valid ? m00_axis_tdata : rx_crc_input_del;
+        rx_crc_input_valid_del <= phy_rx_valid ? m00_axis_tkeep : rx_crc_input_valid_del;
+        
     end
 
     logic[DATA_NBYTES-1:0] crc_input_valid;
     always @(*) begin
-        if (!term_found) begin
-            crc_input_valid = rx_crc_input_valid_del & {DATA_NBYTES{rx_state != IDLE}};
+        if (!phy_rx_valid) begin
+            crc_input_valid = {DATA_NBYTES{1'b0}};
+            rx_captured_crc = xgmii_rxd;
+        end else if (!term_found) begin
+            crc_input_valid = rx_crc_input_valid_del;
             rx_captured_crc = xgmii_rxd;
         end else begin
             // We need to stop the CRC itself from being input

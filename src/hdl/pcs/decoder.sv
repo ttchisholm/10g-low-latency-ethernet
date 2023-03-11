@@ -1,7 +1,7 @@
 `include "code_defs_pkg.svh"
 
 module decode_6466b #(
-    parameter DATA_WIDTH = 64,
+    localparam DATA_WIDTH = 64,
 
     localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (
@@ -30,62 +30,53 @@ module decode_6466b #(
    //32-bit input to 64 bit internal
 
     wire [63:0] internal_rxd;
-    // wire [7:0] internal_rxctl;
-    // wire [63:0] internal_orxd;
-    //wire [1:0] internal_header;
     xgmii_data_ctl decoded_frame;
 
-    generate if (DATA_WIDTH == 32) begin
-        
-        logic [31:0] delayed_i_rxd;
-        logic [63:0] delayed_int_orxd;
-        logic [7:0] delayed_int_rxctl;
-        logic tick; // Todo get from lock_state?
-        logic last_tick_frame_valid;
-        wire frame_valid;
 
-        assign frame_valid = decoded_frame.frame_valid;
+    logic [31:0] delayed_i_rxd;
+    logic [63:0] delayed_int_orxd;
+    logic [7:0] delayed_int_rxctl;
+    logic tick; // Todo get from lock_state?
+    logic last_tick_frame_valid;
+    wire frame_valid;
 
-        always @(posedge i_rxc) begin
-            if(i_reset) begin
-                delayed_i_rxd <= '0;
-                delayed_int_orxd <= '0;
-                delayed_int_rxctl <= '0;
-                tick <= '0;
-                last_tick_frame_valid <= '0;
-            end else begin
-                if(i_rx_valid) begin
-                    delayed_i_rxd <= i_rxd;
-                    last_tick_frame_valid <= decoded_frame.frame_valid;
-                    
-                    // Detect whether we're out by one tick (i.e constructing 64-bit block incorrectly)
-                    if (!decoded_frame.frame_valid && last_tick_frame_valid) begin
-                        tick <= decoded_frame.frame_valid; // Slip the tick
-                    end else begin
-                        tick <= ~tick;
-                    end
+    assign frame_valid = decoded_frame.frame_valid;
 
-                    if (!tick) begin
-                        delayed_int_orxd <= decoded_frame.odata;
-                        delayed_int_rxctl <= decoded_frame.octl;
-                    end
-
-
+    always @(posedge i_rxc) begin
+        if(i_reset) begin
+            delayed_i_rxd <= '0;
+            delayed_int_orxd <= '0;
+            delayed_int_rxctl <= '0;
+            tick <= '0;
+            last_tick_frame_valid <= '0;
+        end else begin
+            if(i_rx_valid) begin
+                delayed_i_rxd <= i_rxd;
+                last_tick_frame_valid <= decoded_frame.frame_valid;
+                
+                // Detect whether we're out by one tick (i.e constructing 64-bit block incorrectly)
+                if (!decoded_frame.frame_valid && last_tick_frame_valid) begin
+                    tick <= decoded_frame.frame_valid; // Slip the tick
+                end else begin
+                    tick <= ~tick;
                 end
+
+                if (!tick) begin
+                    delayed_int_orxd <= decoded_frame.odata;
+                    delayed_int_rxctl <= decoded_frame.octl;
+                end
+
+
             end
         end
+    end
 
-        assign internal_rxd = {i_rxd, delayed_i_rxd};
+    assign internal_rxd = {i_rxd, delayed_i_rxd};
 
-        assign o_rxctl = tick ? delayed_int_rxctl[4 +: 4] : decoded_frame.octl[0 +: 4];
-        assign o_rxd = tick ? delayed_int_orxd[32 +: 32] : decoded_frame.odata[0 +: 32];
+    assign o_rxctl = tick ? delayed_int_rxctl[4 +: 4] : decoded_frame.octl[0 +: 4];
+    assign o_rxd = tick ? delayed_int_orxd[32 +: 32] : decoded_frame.odata[0 +: 32];
 
-    end else begin
-        assign internal_rxd = i_rxd;
-        assign internal_rxctl = i_rxctl;
-        assign o_rxd = decoded_frame.odata;
-        assign o_rxctl = decoded_frame.octl;
-    end endgenerate
+
 
 
     // todo properly define parameters (esp. lanes ordering)
@@ -211,69 +202,11 @@ module decode_6466b #(
             endcase
         end
 
-        // if (DATA_WIDTH == 32) begin
-        //     decode_frame.odata = itick ? decode_odata[31:0] : decode_odata[63:32];
-        //     decode_frame.octl = itick ? decode_octl[3:0] : decode_octl[7:4];
-        // end else begin
-            decode_frame.odata = decode_odata;
-            decode_frame.octl = decode_octl;
-        // end
+        decode_frame.odata = decode_odata;
+        decode_frame.octl = decode_octl;
 
     endfunction
 
-
-    // logic tick;
-    // wire [63:0] internal_rxd;
-    // generate if (DATA_WIDTH == 32) begin
-    //     logic [31:0] prev_rxd;
-
-    //     always @(posedge i_rxc)
-    //     if (i_reset) begin
-    //         tick <= '0;
-    //         prev_rxd <= {4{CC_ERROR}};
-    //     end else begin
-    //         if (i_init_done && i_rx_valid) begin
-    //             tick <= ~tick;
-    //             prev_rxd <= i_rxd;
-    //         end
-    //     end
-
-    //     assign internal_rxd = tick ? {32'h0, i_rxd} : {i_rxd, prev_rxd};
-    // end else begin
-    //     assign tick = 0;
-    //     assign internal_rxd = i_rxd;
-    // end endgenerate
-
-
-    
     assign decoded_frame = decode_frame(internal_rxd, i_rx_header);
-    // assign o_rxd = decoded_frame.odata;
-    // assign o_rxctl = decoded_frame.octl;
-    
-
-
-    // logic [63:0] internal_rxd;
-    // logic [7:0] internal_rxctl;
-    // 64 to 32bit
-    // Init done must be active on rising edge of both clocks
-
-    // logic output_low;
-    // always @(posedge i_rxc) begin
-    //     if(i_reset || !i_init_done) begin
-    //         output_low <= '0;
-    //     end else begin
-    //         output_low <= !output_low;
-    //     end
-    // end
-
-    // always_comb begin
-    //     if(output_low) begin
-    //         o_rxd = internal_rxd[31:0];
-    //         o_rxctl = internal_rxctl[3:0];
-    //     end else begin
-    //         o_rxd = internal_rxd[63:32];
-    //         o_rxctl = internal_rxctl[7:4];
-    //     end
-    // end
     
 endmodule

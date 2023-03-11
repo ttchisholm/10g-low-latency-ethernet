@@ -1,5 +1,5 @@
 module scrambler #(
-    parameter DATA_WIDTH = 32,
+    localparam DATA_WIDTH = 32,
     parameter DESCRAMBLE = 0
 ) (
     input wire clk,

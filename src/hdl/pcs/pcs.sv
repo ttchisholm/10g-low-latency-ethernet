@@ -1,7 +1,7 @@
 module pcs #(
     parameter SCRAMBLER_BYPASS = 0,
     parameter EXTERNAL_GEARBOX = 0,
-    parameter DATA_WIDTH = 32,
+    localparam DATA_WIDTH = 32,
 
     localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (
@@ -42,9 +42,7 @@ module pcs #(
     wire tx_gearbox_pause;
 
     // Encoder
-    encode_6466b #(
-        .DATA_WIDTH(DATA_WIDTH)
-    ) u_encoder (
+    encode_6466b u_encoder (
         .i_reset(tx_reset),
         .i_init_done(!tx_reset),
         .i_txc(xver_tx_clk),
@@ -64,13 +62,8 @@ module pcs #(
             // Delay the scrambler reset if 32-bit interface
             // TODO this only helps with tb?
             logic scram_reset;
-            if (DATA_WIDTH == 32)
-                always @ (posedge xver_tx_clk)
-                    scram_reset <= tx_reset;
-            else
-                assign scram_reset = tx_reset;
-            
-            
+            always @ (posedge xver_tx_clk)
+                scram_reset <= tx_reset;
 
             scrambler #(
                 .DATA_WIDTH(DATA_WIDTH)

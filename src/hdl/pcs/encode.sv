@@ -1,7 +1,7 @@
 `include "code_defs_pkg.svh"
 
 module encode_6466b #(
-    parameter DATA_WIDTH = 32,
+    localparam DATA_WIDTH = 32,
 
     localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (
@@ -33,49 +33,39 @@ module encode_6466b #(
     wire [63:0] internal_otxd;
     wire [1:0] internal_header;
 
-    generate if (DATA_WIDTH == 32) begin
-        
-        logic [31:0] delayed_i_txd;
-        logic [3:0] delayed_i_txctl;
-        logic [63:0] delayed_int_otxd;
-        logic [1:0] delayed_header;
-        logic tick;
+    logic [31:0] delayed_i_txd;
+    logic [3:0] delayed_i_txctl;
+    logic [63:0] delayed_int_otxd;
+    logic [1:0] delayed_header;
+    logic tick;
 
-        always @(posedge i_txc) begin
-            if(i_reset) begin
-                delayed_i_txd <= '0;
-                delayed_i_txctl <= '0;
-                delayed_int_otxd <= '0;
-                delayed_header <= '0;
-                tick <= '0;
-            end else begin
-                if(!i_tx_pause) begin
-                    delayed_i_txd <= i_txd;
-                    delayed_i_txctl <= i_txctl;
-                    tick <= ~tick;
-                    
-                    if (tick) begin
-                        delayed_int_otxd <= internal_otxd;
-                        delayed_header <= internal_header;
-                    end
-
-
+    always @(posedge i_txc) begin
+        if(i_reset) begin
+            delayed_i_txd <= '0;
+            delayed_i_txctl <= '0;
+            delayed_int_otxd <= '0;
+            delayed_header <= '0;
+            tick <= '0;
+        end else begin
+            if(!i_tx_pause) begin
+                delayed_i_txd <= i_txd;
+                delayed_i_txctl <= i_txctl;
+                tick <= ~tick;
+                
+                if (tick) begin
+                    delayed_int_otxd <= internal_otxd;
+                    delayed_header <= internal_header;
                 end
             end
         end
+    end
 
-        assign internal_txd = {i_txd, delayed_i_txd};
-        assign internal_txctl = {i_txctl, delayed_i_txctl};
+    assign internal_txd = {i_txd, delayed_i_txd};
+    assign internal_txctl = {i_txctl, delayed_i_txctl};
 
-        assign o_tx_header = !tick ? delayed_header : internal_header;
-        assign o_txd = !tick ? delayed_int_otxd[32 +: 32] : internal_otxd[0 +: 32];
+    assign o_tx_header = !tick ? delayed_header : internal_header;
+    assign o_txd = !tick ? delayed_int_otxd[32 +: 32] : internal_otxd[0 +: 32];
 
-    end else begin
-        assign internal_txd = i_txd;
-        assign internal_txctl = i_txctl;
-        assign o_txd = internal_otxd;
-        assign o_tx_header = internal_header;
-    end endgenerate
 
     // Tx encoding
     wire [7:0] tx_type;

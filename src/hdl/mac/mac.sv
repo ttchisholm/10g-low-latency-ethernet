@@ -2,8 +2,7 @@
 `include "code_defs_pkg.svh"
 
 module mac #(
-    parameter DATA_WIDTH = 32,
-
+    localparam DATA_WIDTH = 32,
     localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (
     
@@ -48,9 +47,7 @@ module mac #(
     localparam MIN_PAYLOAD_SIZE = 46;
     localparam IPG_SIZE = 12;
 
-    tx_mac #(
-//        .DATA_WIDTH(DATA_WIDTH)
-    ) u_tx(
+    tx_mac u_tx(
     
         .reset(tx_reset),
         .clk(tx_clk),
@@ -68,9 +65,7 @@ module mac #(
         .s00_axis_tlast(s00_axis_tlast)
     );
 
-    rx_mac #(
-  //      .DATA_WIDTH(DATA_WIDTH)
-    ) u_rx (
+    rx_mac u_rx (
     
         .i_reset(rx_reset),
         .i_clk(rx_clk),

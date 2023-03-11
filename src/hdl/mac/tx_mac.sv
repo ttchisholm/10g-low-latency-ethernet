@@ -116,7 +116,7 @@ module tx_mac #(
 
             if (gi == 0) begin
                 if (phy_tx_ready) begin
-                    input_del.tdata[gi] <= s00_axis_tdata;
+                    input_del.tdata[gi] <= s00_axis_tready ? s00_axis_tdata : 32'b0; // If phy_tx_ready but !s00_axis_tready, we're padding
                     input_del.tlast[gi] <= s00_axis_tlast;
                     input_del.tvalid[gi] <= s00_axis_tvalid;
                     input_del.tkeep[gi] <= input_del.data_counter[0] < MIN_FRAME_SIZE ? 4'b1111 : 

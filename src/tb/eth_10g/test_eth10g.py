@@ -102,7 +102,7 @@ class Scoreboard(uvm_component):
                 self.logger.critical(f'tx_frame {tx_frame} error')
             else:
 
-                if len(tx_frame.tdata) < 48:
+                if len(tx_frame.tdata) < 64:
                     data_eq = rx_frame.tdata[0:len(tx_frame.tdata)] == tx_frame.tdata and \
                                 all([x == 0 for x in rx_frame.tdata[len(tx_frame.tdata):-4]])
                 else:
@@ -121,6 +121,10 @@ class Scoreboard(uvm_component):
 
                 if not data_eq:
                     self.logger.critical(f"FAILED (Data Not Equal): {rx_frame}, {tx_frame}")
+                    for i, (tx,rx) in enumerate(zip(tx_frame.tdata, rx_frame.tdata)):
+                        if tx != rx:
+                            print(f'Index {i}, tx = 0x{tx:02x}, rx = 0x{rx:02x}')
+
                 elif not rx_crc_valid:
                     self.logger.critical(f"FAILED (CRC Valid Flag Not Set): {rx_frame}, {tx_frame}")
                 else:

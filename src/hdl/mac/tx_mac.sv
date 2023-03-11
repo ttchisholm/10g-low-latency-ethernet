@@ -111,7 +111,6 @@ module tx_mac #(
             input_del.tvalid[gi] <= 1'b0;
             input_del.tkeep[gi] <= {DATA_NBYTES{1'b0}};
             input_del.data_counter[gi] <= '0;
-//            input_del.phy_tx_ready[gi] <= '0;
         end else begin
 
             if (gi == 0) begin
@@ -124,7 +123,6 @@ module tx_mac #(
                     input_del.data_counter[gi] <= tx_next_state == IDLE ? '0 :
                                                   (input_del.data_counter[gi] >= MIN_FRAME_SIZE) ? input_del.data_counter[gi] : 
                                                    input_del.data_counter[gi] + DATA_NBYTES;
-                    ///input_del.phy_tx_ready[gi] <= phy_tx_ready;
                 end
             end else begin
                 if (phy_tx_ready) begin
@@ -133,7 +131,6 @@ module tx_mac #(
                     input_del.tvalid[gi] <= input_del.tvalid[gi-1];
                     input_del.tkeep[gi] <= input_del.tkeep[gi-1];
                     input_del.data_counter[gi] <= input_del.data_counter[gi-1];
-                    //input_del.phy_tx_ready[gi] <= input_del.phy_tx_ready[gi-1];
                 end
             end
         end
@@ -256,34 +253,6 @@ module tx_mac #(
     assign term_data = (tx_state == PADDING) ? '0 : input_del.tdata[PIPE_END];
     always @(*) begin
         case (tx_term_keep)
-        8'b11111111: begin
-            tx_next_term_data_64[0] = term_data;
-            tx_next_term_ctl_64[0] = 8'b00000000;
-            tx_next_term_data_64[1] = {{3{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24]};
-            tx_next_term_ctl_64[1] = 8'b11110000;
-            initial_ipg_count = 3;
-        end
-        8'b01111111: begin
-            tx_next_term_data_64[0] = {tx_crc_byteswapped[31:24], term_data[55:0]};
-            tx_next_term_ctl_64[0] = 8'b00000000;
-            tx_next_term_data_64[1] = {{4{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16]};
-            tx_next_term_ctl_64[1] = 8'b11111000;
-            initial_ipg_count = 4;
-        end
-        8'b00111111: begin
-            tx_next_term_data_64[0] = {tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], term_data[47:0]};
-            tx_next_term_ctl_64[0] = 8'b00000000;
-            tx_next_term_data_64[1] = {{5{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8]};
-            tx_next_term_ctl_64[1] = 8'b11111100;
-            initial_ipg_count = 5;
-        end
-        8'b00011111: begin
-            tx_next_term_data_64[0] = {tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], term_data[39:0]};
-            tx_next_term_ctl_64[0] = 8'b00000000;
-            tx_next_term_data_64[1] = {{6{RS_IDLE}}, RS_TERM, tx_crc_byteswapped[7:0]};
-            tx_next_term_ctl_64[1] = 8'b11111110;
-            initial_ipg_count = 6;
-        end
         8'b00001111: begin
             tx_next_term_data_64[0] = {tx_crc_byteswapped[7:0], tx_crc_byteswapped[15:8], tx_crc_byteswapped[23:16], tx_crc_byteswapped[31:24], term_data[31:0]};
             tx_next_term_ctl_64[0] = 8'b00000000;

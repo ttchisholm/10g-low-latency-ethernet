@@ -2,7 +2,7 @@
 `include "code_defs_pkg.svh"
 
 module rx_mac #(
-    parameter DATA_WIDTH = 32,
+    localparam DATA_WIDTH = 32,
 
     localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (

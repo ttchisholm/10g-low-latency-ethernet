@@ -66,6 +66,9 @@ async def tx_test(dut):
 
     test_vectors = [
         [   
+            int("0x00", 16), int("0x10", 16), int("0xA4", 16), int("0x7B", 16), int("0xEA", 16), 
+        ],
+        [   
             int("0x00", 16), int("0x10", 16), int("0xA4", 16), int("0x7B", 16), int("0xEA", 16), int("0x80", 16), 
             int("0x00", 16), int("0x12", 16), int("0x34", 16), int("0x56", 16), int("0x78", 16), int("0x90", 16), 
             int("0x08", 16), int("0x00", 16), int("0x45", 16), int("0x00", 16), int("0x00", 16), int("0x2E", 16), 
@@ -105,6 +108,14 @@ async def tx_test(dut):
     # debugpy.wait_for_client()
     # debugpy.breakpoint()
 
+    async def print_out():
+        while(True):
+            await RisingEdge(dut.tx_clk)
+            print(f'{int(tb.dut.xgmii_tx_data.value):08x}')
+
+    cocotb.start_soon(print_out())
+
+
     for tv in test_vectors:
 
         timeout = 0
@@ -117,7 +128,7 @@ async def tx_test(dut):
                 tb.dut.s00_axis_tvalid.value = 0
                 timeout += 1
                 await RisingEdge(dut.tx_clk)
-                assert timeout < 20, 'Waiting for tx ready timed out'
+                assert timeout < 40, 'Waiting for tx ready timed out'
 
             ivalue = 0
             ivalid = 0
@@ -131,6 +142,7 @@ async def tx_test(dut):
             tb.dut.s00_axis_tlast.value = int(i == len(tvc) - 1)
 
             await RisingEdge(dut.tx_clk)
+
 
         tb.dut.s00_axis_tvalid.value = 0
         tb.dut.s00_axis_tdata.value = 0

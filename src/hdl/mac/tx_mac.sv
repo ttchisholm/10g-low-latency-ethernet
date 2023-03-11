@@ -2,8 +2,7 @@
 `include "code_defs_pkg.svh"
 
 module tx_mac #(
-    parameter DATA_WIDTH = 32,
-
+    localparam DATA_WIDTH = 32,
     localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (
     
@@ -27,7 +26,7 @@ module tx_mac #(
 
 
     /****  Local Definitions ****/
-    localparam MIN_PAYLOAD_SIZE = 46;
+    localparam MIN_FRAME_SIZE = 60; //Excluding CRC
     localparam IPG_SIZE = 12;
 
     localparam START_FRAME_64 = {MAC_SFD, {6{MAC_PRE}}, RS_START}; // First octet of preamble is replaced by RS_START (46.1.7.1.4)
@@ -40,9 +39,9 @@ module tx_mac #(
 
     /****  Data Pipeline Definitions ****/
     // Define how many cycles to buffer input for (to allow for time to send preamble)
-    localparam INPUT_PIPELINE_LENGTH = DATA_WIDTH == 64 ? 1 : 2; // Todo should be a way to save a cycle here
+    localparam INPUT_PIPELINE_LENGTH = 2; // Todo should be a way to save a cycle here
     localparam PIPE_END = INPUT_PIPELINE_LENGTH-1;
-    localparam START_FRAME_END = DATA_WIDTH == 64 ? 0 : 1;
+    localparam START_FRAME_END = 1;
 
     // Ideally the struct would be the array - iverilog doesn't seem to support it
      typedef struct packed {
@@ -71,7 +70,7 @@ module tx_mac #(
 
     /****  Other definitions ****/
     // Min payload counter
-    logic [$clog2(MIN_PAYLOAD_SIZE):0] data_counter, next_data_counter; // Extra bit for overflow
+    logic [$clog2(MIN_FRAME_SIZE):0] data_counter, next_data_counter; // Extra bit for overflow
     logic min_packet_size_reached;
 
     // IPG counter
@@ -83,10 +82,10 @@ module tx_mac #(
     wire [DATA_NBYTES-1:0] tx_crc_input_valid;
     wire tx_crc_reset;
     wire [DATA_WIDTH-1:0] tx_crc_input;
-    logic [DATA_NBYTES-1:0] tx_data_keep;
+    logic [DATA_NBYTES-1:0] tx_data_keep, tx_pad_keep, tx_term_keep;
 
     // // Termination
-    localparam N_TERM_FRAMES = DATA_WIDTH == 32 ? 4 : 2;
+    localparam N_TERM_FRAMES = 4;
     logic [2:0] term_counter;
     logic [2][63:0] tx_next_term_data_64 ;
     logic [2][7:0] tx_next_term_ctl_64 ;
@@ -153,8 +152,7 @@ module tx_mac #(
         end else begin
             case (tx_state)
                 IDLE: begin
-                    tx_next_state = bit'(s00_axis_tvalid && DATA_WIDTH == 32) ? PREAMBLE :
-                                    bit'(s00_axis_tvalid && DATA_WIDTH == 64) ? DATA :
+                    tx_next_state = bit'(s00_axis_tvalid) ? PREAMBLE :
                                     IDLE;
                     xgmii_tx_data = tx_next_state == IDLE ? IDLE_FRAME_64[0+:DATA_WIDTH] :
                                                             START_FRAME_64[0+:DATA_WIDTH];
@@ -186,18 +184,17 @@ module tx_mac #(
                                                                  '0;
 
                     // stop counting when min size reached
-                    next_data_counter = (data_counter >= MIN_PAYLOAD_SIZE) ? data_counter : data_counter + DATA_NBYTES; 
+                    next_data_counter = (data_counter >= MIN_FRAME_SIZE) ? data_counter : data_counter + DATA_NBYTES; 
                 end
                 PADDING: begin
                     tx_next_state = bit'(!min_packet_size_reached) ? PADDING : TERM;
                     xgmii_tx_data = !min_packet_size_reached ? '0 : tx_term_data[0];
                     xgmii_tx_ctl = !min_packet_size_reached ? '0 : tx_term_ctl[0]; 
-                    next_data_counter = next_data_counter + DATA_NBYTES;
+                    next_data_counter = data_counter + DATA_NBYTES;
                 end
                 TERM: begin
                     // 1 TERM cycle for 64-bit, 2 for 32-bit
-                    tx_next_state = bit'(DATA_WIDTH == 32 && term_counter == 3) ? IPG :
-                                    bit'(DATA_WIDTH == 64 && term_counter == 1) ? IPG :
+                    tx_next_state = bit'(term_counter == 3) ? IPG :
                                                                                   TERM;
                     xgmii_tx_data = tx_term_data[term_counter];
                     xgmii_tx_ctl = tx_term_ctl[term_counter];
@@ -220,19 +217,20 @@ module tx_mac #(
         end
     end
 
-    assign min_packet_size_reached = next_data_counter >= MIN_PAYLOAD_SIZE;
+    assign min_packet_size_reached = next_data_counter >= MIN_FRAME_SIZE;
     assign s00_axis_tready = phy_tx_ready && !input_del.tlast[PIPE_END] && (tx_state == IDLE || tx_state == PREAMBLE  || tx_state == DATA);
-    assign tx_crc_input_valid = tx_data_keep;
+    assign tx_crc_input_valid = tx_term_keep;
     assign tx_crc_reset = reset || (tx_next_state == IDLE);
     assign tx_crc_input = s00_axis_tdata;
-    assign tx_data_keep = {DATA_NBYTES{phy_tx_ready}} & ({DATA_NBYTES{tx_state == PADDING}} | 
-                                                         (s00_axis_tkeep & {DATA_NBYTES{s00_axis_tvalid}}));
+    assign tx_data_keep = {DATA_NBYTES{phy_tx_ready}} & (s00_axis_tkeep & {DATA_NBYTES{s00_axis_tvalid}});
+    assign tx_pad_keep = data_counter < MIN_FRAME_SIZE ? 4'b1111 : 4'b0000;
+    assign tx_term_keep = (tx_state == PADDING) ? tx_pad_keep : input_del.tkeep[PIPE_END];
 
 
     /**** Termination Data ****/
     // Construct the final 2/4 tx frames depending on number of bytes in last axis frame
     always @(*) begin
-        case (input_del.tkeep[PIPE_END])
+        case (tx_term_keep)
         8'b11111111: begin
             tx_next_term_data_64[0] = input_del.tdata[PIPE_END];
             tx_next_term_ctl_64[0] = 8'b00000000;
@@ -306,41 +304,25 @@ module tx_mac #(
         endcase
     end
 
-    generate if(DATA_WIDTH == 64) begin
-        // Use the first frame immedietly (contains last bytes of data and maybe crc/term)
-        assign tx_term_data[0] = tx_next_term_data_64[0];
-        assign tx_term_ctl[0] = tx_next_term_ctl_64[0];
-
-        // Save the following frames for the next cycle(s)
-        always @(posedge clk)
-        if (reset) begin
-            tx_term_data[1] <= '0;
-            tx_term_ctl[1] <= '0;
-        end else if (tx_state != TERM && tx_next_state == TERM) begin
-            tx_term_data[1] <= tx_next_term_data_64[1];
-            tx_term_ctl[1] <= tx_next_term_ctl_64[1];
-        end
-    end else begin
-        for (gi = 0; gi < 4; gi++) begin
-            if (gi == 0) begin 
-                // Use the first frame immedietly (contains last bytes of data and maybe crc/term)
-                always @(*) begin
-                    tx_term_data[gi] = tx_next_term_data_64[0][0+:32];
-                    tx_term_ctl[gi] = tx_next_term_ctl_64[0][0+:32];
-                end
-            end else begin
-                // Save the following frames for the next cycle(s)
-                always @(posedge clk)
-                if (reset) begin
-                   tx_term_data[gi] <= {DATA_WIDTH{1'b0}};
-                   tx_term_ctl[gi] <= {DATA_NBYTES{1'b0}};
-                end else if (tx_state != TERM && tx_next_state == TERM) begin
-                    tx_term_data[gi] <= tx_next_term_data_64[gi / 2][(gi % 2) * DATA_WIDTH +: DATA_WIDTH];
-                    tx_term_ctl[gi] <= tx_next_term_ctl_64[gi / 2][(gi % 2) * DATA_NBYTES +: DATA_NBYTES];
-                end
+    for (gi = 0; gi < 4; gi++) begin
+        if (gi == 0) begin 
+            // Use the first frame immedietly (contains last bytes of data and maybe crc/term)
+            always @(*) begin
+                tx_term_data[gi] = tx_next_term_data_64[0][0+:32];
+                tx_term_ctl[gi] = tx_next_term_ctl_64[0][0+:32];
+            end
+        end else begin
+            // Save the following frames for the next cycle(s)
+            always @(posedge clk)
+            if (reset) begin
+                tx_term_data[gi] <= {DATA_WIDTH{1'b0}};
+                tx_term_ctl[gi] <= {DATA_NBYTES{1'b0}};
+            end else if (tx_state != TERM && tx_next_state == TERM) begin
+                tx_term_data[gi] <= tx_next_term_data_64[gi / 2][(gi % 2) * DATA_WIDTH +: DATA_WIDTH];
+                tx_term_ctl[gi] <= tx_next_term_ctl_64[gi / 2][(gi % 2) * DATA_NBYTES +: DATA_NBYTES];
             end
         end
-    end endgenerate
+    end
 
     /**** CRC Implementation ****/
     slicing_crc #(

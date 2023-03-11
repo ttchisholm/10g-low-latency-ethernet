@@ -49,7 +49,7 @@ module mac #(
     localparam IPG_SIZE = 12;
 
     tx_mac #(
-        .DATA_WIDTH(DATA_WIDTH)
+//        .DATA_WIDTH(DATA_WIDTH)
     ) u_tx(
     
         .reset(tx_reset),
@@ -69,7 +69,7 @@ module mac #(
     );
 
     rx_mac #(
-        .DATA_WIDTH(DATA_WIDTH)
+  //      .DATA_WIDTH(DATA_WIDTH)
     ) u_rx (
     
         .i_reset(rx_reset),

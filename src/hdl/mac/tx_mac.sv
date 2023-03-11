@@ -57,10 +57,10 @@ module tx_mac #(
     logic phy_tx_ready_del;
 
     // Pipeline debugging
-    wire [DATA_WIDTH-1:0] dbg_data_last;
+    wire [DATA_WIDTH-1:0] dbg_data_last, dbg_data_first;
     wire dbg_last_last;
     wire dbg_valid_last;
-    wire [DATA_NBYTES-1:0] dbg_keep_last;
+    wire [DATA_NBYTES-1:0] dbg_keep_last, dbg_keep_first;
     wire [$clog2(MIN_FRAME_SIZE):0] dbg_count_last;
 
     assign dbg_data_last = input_del.tdata[PIPE_END];
@@ -68,6 +68,8 @@ module tx_mac #(
     assign dbg_valid_last = input_del.tvalid[PIPE_END];
     assign dbg_keep_last = input_del.tkeep[PIPE_END];
     assign dbg_count_last = input_del.data_counter[PIPE_END];
+    assign dbg_keep_first = input_del.tkeep[0];
+    assign dbg_data_first = input_del.tdata[0];
 
     /****  State definitions ****/
     typedef enum {IDLE, PREAMBLE, DATA, PADDING, TERM, IPG} tx_state_t;
@@ -96,6 +98,7 @@ module tx_mac #(
     logic [2][7:0] tx_next_term_ctl_64 ;
     logic [N_TERM_FRAMES] [DATA_WIDTH-1:0] tx_term_data ;
     logic [N_TERM_FRAMES] [DATA_NBYTES-1:0] tx_term_ctl ;
+    logic seen_last;
 
     /****  Data Pipeline Implementation ****/
     genvar gi;
@@ -146,6 +149,7 @@ module tx_mac #(
         ipg_counter <= '0;
         term_counter <= '0;
         phy_tx_ready_del <= '0;
+        seen_last <= '0;
         
     end else begin
         tx_state <= tx_next_state;        
@@ -156,6 +160,8 @@ module tx_mac #(
         term_counter <= (!phy_tx_ready) ? term_counter : 
                         (tx_next_state == TERM) ? term_counter + 1 : 0;
         phy_tx_ready_del <= phy_tx_ready;
+        seen_last <= (tx_next_state == IDLE) ? '0 :
+                     (!seen_last) ? s00_axis_tlast && s00_axis_tvalid && s00_axis_tready : seen_last;
     end
 
     /**** Next State Implementation ****/
@@ -235,7 +241,7 @@ module tx_mac #(
     end
 
     assign min_packet_size_reached = next_data_counter >= MIN_FRAME_SIZE;
-    assign s00_axis_tready = phy_tx_ready && !input_del.tlast[PIPE_END] && (tx_state == IDLE || tx_state == PREAMBLE  || tx_state == DATA);
+    assign s00_axis_tready = phy_tx_ready && !seen_last && (tx_state == IDLE || tx_state == PREAMBLE  || tx_state == DATA);
     assign tx_crc_input_valid = {DATA_NBYTES{phy_tx_ready_del}} & input_del.tkeep[0];
     assign tx_crc_reset = reset || (tx_state == IDLE);
     assign tx_crc_input = (tx_next_state == PADDING) ? 32'b0 : input_del.tdata[0];

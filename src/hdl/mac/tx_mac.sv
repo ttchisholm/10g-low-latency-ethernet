@@ -94,10 +94,10 @@ module tx_mac #(
     // // Termination
     localparam N_TERM_FRAMES = 4;
     logic [2:0] term_counter;
-    logic [2][63:0] tx_next_term_data_64 ;
-    logic [2][7:0] tx_next_term_ctl_64 ;
-    logic [N_TERM_FRAMES] [DATA_WIDTH-1:0] tx_term_data ;
-    logic [N_TERM_FRAMES] [DATA_NBYTES-1:0] tx_term_ctl ;
+    logic [1:0][63:0] tx_next_term_data_64 ;
+    logic [1:0][7:0] tx_next_term_ctl_64 ;
+    logic [N_TERM_FRAMES-1:0] [DATA_WIDTH-1:0] tx_term_data ;
+    logic [N_TERM_FRAMES-1:0] [DATA_NBYTES-1:0] tx_term_ctl ;
     logic seen_last;
 
     /****  Data Pipeline Implementation ****/
@@ -177,7 +177,7 @@ module tx_mac #(
                     xgmii_tx_data = tx_next_state == IDLE ? IDLE_FRAME_64[0+:DATA_WIDTH] :
                                                             START_FRAME_64[0+:DATA_WIDTH];
                     xgmii_tx_ctl = tx_next_state == IDLE ? '1 :
-                                                            START_CTL_64[0+:DATA_WIDTH];
+                                                            START_CTL_64[0+:DATA_NBYTES];
                     next_data_counter = 0;
                 end
                 PREAMBLE: begin // Only used in 32-bit mode
@@ -303,7 +303,7 @@ module tx_mac #(
             // Use the first frame immedietly (contains last bytes of data and maybe crc/term)
             always @(*) begin
                 tx_term_data[gi] = tx_next_term_data_64[0][0+:32];
-                tx_term_ctl[gi] = tx_next_term_ctl_64[0][0+:32];
+                tx_term_ctl[gi] = tx_next_term_ctl_64[0][0+:4];
             end
         end else begin
             // Save the following frames for the next cycle(s)

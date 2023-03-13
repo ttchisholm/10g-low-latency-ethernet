@@ -143,7 +143,6 @@ module rx_mac #(
     if (i_reset) begin
         rx_crc_input_del <= '0;
         rx_crc_input_valid_del <= '0;
-        rx_captured_crc <= '0;
     end else begin
         rx_crc_input_del <= phy_rx_valid ? m00_axis_tdata : rx_crc_input_del;
         rx_crc_input_valid_del <= phy_rx_valid ? m00_axis_tkeep : rx_crc_input_valid_del;

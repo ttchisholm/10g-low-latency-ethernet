@@ -76,9 +76,9 @@ module gtwizard_wrapper #(
   input  wire hb_gtwiz_reset_all_in,
 
   // User data ports
-  input wire [63:0] hb0_gtwiz_userdata_tx_int,
+  input wire [31:0] hb0_gtwiz_userdata_tx_int,
   input wire [1:0] hb0_gtwiz_header_tx,
-  output wire [63:0] hb0_gtwiz_userdata_rx_int,
+  output wire [31:0] hb0_gtwiz_userdata_rx_int,
   output wire [1:0] hb0_gtwiz_header_rx,
 
   // Gearbox ports
@@ -257,11 +257,11 @@ module gtwizard_wrapper #(
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [127:0] gtwiz_userdata_tx_int;
-  assign gtwiz_userdata_tx_int[63:0] = hb0_gtwiz_userdata_tx_int;
+  assign gtwiz_userdata_tx_int[31:0] = hb0_gtwiz_userdata_tx_int;
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [127:0] gtwiz_userdata_rx_int;
-  assign hb0_gtwiz_userdata_rx_int = gtwiz_userdata_rx_int[63:0];
+  assign hb0_gtwiz_userdata_rx_int = gtwiz_userdata_rx_int[31:0];
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [0:0] gtrefclk00_int;

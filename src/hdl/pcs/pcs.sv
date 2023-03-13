@@ -40,6 +40,9 @@ module pcs #(
     wire [DATA_WIDTH-1:0] tx_encoded_data, tx_scrambled_data;
     wire [1:0] tx_header;
     wire tx_gearbox_pause;
+    wire [DATA_WIDTH-1:0] rx_decoded_data;
+    wire [DATA_NBYTES-1:0] rx_decoded_ctl;
+    wire rx_decoded_valid;
 
     // Encoder
     encode_6466b u_encoder (
@@ -66,7 +69,6 @@ module pcs #(
                 scram_reset <= tx_reset;
 
             scrambler #(
-                .DATA_WIDTH(DATA_WIDTH)
             ) u_scrambler(
                 .clk(xver_tx_clk),
                 .reset(scram_reset),
@@ -134,7 +136,7 @@ module pcs #(
             assign xver_rx_gearbox_slip = rx_gearbox_slip;
             assign rx_gearbox_data_out = xver_rx_data;
             assign rx_header = xver_rx_header;
-            assign xgmii_rx_valid = xver_rx_gearbox_valid;
+            assign rx_decoded_valid = xver_rx_gearbox_valid;
 
         end else begin
 
@@ -150,7 +152,7 @@ module pcs #(
             //     .i_slip(rx_gearbox_slip),
             //     .o_data(rx_gearbox_out),
             //     .o_pause(), // Never pauses when gearing up
-            //     .o_valid(xgmii_rx_valid)
+            //     .o_valid(rx_decoded_valid)
             // );
             // assign rx_gearbox_data_out = rx_gearbox_out[65:2];
             // assign rx_header = rx_gearbox_out[1:0];
@@ -162,7 +164,7 @@ module pcs #(
         .i_clk(xver_rx_clk),
         .i_reset(rx_reset),
         .i_header(rx_header),
-        .i_valid(xgmii_rx_valid),
+        .i_valid(rx_decoded_valid),
         .o_slip(rx_gearbox_slip)
     );
 
@@ -172,13 +174,12 @@ module pcs #(
             assign rx_descrambled_data = rx_gearbox_data_out;
         end else begin
             scrambler #(
-                .DATA_WIDTH(DATA_WIDTH),
                 .DESCRAMBLE(1)
             ) u_descrambler(
                 .clk(xver_rx_clk),
                 .reset(rx_reset),
                 .init_done(!rx_reset),
-                .pause(!xgmii_rx_valid),
+                .pause(!rx_decoded_valid),
                 .idata(rx_gearbox_data_out),
                 .odata(rx_descrambled_data)
             );
@@ -187,16 +188,26 @@ module pcs #(
 
     // Decoder
     decode_6466b #(
-        .DATA_WIDTH(DATA_WIDTH)
     ) u_decoder(
         .i_reset(rx_reset),
         .i_init_done(!rx_reset),
         .i_rxc(xver_rx_clk),
         .i_rxd(rx_descrambled_data),
         .i_rx_header(rx_header),
-        .i_rx_valid(xgmii_rx_valid),
-        .o_rxd(xgmii_rx_data),
-        .o_rxctl(xgmii_rx_ctl)
+        .i_rx_valid(rx_decoded_valid),
+        .o_rxd(rx_decoded_data),
+        .o_rxctl(rx_decoded_ctl)
     );
+
+    always @(posedge xver_rx_clk)
+    if (rx_reset) begin
+        xgmii_rx_data <= '0;
+        xgmii_rx_ctl <= '0;
+        xgmii_rx_valid <= '0;
+    end else begin
+        xgmii_rx_data <= rx_decoded_data;
+        xgmii_rx_ctl <= rx_decoded_ctl;
+        xgmii_rx_valid <= rx_decoded_valid;
+    end
 
 endmodule

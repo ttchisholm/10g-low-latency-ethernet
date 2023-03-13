@@ -65,6 +65,13 @@ module mac #(
         .s00_axis_tlast(s00_axis_tlast)
     );
 
+    // Register AXIS out
+    wire [DATA_WIDTH-1:0] rx_tdata;
+    wire [DATA_NBYTES-1:0] rx_tkeep;
+    wire rx_tvalid;
+    wire rx_tlast;
+    wire rx_tuser;
+
     rx_mac u_rx (
     
         .i_reset(rx_reset),
@@ -76,12 +83,27 @@ module mac #(
         .phy_rx_valid(phy_rx_valid),
 
         // Rx AXIS
-        .m00_axis_tdata(m00_axis_tdata),
-        .m00_axis_tkeep(m00_axis_tkeep),
-        .m00_axis_tvalid(m00_axis_tvalid),
-        .m00_axis_tlast(m00_axis_tlast),
-        .m00_axis_tuser(m00_axis_tuser)
+        .m00_axis_tdata(rx_tdata),
+        .m00_axis_tkeep(rx_tkeep),
+        .m00_axis_tvalid(rx_tvalid),
+        .m00_axis_tlast(rx_tlast),
+        .m00_axis_tuser(rx_tuser)
     );
+
+    always @(posedge rx_clk)
+    if (rx_reset) begin
+        m00_axis_tdata <= '0;
+        m00_axis_tkeep <= '0;
+        m00_axis_tvalid <= '0;
+        m00_axis_tlast <= '0;
+        m00_axis_tuser <= '0;
+    end else begin
+        m00_axis_tdata <= rx_tdata;
+        m00_axis_tkeep <= rx_tkeep;
+        m00_axis_tvalid <= rx_tvalid;
+        m00_axis_tlast <= rx_tlast;
+        m00_axis_tuser <= rx_tuser;
+    end
 
     
 

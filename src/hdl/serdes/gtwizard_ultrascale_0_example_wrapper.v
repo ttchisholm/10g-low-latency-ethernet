@@ -86,8 +86,8 @@ module gtwizard_ultrascale_0_example_wrapper (
  ,output wire [0:0] gtwiz_reset_rx_cdr_stable_out
  ,output wire [0:0] gtwiz_reset_tx_done_out
  ,output wire [0:0] gtwiz_reset_rx_done_out
- ,input  wire [63:0] gtwiz_userdata_tx_in
- ,output wire [63:0] gtwiz_userdata_rx_out
+ ,input  wire [31:0] gtwiz_userdata_tx_in
+ ,output wire [31:0] gtwiz_userdata_rx_out
  ,input  wire [0:0] gtrefclk00_in
  ,output wire [0:0] qpll0outclk_out
  ,output wire [0:0] qpll0outrefclk_out

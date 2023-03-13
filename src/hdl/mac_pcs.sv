@@ -3,7 +3,7 @@
 module mac_pcs #(
     parameter SCRAMBLER_BYPASS = 0,
     parameter EXTERNAL_GEARBOX = 0,
-    parameter DATA_WIDTH = 32,
+    localparam DATA_WIDTH = 32,
 
     localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (
@@ -42,9 +42,7 @@ module mac_pcs #(
     wire [DATA_NBYTES-1:0] xgmii_rx_ctl, xgmii_tx_ctl;
     wire phy_rx_valid, phy_tx_ready;
 
-    mac #(
-        .DATA_WIDTH(DATA_WIDTH)
-    ) u_mac (
+    mac u_mac (
         
         .tx_reset(i_tx_reset),
         .rx_reset(i_rx_reset),
@@ -78,8 +76,7 @@ module mac_pcs #(
 
     pcs #(
         .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS),
-        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX),
-        .DATA_WIDTH(DATA_WIDTH)
+        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
     ) u_pcs (
         
         // Reset logic

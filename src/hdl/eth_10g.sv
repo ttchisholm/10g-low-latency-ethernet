@@ -12,16 +12,16 @@ module eth_10g #(
 
     // Tx AXIS
     output wire s00_axis_aclk,
-    input wire [63:0] s00_axis_tdata,
-    input wire [7:0] s00_axis_tkeep,
+    input wire [31:0] s00_axis_tdata,
+    input wire [3:0] s00_axis_tkeep,
     input wire s00_axis_tvalid,
     output logic s00_axis_tready,
     input wire s00_axis_tlast,
 
     // Rx AXIS
     output wire m00_axis_aclk,
-    output logic [63:0] m00_axis_tdata,
-    output logic [7:0] m00_axis_tkeep,
+    output logic [31:0] m00_axis_tdata,
+    output logic [3:0] m00_axis_tkeep,
     output logic m00_axis_tvalid,
     output logic m00_axis_tlast,
     output logic m00_axis_tuser,
@@ -43,9 +43,9 @@ module eth_10g #(
     assign mac_pcs_rx_reset = !gtwiz_rx_ready;
 
     // Datapath
-    wire [63:0] pcs_xver_tx_data;
+    wire [31:0] pcs_xver_tx_data;
     wire [1:0] pcs_xver_tx_header;
-    wire [63:0] pcs_xver_rx_data;
+    wire [31:0] pcs_xver_rx_data;
     wire [1:0] pcs_xver_rx_header;
 
     // Clock

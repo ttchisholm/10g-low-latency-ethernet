@@ -1,17 +1,24 @@
 Needed:
+
+***
+- TX_INT_DATAWIDTH = TX_DATA_WIDTH gearbox seq
+***
+
 - Better IP gen flow
 - Customise xver quad/lanes
 - Build script/gen as per Xilinx IP
 - Better module signal names
 - File headers
-- Handle MAC User Rx not ready - buffer up to end of IPG?
-- Document dual rx crc approach
-- TX_INT_DATAWIDTH = TX_DATA_WIDTH gearbox seq
+
 
 Nice to have:
+- Handle MAC User Rx not ready - buffer up to end of IPG?
 - MAC: Deficit IPG
-- 32-bit datapath
 - Clearer PCS encoding without functions?
 - Fix or note non-standard rx AXIS TUSER when TKEEP = 0
-- Payloads less than 48 are padded (rather then min size of 46)
 - Way to have 0 latency encoder? (know type byte in advance)
+- Auto check on mac tb 
+
+Performance:
+- Get packet length (term) from MAC pipeline -> use this in PCS to send block type before data received
+    - Or passthrough data without buffer as we know first frame?

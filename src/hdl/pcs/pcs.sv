@@ -24,6 +24,7 @@ module pcs #(
     output logic [DATA_WIDTH-1:0] xgmii_rx_data,
     output logic [DATA_NBYTES-1:0] xgmii_rx_ctl,
     output logic xgmii_rx_valid, // Non standard XGMII - required for no CDC
+    output logic [DATA_NBYTES-1:0] term_loc,
     
     // Tx XGMII
     input wire[DATA_WIDTH-1:0] xgmii_tx_data,
@@ -35,6 +36,8 @@ module pcs #(
     output wire [1:0] xver_tx_header,
     output wire [5:0] xver_tx_gearbox_sequence
 );
+
+    import code_defs_pkg::*;
 
     // ************* TX DATAPATH ************* //
     wire [DATA_WIDTH-1:0] tx_encoded_data, tx_scrambled_data;
@@ -199,15 +202,24 @@ module pcs #(
         .o_rxctl(rx_decoded_ctl)
     );
 
+    // Calulate the term location here to help with timing in the MAC
+    wire [DATA_NBYTES-1:0] early_term_loc;
+    genvar gi;
+    generate for (gi = 0; gi < DATA_NBYTES; gi++) begin
+        assign early_term_loc[gi] = rx_decoded_valid && rx_decoded_data[gi*8 +: 8] == RS_TERM && rx_decoded_ctl[gi];
+    end endgenerate
+
     always @(posedge xver_rx_clk)
     if (rx_reset) begin
         xgmii_rx_data <= '0;
         xgmii_rx_ctl <= '0;
         xgmii_rx_valid <= '0;
+        term_loc <= '0;
     end else begin
         xgmii_rx_data <= rx_decoded_data;
         xgmii_rx_ctl <= rx_decoded_ctl;
         xgmii_rx_valid <= rx_decoded_valid;
+        term_loc <= early_term_loc;
     end
 
 endmodule

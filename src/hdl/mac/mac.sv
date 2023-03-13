@@ -28,6 +28,7 @@ module mac #(
     input wire [DATA_WIDTH-1:0] xgmii_rx_data,
     input wire [DATA_NBYTES-1:0] xgmii_rx_ctl,
     input wire phy_rx_valid,
+    input wire [DATA_NBYTES-1:0] term_loc,
 
     // Rx AXIS
     output logic [DATA_WIDTH-1:0] m00_axis_tdata,
@@ -81,6 +82,7 @@ module mac #(
         .xgmii_rxd(xgmii_rx_data),
         .xgmii_rxc(xgmii_rx_ctl),
         .phy_rx_valid(phy_rx_valid),
+        .term_loc(term_loc),
 
         // Rx AXIS
         .m00_axis_tdata(rx_tdata),

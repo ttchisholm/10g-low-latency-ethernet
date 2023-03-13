@@ -1,7 +1,7 @@
 `include "code_defs_pkg.svh"
 
 module decode_6466b #(
-    localparam DATA_WIDTH = 64,
+    localparam DATA_WIDTH = 32,
 
     localparam DATA_NBYTES = DATA_WIDTH / 8
 ) (

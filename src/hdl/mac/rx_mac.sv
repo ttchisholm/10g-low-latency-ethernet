@@ -14,6 +14,7 @@ module rx_mac #(
     input wire [DATA_WIDTH-1:0] xgmii_rxd,
     input wire [DATA_NBYTES-1:0] xgmii_rxc,
     input wire phy_rx_valid,
+    input wire [DATA_NBYTES-1:0] term_loc,
 
     // Rx AXIS
     output logic [DATA_WIDTH-1:0] m00_axis_tdata,
@@ -40,7 +41,7 @@ module rx_mac #(
 
     // Term detect
     wire term_found;
-    wire [DATA_NBYTES-1:0] term_loc;
+    //wire [DATA_NBYTES-1:0] term_loc;
     wire [DATA_NBYTES-1:0] term_keep;
 
     // Masked data out
@@ -116,11 +117,11 @@ module rx_mac #(
         sfd_found_del <= (phy_rx_valid) ? sfd_found : sfd_found_del; 
     end
 
-    // Term detect
-    genvar gi;
-    generate for (gi = 0; gi < DATA_NBYTES; gi++) begin
-        assign term_loc[gi] = phy_rx_valid && xgmii_rxd[gi*8 +: 8] == RS_TERM && xgmii_rxc[gi];
-    end endgenerate
+    // Term detect - now done in PCS for better timing
+    // genvar gi;
+    // generate for (gi = 0; gi < DATA_NBYTES; gi++) begin
+    //     assign term_loc[gi] = phy_rx_valid && xgmii_rxd[gi*8 +: 8] == RS_TERM && xgmii_rxc[gi];
+    // end endgenerate
 
     assign term_found = |term_loc;
 
@@ -128,6 +129,7 @@ module rx_mac #(
     assign start_keep = 4'b0000;
     assign start_valid = 1'b0; // If data width is 32, start is all preamble
 
+    genvar gi;
     generate for (gi = 0; gi < DATA_NBYTES; gi++) begin
         assign term_keep[gi] = (1 << gi) < term_loc ? 1'b1 : 1'b0;
     end endgenerate
@@ -153,10 +155,8 @@ module rx_mac #(
     always @(*) begin
         if (!phy_rx_valid) begin
             crc_input_valid = {DATA_NBYTES{1'b0}};
-            rx_captured_crc = xgmii_rxd;
         end else if (!term_found) begin
             crc_input_valid = rx_crc_input_valid_del;
-            rx_captured_crc = xgmii_rxd;
         end else begin
             // We need to stop the CRC itself from being input
             case (term_loc) 
@@ -166,17 +166,16 @@ module rx_mac #(
                 8: crc_input_valid = 4'b0111;
                 default: crc_input_valid = 4'b1111;
             endcase
-
-            case (term_loc) 
-                1: rx_captured_crc = rx_crc_input_del;
-                2: rx_captured_crc = {xgmii_rxd[0+:8], rx_crc_input_del[8+:24]};
-                4: rx_captured_crc = {xgmii_rxd[0+:16], rx_crc_input_del[16+:16]};
-                8: rx_captured_crc = {xgmii_rxd[0+:24], rx_crc_input_del[24+:8]};
-                default: rx_captured_crc = xgmii_rxd;
-            endcase
         end
-    end
 
+        case (term_loc) 
+            1: rx_captured_crc = rx_crc_input_del;
+            2: rx_captured_crc = {xgmii_rxd[0+:8], rx_crc_input_del[8+:24]};
+            4: rx_captured_crc = {xgmii_rxd[0+:16], rx_crc_input_del[16+:16]};
+            8: rx_captured_crc = {xgmii_rxd[0+:24], rx_crc_input_del[24+:8]};
+            default: rx_captured_crc = xgmii_rxd;
+        endcase
+    end 
 
     assign rx_crc_reset = rx_state == IDLE;
 

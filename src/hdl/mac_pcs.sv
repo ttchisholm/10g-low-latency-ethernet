@@ -41,6 +41,7 @@ module mac_pcs #(
     wire [DATA_WIDTH-1:0] xgmii_rx_data, xgmii_tx_data;
     wire [DATA_NBYTES-1:0] xgmii_rx_ctl, xgmii_tx_ctl;
     wire phy_rx_valid, phy_tx_ready;
+    wire [DATA_NBYTES-1:0] term_loc;
 
     mac u_mac (
         
@@ -65,6 +66,7 @@ module mac_pcs #(
         .xgmii_rx_data(xgmii_rx_data),
         .xgmii_rx_ctl(xgmii_rx_ctl),
         .phy_rx_valid(phy_rx_valid),
+        .term_loc(term_loc),
 
         // Rx AXIS
         .m00_axis_tdata(m00_axis_tdata),
@@ -93,7 +95,8 @@ module mac_pcs #(
         //Rx interface out
         .xgmii_rx_data(xgmii_rx_data),
         .xgmii_rx_ctl(xgmii_rx_ctl),
-        .xgmii_rx_valid(phy_rx_valid), // Non standard XGMII - required for no CDC
+        .xgmii_rx_valid(phy_rx_valid), // Non standard XGMII - required for no CDC,
+        .term_loc(term_loc),
         
         .xver_tx_clk(xver_tx_clk),
         .xgmii_tx_data(xgmii_tx_data),

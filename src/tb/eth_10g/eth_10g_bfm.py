@@ -110,7 +110,7 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
     async def start_bfm(self):
         self.data_width = len(self.dut.xgmii_tx_data)
         self.data_nbytes = self.data_width // 8
-        self.gearbox_pause_val = 31 if self.data_width == 32 else 32
+        self.gearbox_pause_val = 32
         self.clk_period = round(1 / (10.3125 / self.data_width), 2) # ps precision
         
         cocotb.start_soon(Clock(self.dut.xver_tx_clk, self.clk_period, units="ns").start())

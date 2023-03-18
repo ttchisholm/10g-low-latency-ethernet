@@ -90,11 +90,9 @@ module pcs #(
             assign xver_tx_data = tx_scrambled_data;
             assign xver_tx_header = tx_header;
 
-            localparam EXT_GEARBOX_PAUSE_VAL = DATA_WIDTH == 64 ? 32 : 31;
-
-            // This assumes gearbox counter counting on 1 x TXUSRCLK2 only (INT_DATAWIDTH is half DATA_WIDTH)
-            // TODO fix
-            gearbox_seq #(.WIDTH(6), .MAX_VAL(32), .PAUSE_VAL(EXT_GEARBOX_PAUSE_VAL)) 
+            // This assumes gearbox counter counting every other TXUSRCLK when 
+            //      TX_DATAWIDTH == TX_INT_DATAWIDTH == 32 ref UG578 v1.3.1 pg 120 on
+            gearbox_seq #(.WIDTH(6), .MAX_VAL(32), .PAUSE_VAL(32), .HALF_STEP(1)) 
             u_tx_gearbox_seq (
                 .clk(xver_tx_clk),
                 .reset(tx_reset),

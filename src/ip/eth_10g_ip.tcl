@@ -22,14 +22,15 @@ set_property -dict [list CONFIG.CHANNEL_ENABLE {X0Y12} CONFIG.TX_MASTER_CHANNEL 
                          CONFIG.RX_DATA_DECODING {64B66B} CONFIG.RX_USER_DATA_WIDTH {32} CONFIG.RX_INT_DATA_WIDTH {32} \
                          CONFIG.RX_BUFFER_MODE {0} CONFIG.RX_REFCLK_SOURCE {} CONFIG.TX_REFCLK_SOURCE {} \
                          CONFIG.LOCATE_TX_USER_CLOCKING {CORE} CONFIG.LOCATE_RX_USER_CLOCKING {CORE} \
-                         CONFIG.TXPROGDIV_FREQ_ENABLE {false} CONFIG.FREERUN_FREQUENCY {100}] [get_ips gtwizard_ultrascale_0]
+                         CONFIG.TXPROGDIV_FREQ_ENABLE {false} CONFIG.FREERUN_FREQUENCY {100} CONFIG.ENABLE_OPTIONAL_PORTS {loopback_in}] [get_ips gtwizard_ultrascale_0]
 generate_target all [get_ips gtwizard_ultrascale_0]
 
 # Transceiver bringup VIO
 
 create_ip -name vio -vendor xilinx.com -library ip -version 3.0 -module_name gtwizard_ultrascale_0_vio_0 -dir . -force
 set_property -dict [list CONFIG.C_PROBE_IN7_WIDTH {2} CONFIG.C_PROBE_IN6_WIDTH {2} CONFIG.C_PROBE_IN5_WIDTH {2} CONFIG.C_PROBE_IN4_WIDTH {2} \
-                         CONFIG.C_PROBE_IN3_WIDTH {4} CONFIG.C_NUM_PROBE_OUT {6} CONFIG.C_NUM_PROBE_IN {14} \
+                         CONFIG.C_PROBE_IN3_WIDTH {4} CONFIG.C_PROBE_OUT6_INIT_VAL {0x2} CONFIG.C_PROBE_OUT6_WIDTH {3} \
+                         CONFIG.C_NUM_PROBE_OUT {7} CONFIG.C_NUM_PROBE_IN {14} \
                          CONFIG.Component_Name {gtwizard_ultrascale_0_vio_0}] [get_ips gtwizard_ultrascale_0_vio_0]
 generate_target all [get_ips gtwizard_ultrascale_0_vio_0]
 
@@ -37,7 +38,7 @@ generate_target all [get_ips gtwizard_ultrascale_0_vio_0]
 # Example core control VIO
 
 create_ip -name vio -vendor xilinx.com -library ip -version 3.0 -module_name eth_core_control_vio -dir . -force
-set_property -dict [list CONFIG.C_PROBE_OUT2_INIT_VAL {0x00000000DEADBEEF} CONFIG.C_PROBE_OUT1_INIT_VAL {0x100} CONFIG.C_PROBE_OUT0_INIT_VAL {0x1} CONFIG.C_PROBE_OUT2_WIDTH {64} CONFIG.C_PROBE_OUT1_WIDTH {16} CONFIG.C_NUM_PROBE_OUT {3} CONFIG.C_EN_PROBE_IN_ACTIVITY {0} CONFIG.C_NUM_PROBE_IN {0}] [get_ips eth_core_control_vio]
+set_property -dict [list CONFIG.C_PROBE_OUT2_INIT_VAL {0xDEADBEEF} CONFIG.C_PROBE_OUT1_INIT_VAL {0x100} CONFIG.C_PROBE_OUT0_INIT_VAL {0x0} CONFIG.C_PROBE_OUT2_WIDTH {64} CONFIG.C_PROBE_OUT1_WIDTH {16} CONFIG.C_NUM_PROBE_OUT {3} CONFIG.C_EN_PROBE_IN_ACTIVITY {0} CONFIG.C_NUM_PROBE_IN {0}] [get_ips eth_core_control_vio]
 generate_target all [get_ips eth_core_control_vio]
 
 # Packet monitor ILAs

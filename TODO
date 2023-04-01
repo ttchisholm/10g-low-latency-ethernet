@@ -1,12 +1,9 @@
 Needed:
 
-***
-- TX_INT_DATAWIDTH = TX_DATA_WIDTH gearbox seq
-***
-
 - Better IP gen flow
 - Customise xver quad/lanes
 - Build script/gen as per Xilinx IP
+    - with custom scripts post synth,place etc?
 - Better module signal names
 - File headers
 

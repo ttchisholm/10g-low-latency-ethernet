@@ -13,7 +13,7 @@ module example_10g_eth (
     output wire ch0_gtytxp_out
 );
 
-    wire vio_reset_out;
+    wire packet_gen_reset;
     logic [1:0] reset_cdc;
     wire core_reset;
 
@@ -38,16 +38,8 @@ module example_10g_eth (
     wire m00_axis_tlast;
     wire m00_axis_tuser;
 
-
-    // Packet Gen
-    always @(posedge init_clk) begin
-        reset_cdc <= {reset_cdc[0], vio_reset_out};
-    end
-
-    assign core_reset = reset_cdc[1]; 
-
     always @(posedge s00_axis_aclk)
-    if (vio_reset_out) begin
+    if (packet_gen_reset) begin
         packet_length_cnt <= '0;
     end else if (s00_axis_tready) begin
         packet_length_cnt <= (packet_length_cnt == packet_length) ? '0 : packet_length_cnt + 1;
@@ -56,14 +48,21 @@ module example_10g_eth (
     assign s00_axis_tdata = {packet_vio_data[63:16], packet_length_cnt}; // Set lower 16 bits to packet index counter 
     assign s00_axis_tkeep = '1;
     assign s00_axis_tlast = packet_length_cnt == packet_length;
-    assign s00_axis_tvalid = !vio_reset_out;
+    assign s00_axis_tvalid = !packet_gen_reset;
 
     // Packet Gen VIO
-    eth_core_control_vio u_core_control_vio (
+    eth_core_control_vio u_packet_control_vio (
         .clk(s00_axis_aclk),                // input wire clk
-        .probe_out0(vio_reset_out),  // output wire [0 : 0] probe_out0
+        .probe_out0(packet_gen_reset),  // output wire [0 : 0] probe_out0
         .probe_out1(packet_length),  // output wire [15 : 0] probe_out1
         .probe_out2(packet_vio_data)  // output wire [63 : 0] probe_out2
+    );
+
+    eth_core_control_vio u_core_reset_vio (
+        .clk(init_clk),                // input wire clk
+        .probe_out0(core_reset),  // output wire [0 : 0] probe_out0
+        .probe_out1(),  // output wire [15 : 0] probe_out1
+        .probe_out2()  // output wire [63 : 0] probe_out2
     );
 
     // Data monitor ILAs

@@ -91,6 +91,7 @@ module gtwizard_ultrascale_0_example_wrapper (
  ,input  wire [0:0] gtrefclk00_in
  ,output wire [0:0] qpll0outclk_out
  ,output wire [0:0] qpll0outrefclk_out
+ ,input  wire [2:0] loopback_in
  ,input  wire [0:0] rxgearboxslip_in
  ,input  wire [5:0] txheader_in
  ,input  wire [6:0] txsequence_in
@@ -126,7 +127,6 @@ module gtwizard_ultrascale_0_example_wrapper (
 
   // Required assignment to expose the GTPOWERGOOD port per user request
   assign gtpowergood_out = gtpowergood_int;
-
 
   // ===================================================================================================================
   // CORE INSTANCE
@@ -181,6 +181,7 @@ module gtwizard_ultrascale_0_example_wrapper (
    ,.rxstartofseq_out                        (rxstartofseq_out)
    ,.txpmaresetdone_out                      (txpmaresetdone_out)
    ,.txprgdivresetdone_out                   (txprgdivresetdone_out)
+   ,.loopback_in                             (loopback_in)
 );
 
 endmodule

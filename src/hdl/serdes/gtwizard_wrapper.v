@@ -321,6 +321,8 @@ module gtwizard_wrapper #(
   wire [1:0] rxheadervalid_int;
   assign hb0_gtwiz_rx_gearbox_valid = rxheadervalid_int[0] && rxdatavalid_int[0]; // TODO assume header + data always valid together
 
+  wire [2:0] loopback_int;
+
   // ===================================================================================================================
   // BUFFERS
   // ===================================================================================================================
@@ -608,6 +610,7 @@ module gtwizard_wrapper #(
     ,.probe_out3 (hb_gtwiz_reset_rx_pll_and_datapath_vio_int)
     ,.probe_out4 (hb_gtwiz_reset_rx_datapath_vio_int)
     ,.probe_out5 (link_down_latched_reset_vio_int)
+    ,.probe_out6 (loopback_int)
   );
 
   // Ready outputs

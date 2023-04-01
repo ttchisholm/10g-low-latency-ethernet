@@ -19,7 +19,7 @@ set core_src_dir ../../src
 set core_src_include_dir ../../src/hdl/include
 set lib_src_dir ../../src/lib
 
-set flatten_hierarchy rebuilt
+set flatten_hierarchy none
 set directive PerformanceOptimized
 
 proc init {} {
@@ -51,8 +51,32 @@ proc add_sources {} {
 
 # todo out-of-context runs?
 proc gen_ip {} {
-    set_property GENERATE_SYNTH_CHECKPOINT true [get_files -filter {NAME =~ *.xci}]
-    synth_ip [get_ips]
+
+
+    # Out-Of-Context synthesis for IPs
+    foreach ip [get_ips] {
+      set ip_filename [get_property IP_FILE $ip]
+      set ip_dcp [file rootname $ip_filename]
+      append ip_dcp ".dcp"
+      set ip_xml [file rootname $ip_filename]
+      append ip_xml ".xml"
+     
+      if {([file exists $ip_dcp] == 0) || [expr {[file mtime $ip_filename ] > [file mtime $ip_dcp ]}]} {
+     
+        # # remove old files of IP, if still existing
+        # reset_target all $ip
+        # file delete $ip_xml
+     
+        # re-generate the IP
+        generate_target all $ip
+        set_property generate_synth_checkpoint true [get_files $ip_filename]
+        synth_ip $ip -force
+      }
+    }
+
+
+    # set_property GENERATE_SYNTH_CHECKPOINT true [get_files -filter {NAME =~ *.xci}]
+    # synth_ip [get_ips] -force
 }
 
 proc synth {} {
@@ -64,6 +88,10 @@ proc synth {} {
 }
 
 proc impl {} {
+
+    # ensure debug hub connected to free running clock
+    connect_debug_port dbg_hub/clk [get_nets init_clk]
+
     opt_design
     place_design
     report_clock_utilization -file $::output_dir/clock_util.rpt

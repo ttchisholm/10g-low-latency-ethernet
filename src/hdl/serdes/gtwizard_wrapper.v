@@ -463,12 +463,12 @@ module gtwizard_wrapper #(
     .o_out  (gtpowergood_vio_sync[0])
   );
 
-  (* DONT_TOUCH = "TRUE" *)
-  gtwizard_ultrascale_0_example_bit_synchronizer bit_synchronizer_vio_gtpowergood_1_inst (
-    .clk_in (hb_gtwiz_reset_clk_freerun_buf_int),
-    .i_in   (gtpowergood_int[1]),
-    .o_out  (gtpowergood_vio_sync[1])
-  );
+  // (* DONT_TOUCH = "TRUE" *)
+  // gtwizard_ultrascale_0_example_bit_synchronizer bit_synchronizer_vio_gtpowergood_1_inst (
+  //   .clk_in (hb_gtwiz_reset_clk_freerun_buf_int),
+  //   .i_in   (gtpowergood_int[1]),
+  //   .o_out  (gtpowergood_vio_sync[1])
+  // );
 
   // Synchronize txprgdivresetdone into the free-running clock domain for VIO usage
   wire [1:0] txprgdivresetdone_vio_sync;
@@ -480,12 +480,12 @@ module gtwizard_wrapper #(
     .o_out  (txprgdivresetdone_vio_sync[0])
   );
 
-  (* DONT_TOUCH = "TRUE" *)
-  gtwizard_ultrascale_0_example_bit_synchronizer bit_synchronizer_vio_txprgdivresetdone_1_inst (
-    .clk_in (hb_gtwiz_reset_clk_freerun_buf_int),
-    .i_in   (txprgdivresetdone_int[1]),
-    .o_out  (txprgdivresetdone_vio_sync[1])
-  );
+  // (* DONT_TOUCH = "TRUE" *)
+  // gtwizard_ultrascale_0_example_bit_synchronizer bit_synchronizer_vio_txprgdivresetdone_1_inst (
+  //   .clk_in (hb_gtwiz_reset_clk_freerun_buf_int),
+  //   .i_in   (txprgdivresetdone_int[1]),
+  //   .o_out  (txprgdivresetdone_vio_sync[1])
+  // );
 
   // Synchronize txpmaresetdone into the free-running clock domain for VIO usage
   wire [1:0] txpmaresetdone_vio_sync;
@@ -497,12 +497,12 @@ module gtwizard_wrapper #(
     .o_out  (txpmaresetdone_vio_sync[0])
   );
 
-  (* DONT_TOUCH = "TRUE" *)
-  gtwizard_ultrascale_0_example_bit_synchronizer bit_synchronizer_vio_txpmaresetdone_1_inst (
-    .clk_in (hb_gtwiz_reset_clk_freerun_buf_int),
-    .i_in   (txpmaresetdone_int[1]),
-    .o_out  (txpmaresetdone_vio_sync[1])
-  );
+  // (* DONT_TOUCH = "TRUE" *)
+  // gtwizard_ultrascale_0_example_bit_synchronizer bit_synchronizer_vio_txpmaresetdone_1_inst (
+  //   .clk_in (hb_gtwiz_reset_clk_freerun_buf_int),
+  //   .i_in   (txpmaresetdone_int[1]),
+  //   .o_out  (txpmaresetdone_vio_sync[1])
+  // );
 
   // Synchronize rxpmaresetdone into the free-running clock domain for VIO usage
   wire [1:0] rxpmaresetdone_vio_sync;
@@ -514,12 +514,12 @@ module gtwizard_wrapper #(
     .o_out  (rxpmaresetdone_vio_sync[0])
   );
 
-  (* DONT_TOUCH = "TRUE" *)
-  gtwizard_ultrascale_0_example_bit_synchronizer bit_synchronizer_vio_rxpmaresetdone_1_inst (
-    .clk_in (hb_gtwiz_reset_clk_freerun_buf_int),
-    .i_in   (rxpmaresetdone_int[1]),
-    .o_out  (rxpmaresetdone_vio_sync[1])
-  );
+  // (* DONT_TOUCH = "TRUE" *)
+  // gtwizard_ultrascale_0_example_bit_synchronizer bit_synchronizer_vio_rxpmaresetdone_1_inst (
+  //   .clk_in (hb_gtwiz_reset_clk_freerun_buf_int),
+  //   .i_in   (rxpmaresetdone_int[1]),
+  //   .o_out  (rxpmaresetdone_vio_sync[1])
+  // );
 
   // Synchronize gtwiz_reset_tx_done into the free-running clock domain for VIO usage
   wire [0:0] gtwiz_reset_tx_done_vio_sync;
@@ -672,6 +672,7 @@ module gtwizard_wrapper #(
    ,.rxstartofseq_out                        (rxstartofseq_int)
    ,.txpmaresetdone_out                      (txpmaresetdone_int)
    ,.txprgdivresetdone_out                   (txprgdivresetdone_int)
+   ,.loopback_in                             (loopback_int)
 );
 
 

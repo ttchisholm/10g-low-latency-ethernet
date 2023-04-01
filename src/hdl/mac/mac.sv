@@ -48,14 +48,18 @@ module mac #(
     localparam MIN_PAYLOAD_SIZE = 46;
     localparam IPG_SIZE = 12;
 
+
+    wire [DATA_WIDTH-1:0] phy_tx_data;
+    wire [DATA_NBYTES-1:0] phy_tx_ctl;
+
     tx_mac u_tx(
     
         .reset(tx_reset),
         .clk(tx_clk),
 
         // Tx PHY
-        .xgmii_tx_data(xgmii_tx_data),
-        .xgmii_tx_ctl(xgmii_tx_ctl),
+        .xgmii_tx_data(phy_tx_data),
+        .xgmii_tx_ctl(phy_tx_ctl),
         .phy_tx_ready(phy_tx_ready),
 
         // Tx User AXIS
@@ -65,6 +69,17 @@ module mac #(
         .s00_axis_tready(s00_axis_tready),
         .s00_axis_tlast(s00_axis_tlast)
     );
+
+    always @(posedge tx_clk)
+    if (tx_reset) begin
+        xgmii_tx_data <= '0;
+        xgmii_tx_ctl <= '0;
+    end else begin
+        if (phy_tx_ready) begin
+            xgmii_tx_data <= phy_tx_data;
+            xgmii_tx_ctl <= phy_tx_ctl;
+        end
+    end
 
     // Register AXIS out
     wire [DATA_WIDTH-1:0] rx_tdata;

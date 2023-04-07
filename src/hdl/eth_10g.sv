@@ -56,7 +56,8 @@ module eth_10g #(
 
     // Gearbox
     wire [5:0] pcs_xver_tx_gearbox_sequence;
-    wire pcs_xver_rx_gearbox_valid;
+    wire pcs_xver_rx_data_valid;
+    wire pcs_xver_rx_header_valid;
     wire pcs_xver_rx_gearbox_slip;
 
     assign m00_axis_aclk = gtwiz_rx_usrclk2;
@@ -81,7 +82,8 @@ module eth_10g #(
         .xver_rx_clk(gtwiz_rx_usrclk2),
         .xver_rx_data(pcs_xver_rx_data),
         .xver_rx_header(pcs_xver_rx_header),
-        .xver_rx_gearbox_valid(pcs_xver_rx_gearbox_valid),
+        .xver_rx_data_valid(pcs_xver_rx_data_valid),
+        .xver_rx_header_valid(pcs_xver_rx_header_valid),
         .xver_rx_gearbox_slip(pcs_xver_rx_gearbox_slip),
         .xver_tx_clk(gtwiz_tx_usrclk2),
         .xver_tx_data(pcs_xver_tx_data),
@@ -116,7 +118,8 @@ module eth_10g #(
         .hb0_gtwiz_header_rx(pcs_xver_rx_header),
 
         .hb0_gtwiz_rx_gearbox_slip(pcs_xver_rx_gearbox_slip),
-        .hb0_gtwiz_rx_gearbox_valid(pcs_xver_rx_gearbox_valid),
+        .hb0_gtwiz_rx_data_valid(pcs_xver_rx_data_valid),
+        .hb0_gtwiz_rx_header_valid(pcs_xver_rx_header_valid),
         .hb0_gtwiz_tx_gearbox_sequence(pcs_xver_tx_gearbox_sequence),
 
         // Transceiver user clock outputs

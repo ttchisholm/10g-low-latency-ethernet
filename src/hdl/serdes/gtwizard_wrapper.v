@@ -83,7 +83,8 @@ module gtwizard_wrapper #(
 
   // Gearbox ports
   input wire hb0_gtwiz_rx_gearbox_slip,
-  output wire hb0_gtwiz_rx_gearbox_valid,
+  output wire hb0_gtwiz_rx_data_valid,
+  output wire hb0_gtwiz_rx_header_valid,
   input wire [5:0] hb0_gtwiz_tx_gearbox_sequence,
 
   // Transceiver user clock outputs
@@ -312,6 +313,7 @@ module gtwizard_wrapper #(
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [1:0] rxdatavalid_int;
+  assign hb0_gtwiz_rx_data_valid = rxdatavalid_int[0]; 
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [5:0] rxheader_int;
@@ -319,7 +321,7 @@ module gtwizard_wrapper #(
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [1:0] rxheadervalid_int;
-  assign hb0_gtwiz_rx_gearbox_valid = rxheadervalid_int[0] && rxdatavalid_int[0]; // TODO assume header + data always valid together
+  assign hb0_gtwiz_rx_header_valid = rxheadervalid_int[0]; 
 
   wire [2:0] loopback_int;
 

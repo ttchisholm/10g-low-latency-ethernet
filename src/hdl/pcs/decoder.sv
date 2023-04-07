@@ -38,8 +38,6 @@ module decode_6466b #(
     logic [31:0] delayed_i_rxd;
     logic [63:0] delayed_int_orxd;
     logic [7:0] delayed_int_rxctl;
-    // logic tick; // Todo get from lock_state?
-    // logic last_tick_frame_valid;
     wire input_tick = i_rx_header_valid  && i_rx_data_valid;
     wire frame_valid;
 
@@ -50,19 +48,9 @@ module decode_6466b #(
             delayed_i_rxd <= '0;
             delayed_int_orxd <= '0;
             delayed_int_rxctl <= '0;
-            // tick <= '0;
-            // last_tick_frame_valid <= '0;
         end else begin
             if(i_rx_data_valid) begin
                 delayed_i_rxd <= i_rxd;
-                // last_tick_frame_valid <= decoded_frame.frame_valid;
-                
-                // // Detect whether we're out by one tick (i.e constructing 64-bit block incorrectly)
-                // if (!decoded_frame.frame_valid && last_tick_frame_valid) begin
-                //     tick <= decoded_frame.frame_valid; // Slip the tick
-                // end else begin
-                //     tick <= ~tick;
-                // end
 
                 if (input_tick) begin // Header is invalid on second part of frame
                     delayed_int_orxd <= decoded_frame.odata;

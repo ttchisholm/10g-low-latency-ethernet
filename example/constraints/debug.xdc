@@ -9,7 +9,8 @@ set_property mark_debug true [get_nets [list {u_eth_10g/u_mac_pcs/xver_tx_header
 set_property mark_debug true [get_nets [list {u_eth_10g/u_mac_pcs/xver_rx_data[0]} {u_eth_10g/u_mac_pcs/xver_rx_data[1]} {u_eth_10g/u_mac_pcs/xver_rx_data[2]} {u_eth_10g/u_mac_pcs/xver_rx_data[3]} {u_eth_10g/u_mac_pcs/xver_rx_data[4]} {u_eth_10g/u_mac_pcs/xver_rx_data[5]} {u_eth_10g/u_mac_pcs/xver_rx_data[6]} {u_eth_10g/u_mac_pcs/xver_rx_data[7]} {u_eth_10g/u_mac_pcs/xver_rx_data[8]} {u_eth_10g/u_mac_pcs/xver_rx_data[9]} {u_eth_10g/u_mac_pcs/xver_rx_data[11]} {u_eth_10g/u_mac_pcs/xver_rx_data[10]} {u_eth_10g/u_mac_pcs/xver_rx_data[26]} {u_eth_10g/u_mac_pcs/xver_rx_data[27]} {u_eth_10g/u_mac_pcs/xver_rx_data[28]} {u_eth_10g/u_mac_pcs/xver_rx_data[29]} {u_eth_10g/u_mac_pcs/xver_rx_data[30]} {u_eth_10g/u_mac_pcs/xver_rx_data[31]} {u_eth_10g/u_mac_pcs/xver_rx_data[13]} {u_eth_10g/u_mac_pcs/xver_rx_data[12]} {u_eth_10g/u_mac_pcs/xver_rx_data[14]} {u_eth_10g/u_mac_pcs/xver_rx_data[21]} {u_eth_10g/u_mac_pcs/xver_rx_data[15]} {u_eth_10g/u_mac_pcs/xver_rx_data[25]} {u_eth_10g/u_mac_pcs/xver_rx_data[16]} {u_eth_10g/u_mac_pcs/xver_rx_data[17]} {u_eth_10g/u_mac_pcs/xver_rx_data[22]} {u_eth_10g/u_mac_pcs/xver_rx_data[18]} {u_eth_10g/u_mac_pcs/xver_rx_data[19]} {u_eth_10g/u_mac_pcs/xver_rx_data[24]} {u_eth_10g/u_mac_pcs/xver_rx_data[20]} {u_eth_10g/u_mac_pcs/xver_rx_data[23]}]]
 set_property mark_debug true [get_nets [list {u_eth_10g/u_mac_pcs/xgmii_tx_data[26]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[27]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[28]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[29]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[30]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[31]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[0]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[11]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[3]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[1]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[2]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[4]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[5]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[24]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[6]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[7]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[8]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[14]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[25]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[15]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[16]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[22]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[19]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[21]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[23]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[17]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[18]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[20]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[13]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[9]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[12]} {u_eth_10g/u_mac_pcs/xgmii_tx_data[10]}]]
 set_property mark_debug true [get_nets [list {u_eth_10g/u_mac_pcs/xgmii_tx_ctl[0]} {u_eth_10g/u_mac_pcs/xgmii_tx_ctl[1]} {u_eth_10g/u_mac_pcs/xgmii_tx_ctl[2]} {u_eth_10g/u_mac_pcs/xgmii_tx_ctl[3]}]]
-set_property mark_debug true [get_nets [list u_eth_10g/u_mac_pcs/xver_rx_gearbox_valid]]
+set_property mark_debug true [get_nets [list u_eth_10g/u_mac_pcs/xver_rx_data_valid]]
+set_property mark_debug true [get_nets [list u_eth_10g/u_mac_pcs/xver_rx_header_valid]]
 set_property mark_debug true [get_nets [list {u_eth_10g/u_mac_pcs/xver_rx_header[0]} {u_eth_10g/u_mac_pcs/xver_rx_header[1]}]]
 set_property mark_debug true [get_nets [list {u_eth_10g/u_mac_pcs/u_mac/u_tx/tx_state[0]} {u_eth_10g/u_mac_pcs/u_mac/u_tx/tx_state[1]} {u_eth_10g/u_mac_pcs/u_mac/u_tx/tx_state[2]}]]
 set_property mark_debug true [get_nets {u_eth_10g/u_gtwizard_wrapper/example_wrapper_inst/gtwizard_ultrascale_0_inst/inst/gen_gtwizard_gtye4_top.gtwizard_ultrascale_0_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[3].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtwiz_userdata_tx_in[*]} ]
@@ -79,7 +80,12 @@ connect_debug_port u_ila_0/probe8 [get_nets [list u_eth_10g/u_mac_pcs/xver_rx_ge
 create_debug_port u_ila_0 probe
 set_property port_width 1 [get_debug_ports u_ila_0/probe9]
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe9]
-connect_debug_port u_ila_0/probe9 [get_nets [list u_eth_10g/u_mac_pcs/xver_rx_gearbox_valid ]]
+create_debug_port u_ila_0 probe
+connect_debug_port u_ila_0/probe9 [get_nets [list u_eth_10g/u_mac_pcs/xver_rx_data_valid ]]
+set_property port_width 1 [get_debug_ports u_ila_0/probe10]
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe10]
+connect_debug_port u_ila_0/probe10 [get_nets [list u_eth_10g/u_mac_pcs/xver_rx_header_valid ]]
+
 set_property port_width 2 [get_debug_ports u_ila_1/probe0]
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_1/probe0]
 connect_debug_port u_ila_1/probe0 [get_nets [list {u_eth_10g/u_mac_pcs/xver_tx_header[0]} {u_eth_10g/u_mac_pcs/xver_tx_header[1]} ]]

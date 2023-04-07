@@ -169,7 +169,7 @@ module pcs #(
         .i_clk(xver_rx_clk),
         .i_reset(rx_reset),
         .i_header(rx_header),
-        .i_valid(rx_data_valid),
+        .i_valid(rx_header_valid),
         .o_slip(rx_gearbox_slip)
     );
 

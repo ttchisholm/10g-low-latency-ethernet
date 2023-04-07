@@ -44,6 +44,8 @@ module rx_mac #(
     //wire [DATA_NBYTES-1:0] term_loc;
     wire [DATA_NBYTES-1:0] term_keep;
 
+    wire ctl_found;
+
     // Masked data out
     wire [DATA_WIDTH-1:0] masked_data;
 
@@ -83,13 +85,13 @@ module rx_mac #(
                 m00_axis_tuser = '0;
             end
             DATA: begin
-                if (term_found)
+                if (phy_rx_valid && (term_found || ctl_found)) // Abandon packet on any ctl char
                     rx_next_state = IDLE;
                 else
                     rx_next_state = DATA;
                 
                 m00_axis_tvalid = phy_rx_valid && (!sfd_found_del || (sfd_found_del && start_valid));
-                m00_axis_tlast = term_found;
+                m00_axis_tlast = rx_next_state == IDLE;
                 m00_axis_tkeep = sfd_found_del ? start_keep :
                                   term_found    ? term_keep  :
                                                 '1; 
@@ -107,6 +109,9 @@ module rx_mac #(
 
     end
 
+    // Any control character found
+    assign ctl_found = |xgmii_rxc;
+
     // Start detect
     assign sfd_found = phy_rx_valid && (xgmii_rxd[7:0] == RS_START) && (xgmii_rxc[0] == 1'b1);
 
@@ -122,8 +127,8 @@ module rx_mac #(
     // generate for (gi = 0; gi < DATA_NBYTES; gi++) begin
     //     assign term_loc[gi] = phy_rx_valid && xgmii_rxd[gi*8 +: 8] == RS_TERM && xgmii_rxc[gi];
     // end endgenerate
-
     assign term_found = |term_loc;
+
 
     // Keep
     assign start_keep = 4'b0000;

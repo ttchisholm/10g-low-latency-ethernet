@@ -2,3 +2,4 @@ vivado_project/*
 msim/*
 *.log
 doc/
+notes

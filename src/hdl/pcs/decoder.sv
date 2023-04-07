@@ -1,4 +1,5 @@
 `include "code_defs_pkg.svh"
+`default_nettype none
 
 module decode_6466b #(
     localparam DATA_WIDTH = 32,
@@ -11,7 +12,8 @@ module decode_6466b #(
     input wire i_rxc,
     input wire [DATA_WIDTH-1:0] i_rxd,
     input wire [1:0] i_rx_header,
-    input wire i_rx_valid,
+    input wire i_rx_data_valid,
+    input wire i_rx_header_valid,
 
     //Rx interface out
     output wire [DATA_WIDTH-1:0] o_rxd,
@@ -36,8 +38,9 @@ module decode_6466b #(
     logic [31:0] delayed_i_rxd;
     logic [63:0] delayed_int_orxd;
     logic [7:0] delayed_int_rxctl;
-    logic tick; // Todo get from lock_state?
-    logic last_tick_frame_valid;
+    // logic tick; // Todo get from lock_state?
+    // logic last_tick_frame_valid;
+    wire input_tick = i_rx_header_valid  && i_rx_data_valid;
     wire frame_valid;
 
     assign frame_valid = decoded_frame.frame_valid;
@@ -47,21 +50,21 @@ module decode_6466b #(
             delayed_i_rxd <= '0;
             delayed_int_orxd <= '0;
             delayed_int_rxctl <= '0;
-            tick <= '0;
-            last_tick_frame_valid <= '0;
+            // tick <= '0;
+            // last_tick_frame_valid <= '0;
         end else begin
-            if(i_rx_valid) begin
+            if(i_rx_data_valid) begin
                 delayed_i_rxd <= i_rxd;
-                last_tick_frame_valid <= decoded_frame.frame_valid;
+                // last_tick_frame_valid <= decoded_frame.frame_valid;
                 
-                // Detect whether we're out by one tick (i.e constructing 64-bit block incorrectly)
-                if (!decoded_frame.frame_valid && last_tick_frame_valid) begin
-                    tick <= decoded_frame.frame_valid; // Slip the tick
-                end else begin
-                    tick <= ~tick;
-                end
+                // // Detect whether we're out by one tick (i.e constructing 64-bit block incorrectly)
+                // if (!decoded_frame.frame_valid && last_tick_frame_valid) begin
+                //     tick <= decoded_frame.frame_valid; // Slip the tick
+                // end else begin
+                //     tick <= ~tick;
+                // end
 
-                if (!tick) begin
+                if (input_tick) begin // Header is invalid on second part of frame
                     delayed_int_orxd <= decoded_frame.odata;
                     delayed_int_rxctl <= decoded_frame.octl;
                 end
@@ -73,8 +76,8 @@ module decode_6466b #(
 
     assign internal_rxd = {i_rxd, delayed_i_rxd};
 
-    assign o_rxctl = tick ? delayed_int_rxctl[4 +: 4] : decoded_frame.octl[0 +: 4];
-    assign o_rxd = tick ? delayed_int_orxd[32 +: 32] : decoded_frame.odata[0 +: 32];
+    assign o_rxctl = !input_tick ? delayed_int_rxctl[4 +: 4] : decoded_frame.octl[0 +: 4];
+    assign o_rxd = !input_tick ? delayed_int_orxd[32 +: 32] : decoded_frame.odata[0 +: 32];
 
 
 

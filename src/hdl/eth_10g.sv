@@ -1,3 +1,5 @@
+`default_nettype none
+
 module eth_10g #(
     parameter SCRAMBLER_BYPASS = 0,
     parameter real INIT_CLK_FREQ = 100.0

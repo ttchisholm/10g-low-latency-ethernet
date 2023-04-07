@@ -37,24 +37,29 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
        
     async def loopback(self, delay=1):
         async def capture_outputs(self, q, delay):
-            for _ in range(delay): await q.put([0, 0, 0])
+            for _ in range(delay): await q.put([0, 0, 0, 0])
+            prev_tx_gearbox_seq = 0
             while True:
                 await RisingEdge(self.dut.xver_tx_clk)
                 
                 xver_tx_data = self.dut.xver_tx_data.value
                 xver_tx_header = self.dut.xver_tx_header.value
-                xver_tx_gearbox_sequence = self.dut.xver_tx_gearbox_sequence.value != self.gearbox_pause_val
+                xver_tx_data_valid = self.dut.xver_tx_gearbox_sequence.value != self.gearbox_pause_val
 
-                await q.put([xver_tx_data, xver_tx_header, xver_tx_gearbox_sequence])
+                xver_tx_header_valid = self.dut.xver_tx_gearbox_sequence.value != prev_tx_gearbox_seq and xver_tx_data_valid
+                prev_tx_gearbox_seq = self.dut.xver_tx_gearbox_sequence.value
+
+                await q.put([xver_tx_data, xver_tx_header, xver_tx_data_valid, xver_tx_header_valid])
 
         async def apply_input(self, q):
             while True:
                 await RisingEdge(self.dut.xver_rx_clk)
-                [xver_tx_data, xver_tx_header, xver_tx_gearbox_sequence] = await q.get()
+                [xver_tx_data, xver_tx_header, xver_tx_data_valid, xver_tx_header_valid] = await q.get()
                 
                 self.dut.xver_rx_data.value = xver_tx_data
                 self.dut.xver_rx_header.value = xver_tx_header
-                self.dut.xver_rx_gearbox_valid.value = xver_tx_gearbox_sequence
+                self.dut.xver_rx_data_valid.value = xver_tx_data_valid
+                self.dut.xver_rx_header_valid.value = xver_tx_header_valid
 
         q = Queue()
         cocotb.start_soon(capture_outputs(self, q, delay))

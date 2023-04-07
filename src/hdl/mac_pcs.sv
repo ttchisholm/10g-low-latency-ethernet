@@ -28,7 +28,8 @@ module mac_pcs #(
     input wire xver_rx_clk,
     input wire [DATA_WIDTH-1:0] xver_rx_data,
     input wire [1:0] xver_rx_header,
-    input wire xver_rx_gearbox_valid,
+    input wire xver_rx_data_valid,
+    input wire xver_rx_header_valid,
     output wire xver_rx_gearbox_slip,
 
     // TX XVER
@@ -89,7 +90,8 @@ module mac_pcs #(
         .xver_rx_clk(xver_rx_clk),
         .xver_rx_data(xver_rx_data),
         .xver_rx_header(xver_rx_header),
-        .xver_rx_gearbox_valid(xver_rx_gearbox_valid),
+        .xver_rx_data_valid(xver_rx_data_valid),
+        .xver_rx_header_valid(xver_rx_header_valid),
         .xver_rx_gearbox_slip(xver_rx_gearbox_slip),
 
         //Rx interface out

@@ -1,3 +1,5 @@
+`default_nettype none
+
 module pcs #(
     parameter SCRAMBLER_BYPASS = 0,
     parameter EXTERNAL_GEARBOX = 0,
@@ -17,7 +19,8 @@ module pcs #(
     // Rx from tranceiver
     input wire [DATA_WIDTH-1:0] xver_rx_data,
     input wire [1:0] xver_rx_header,
-    input wire xver_rx_gearbox_valid,
+    input wire xver_rx_data_valid,
+    input wire xver_rx_header_valid,
     output wire xver_rx_gearbox_slip,
 
     // Rx XGMII
@@ -45,7 +48,7 @@ module pcs #(
     wire tx_gearbox_pause;
     wire [DATA_WIDTH-1:0] rx_decoded_data;
     wire [DATA_NBYTES-1:0] rx_decoded_ctl;
-    wire rx_decoded_valid;
+    wire rx_data_valid, rx_header_valid;
 
     // Encoder
     encode_6466b u_encoder (
@@ -137,7 +140,8 @@ module pcs #(
             assign xver_rx_gearbox_slip = rx_gearbox_slip;
             assign rx_gearbox_data_out = xver_rx_data;
             assign rx_header = xver_rx_header;
-            assign rx_decoded_valid = xver_rx_gearbox_valid;
+            assign rx_data_valid = xver_rx_data_valid;
+            assign rx_header_valid = xver_rx_header_valid;
 
         end else begin
 
@@ -165,7 +169,7 @@ module pcs #(
         .i_clk(xver_rx_clk),
         .i_reset(rx_reset),
         .i_header(rx_header),
-        .i_valid(rx_decoded_valid),
+        .i_valid(rx_data_valid),
         .o_slip(rx_gearbox_slip)
     );
 
@@ -180,7 +184,7 @@ module pcs #(
                 .clk(xver_rx_clk),
                 .reset(rx_reset),
                 .init_done(!rx_reset),
-                .pause(!rx_decoded_valid),
+                .pause(!rx_data_valid),
                 .idata(rx_gearbox_data_out),
                 .odata(rx_descrambled_data)
             );
@@ -195,7 +199,8 @@ module pcs #(
         .i_rxc(xver_rx_clk),
         .i_rxd(rx_descrambled_data),
         .i_rx_header(rx_header),
-        .i_rx_valid(rx_decoded_valid),
+        .i_rx_data_valid(rx_data_valid),
+        .i_rx_header_valid(rx_header_valid),
         .o_rxd(rx_decoded_data),
         .o_rxctl(rx_decoded_ctl)
     );
@@ -204,7 +209,7 @@ module pcs #(
     wire [DATA_NBYTES-1:0] early_term_loc;
     genvar gi;
     generate for (gi = 0; gi < DATA_NBYTES; gi++) begin
-        assign early_term_loc[gi] = rx_decoded_valid && rx_decoded_data[gi*8 +: 8] == RS_TERM && rx_decoded_ctl[gi];
+        assign early_term_loc[gi] = rx_data_valid && rx_decoded_data[gi*8 +: 8] == RS_TERM && rx_decoded_ctl[gi];
     end endgenerate
 
     always @(posedge xver_rx_clk)
@@ -216,7 +221,7 @@ module pcs #(
     end else begin
         xgmii_rx_data <= rx_decoded_data;
         xgmii_rx_ctl <= rx_decoded_ctl;
-        xgmii_rx_valid <= rx_decoded_valid;
+        xgmii_rx_valid <= rx_data_valid;
         term_loc <= early_term_loc;
     end
 

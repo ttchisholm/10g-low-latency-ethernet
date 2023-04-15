@@ -6,6 +6,7 @@ module gearbox_seq #(
 ) (
     input wire clk,
     input wire reset,
+    input wire slip,
     output logic [WIDTH-1:0] count,
     output wire pause
 );
@@ -16,7 +17,7 @@ module gearbox_seq #(
     if (reset) begin
         count <= '0;
     end else begin
-        if (step) begin
+        if (step && !slip) begin
             count <= count < MAX_VAL ? count + 1 : '0; 
         end
     end
@@ -25,7 +26,7 @@ module gearbox_seq #(
         always @(posedge clk)
         if (reset) begin
             step <= '0;
-        end else begin
+        end else if(!slip) begin
             step <= ~step;
         end
     end else begin

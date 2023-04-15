@@ -99,37 +99,43 @@ module pcs #(
             u_tx_gearbox_seq (
                 .clk(xver_tx_clk),
                 .reset(tx_reset),
+                .slip(1'b0),
                 .count(xver_tx_gearbox_sequence),
                 .pause(tx_gearbox_pause)
             );
 
         end else begin
 
-            // TODO
-            // wire [DATA_WIDTH-1:0] int_tx_gearbox_data;
+            wire [5:0] int_tx_gearbox_seq;
 
-            // assign xver_tx_data = int_tx_gearbox_data;
-            // assign xver_tx_header = '0;
-            // assign xver_tx_gearbox_sequence = '0;
+            gearbox_seq #(.WIDTH(6), .MAX_VAL(32), .PAUSE_VAL(32), .HALF_STEP(0)) 
+            u_tx_gearbox_seq (
+                .clk(xver_tx_clk),
+                .reset(tx_reset),
+                .slip(1'b0),
+                .count(int_tx_gearbox_seq),
+                .pause(tx_gearbox_pause)
+            );
+
+            tx_gearbox u_tx_gearbox (
+                .i_clk(xver_tx_clk),
+                .i_reset(tx_reset),
+                .i_data(32'd1),
+                .i_header(tx_header),
+                .i_gearbox_seq(int_tx_gearbox_seq), 
+                .i_pause(tx_gearbox_pause),
+                .o_data(xver_tx_data)
+            );
+
+            assign xver_tx_gearbox_sequence = '0;
+            assign xver_tx_header = '0;
             
-            // gearbox #(.INPUT_WIDTH(66), .OUTPUT_WIDTH(DATA_WIDTH)) 
-            // u_tx_gearbox (
-            //     .i_reset(tx_reset),
-            //     .i_init_done(!tx_reset),
-            //     .i_clk(xver_tx_clk),
-            //     .i_data({tx_scrambled_data, tx_header}),
-            //     .i_slip(1'b0),
-            //     .o_data(int_tx_gearbox_data),
-            //     .o_pause(tx_gearbox_pause),
-            //     .o_valid() // Always valid when gearing down
-            // );
         end 
     endgenerate
 
     assign xgmii_tx_ready = !tx_gearbox_pause;
 
     /// ************* RX DATAPATH ************* //
-    //wire [65:0] rx_gearbox_out;
     wire [DATA_WIDTH-1:0] rx_gearbox_data_out, rx_descrambled_data;
     wire [1:0] rx_header;
     wire rx_gearbox_slip;
@@ -144,23 +150,32 @@ module pcs #(
             assign rx_header_valid = xver_rx_header_valid;
 
         end else begin
+            wire [5:0] int_rx_gearbox_seq;
+            wire rx_gearbox_pause;
 
-            // assign xver_rx_gearbox_slip = 1'b0;
+            gearbox_seq #(.WIDTH(6), .MAX_VAL(32), .PAUSE_VAL(32), .HALF_STEP(0)) 
+            u_rx_gearbox_seq (
+                .clk(xver_rx_clk),
+                .reset(rx_reset),
+                .slip(rx_gearbox_slip),
+                .count(int_rx_gearbox_seq),
+                .pause(rx_gearbox_pause)
+            );
 
-            // // Gearbox
-            // gearbox  #(.INPUT_WIDTH(64), .OUTPUT_WIDTH(66)) 
-            // u_rx_gearbox(
-            //     .i_reset(rx_reset),
-            //     .i_init_done(!rx_reset),
-            //     .i_clk(xver_rx_clk),
-            //     .i_data(xver_rx_data),
-            //     .i_slip(rx_gearbox_slip),
-            //     .o_data(rx_gearbox_out),
-            //     .o_pause(), // Never pauses when gearing up
-            //     .o_valid(rx_decoded_valid)
-            // );
-            // assign rx_gearbox_data_out = rx_gearbox_out[65:2];
-            // assign rx_header = rx_gearbox_out[1:0];
+            rx_gearbox u_rx_gearbox (
+                .i_clk(xver_rx_clk),
+                .i_reset(tx_reset),
+                .i_data(xver_rx_data),
+                .i_gearbox_seq(int_rx_gearbox_seq), 
+                .i_pause(rx_gearbox_pause),
+                .o_data(rx_gearbox_data_out),
+                .o_header(rx_header),
+                .o_data_valid(rx_data_valid),
+                .o_header_valid(rx_header_valid)
+            );
+
+            assign xver_rx_gearbox_slip = 1'b0;
+            
         end
     endgenerate
 

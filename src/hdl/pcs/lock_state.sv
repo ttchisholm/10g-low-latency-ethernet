@@ -21,7 +21,7 @@ module lock_state(
     always @(posedge i_clk) begin
         if(i_reset) begin
             state <= LOCK_INIT;
-        end else if(i_valid) begin
+        end else begin
             state <= next_state;
 
         end
@@ -37,7 +37,9 @@ module lock_state(
             end
             TEST_SH: begin
                 // Must use if..else here to avoid unknown propagation into enum
-                if (sh_valid) begin
+                if (!i_valid) begin
+                    next_state = TEST_SH;
+                end if (sh_valid) begin
                     next_state = VALID_SH;
                 end else begin
                     next_state = INVALID_SH;    
@@ -49,7 +51,9 @@ module lock_state(
                 //              sh_cnt == 64 && sh_invalid_cnt != 0 ? RESET_CNT :
                 //              sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
 
-                if (sh_cnt == 64 && sh_invalid_cnt == 0) begin
+                if (!i_valid) begin
+                    next_state = VALID_SH;
+                end if (sh_cnt == 64 && sh_invalid_cnt == 0) begin
                     next_state = GOOD_64;
                 end else if (sh_cnt == 64 && sh_invalid_cnt != 0) begin
                     next_state = RESET_CNT;
@@ -64,7 +68,9 @@ module lock_state(
                 //              sh_invalid_cnt == 16 ? SLIP :
                 //              sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
 
-                if (sh_cnt == 64 && sh_invalid_cnt < 16) begin
+                if (!i_valid) begin
+                    next_state = INVALID_SH;
+                end if (sh_cnt == 64 && sh_invalid_cnt < 16) begin
                     next_state = RESET_CNT; 
                 end else if (sh_invalid_cnt == 16) begin
                     next_state = SLIP;
@@ -94,7 +100,7 @@ module lock_state(
             sh_cnt <= 0;
             sh_invalid_cnt <= 0;
             slip_done <= 1'b0;
-        end else if(i_valid) begin
+        end else begin
             case (state)
                 LOCK_INIT: begin
                     rx_block_lock <= 1'b0;
@@ -109,11 +115,11 @@ module lock_state(
                     test_sh <= 1'b0;
                 end
                 VALID_SH: begin
-                    sh_cnt <= sh_cnt + 1;
+                    sh_cnt <= (i_valid) ? sh_cnt + 1 : sh_cnt;
                 end
                 INVALID_SH: begin
-                    sh_cnt <= sh_cnt + 1;
-                    sh_invalid_cnt <= sh_invalid_cnt + 1;
+                    sh_cnt <= (i_valid) ? sh_cnt + 1 : sh_cnt;
+                    sh_invalid_cnt <= (i_valid) ? sh_invalid_cnt + 1 : sh_invalid_cnt;
                 end
                 GOOD_64: begin
                     rx_block_lock <= 1'b0;

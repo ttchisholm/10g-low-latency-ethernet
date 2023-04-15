@@ -32,14 +32,16 @@ module eth_10g #(
     input  wire ch0_gtyrxn_in,
     input  wire ch0_gtyrxp_in,
     output wire ch0_gtytxn_out,
-    output wire ch0_gtytxp_out
+    output wire ch0_gtytxp_out,
+
+    // Output tx/rx mac/pcs reset ports
+    output wire mac_pcs_tx_reset,
+    output wire mac_pcs_rx_reset
 );
 
     // MAC/PCS reset
     wire gtwiz_tx_ready;
     wire gtwiz_rx_ready;
-    wire mac_pcs_tx_reset;
-    wire mac_pcs_rx_reset;
     
     assign mac_pcs_tx_reset = !gtwiz_tx_ready;
     assign mac_pcs_rx_reset = !gtwiz_rx_ready;

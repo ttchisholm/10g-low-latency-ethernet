@@ -20,23 +20,31 @@ module example_10g_eth (
     // Packet gen
     wire [15:0] packet_length;
     logic [15:0] packet_length_cnt;
-    logic [63:0] packet_vio_data;
+    logic [31:0] packet_vio_data;
 
     // Tx AXIS
     wire s00_axis_aclk;
-    wire [63:0] s00_axis_tdata;
-    wire [7:0] s00_axis_tkeep;
+    wire [31:0] s00_axis_tdata;
+    wire [3:0] s00_axis_tkeep;
     wire s00_axis_tvalid;
     wire s00_axis_tready;
     wire s00_axis_tlast;
 
     // Rx AXIS
     wire m00_axis_aclk;
-    wire [63:0] m00_axis_tdata;
-    wire [7:0] m00_axis_tkeep;
+    wire [31:0] m00_axis_tdata;
+    wire [3:0] m00_axis_tkeep;
     wire m00_axis_tvalid;
     wire m00_axis_tlast;
     wire m00_axis_tuser;
+
+    // Resets
+    wire mac_pcs_rx_reset, mac_pcs_tx_reset;
+
+    // Performance meas
+    wire [15:0] perf_latency;
+    wire perf_complete;
+    wire perf_tx_start, perf_rx_stop;
 
     always @(posedge s00_axis_aclk)
     if (packet_gen_reset) begin
@@ -45,7 +53,7 @@ module example_10g_eth (
         packet_length_cnt <= (packet_length_cnt == packet_length) ? '0 : packet_length_cnt + 1;
     end
 
-    assign s00_axis_tdata = {packet_vio_data[63:16], packet_length_cnt}; // Set lower 16 bits to packet index counter 
+    assign s00_axis_tdata = {packet_vio_data[31:16], packet_length_cnt}; // Set lower 16 bits to packet index counter 
     assign s00_axis_tkeep = '1;
     assign s00_axis_tlast = packet_length_cnt == packet_length;
     assign s00_axis_tvalid = !packet_gen_reset;
@@ -72,7 +80,9 @@ module example_10g_eth (
         .probe1(s00_axis_tkeep), // input wire [7:0]  probe1 
         .probe2(s00_axis_tready), // input wire [0:0]  probe2 
         .probe3(s00_axis_tvalid), // input wire [0:0]  probe3 
-        .probe4(s00_axis_tlast) // input wire [0:0]  probe4
+        .probe4(s00_axis_tlast), // input wire [0:0]  probe4
+        .probe5(perf_latency),
+        .probe6(perf_complete)
     );
 
     example_packet_ila rx_packet_ila (
@@ -81,7 +91,26 @@ module example_10g_eth (
         .probe1(m00_axis_tkeep), // input wire [7:0]  probe1 
         .probe2(m00_axis_tuser), // input wire [0:0]  probe2 
         .probe3(m00_axis_tvalid), // input wire [0:0]  probe3 
-        .probe4(m00_axis_tlast) // input wire [0:0]  probe4
+        .probe4(m00_axis_tlast), // input wire [0:0]  probe4
+        .probe5(16'h0),
+        .probe6(perf_rx_stop)
+    );
+
+
+    assign perf_tx_start = s00_axis_tvalid && s00_axis_tready && s00_axis_tdata[15:0] == 16'b0;
+    assign perf_rx_stop = m00_axis_tvalid && m00_axis_tdata[15:0] == 16'b0;
+
+    eth_perf u_eth_perf (
+    
+        .tx_reset(mac_pcs_tx_reset),
+        .tx_clk(s00_axis_aclk),
+        .tx_start(perf_tx_start),
+        .latency(perf_latency),
+        .test_complete(perf_complete),
+
+        .rx_reset(mac_pcs_rx_reset),
+        .rx_clk(m00_axis_aclk),
+        .rx_stop(perf_rx_stop)
     );
 
     // Eth Core
@@ -108,7 +137,9 @@ module example_10g_eth (
         .ch0_gtyrxn_in(ch0_gtyrxn_in),
         .ch0_gtyrxp_in(ch0_gtyrxp_in),
         .ch0_gtytxn_out(ch0_gtytxn_out),
-        .ch0_gtytxp_out(ch0_gtytxp_out)
+        .ch0_gtytxp_out(ch0_gtytxp_out),
+        .mac_pcs_tx_reset(mac_pcs_tx_reset),
+        .mac_pcs_rx_reset(mac_pcs_rx_reset)
     );
 
 

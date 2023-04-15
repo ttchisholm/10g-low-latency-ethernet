@@ -68,7 +68,7 @@ proc gen_ip {} {
         # file delete $ip_xml
      
         # re-generate the IP
-        generate_target all $ip
+        generate_target all $ip -force
         set_property generate_synth_checkpoint true [get_files $ip_filename]
         synth_ip $ip -force
       }

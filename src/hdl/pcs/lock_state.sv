@@ -51,6 +51,12 @@ module lock_state(
                 //              sh_cnt == 64 && sh_invalid_cnt != 0 ? RESET_CNT :
                 //              sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
 
+                // if (sh_cnt == 15'd10) begin
+                //     next_state = SLIP;
+                // end else begin
+                //     next_state = VALID_SH;
+                // end
+
                 if (!i_valid) begin
                     next_state = VALID_SH;
                 end if (sh_cnt == 64 && sh_invalid_cnt == 0) begin

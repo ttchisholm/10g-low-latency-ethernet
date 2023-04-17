@@ -120,7 +120,7 @@ module pcs #(
             tx_gearbox u_tx_gearbox (
                 .i_clk(xver_tx_clk),
                 .i_reset(tx_reset),
-                .i_data(32'd1),
+                .i_data(tx_scrambled_data),
                 .i_header(tx_header),
                 .i_gearbox_seq(int_tx_gearbox_seq), 
                 .i_pause(tx_gearbox_pause),
@@ -153,21 +153,11 @@ module pcs #(
             wire [5:0] int_rx_gearbox_seq;
             wire rx_gearbox_pause;
 
-            gearbox_seq #(.WIDTH(6), .MAX_VAL(32), .PAUSE_VAL(32), .HALF_STEP(0)) 
-            u_rx_gearbox_seq (
-                .clk(xver_rx_clk),
-                .reset(rx_reset),
-                .slip(rx_gearbox_slip),
-                .count(int_rx_gearbox_seq),
-                .pause(rx_gearbox_pause)
-            );
-
             rx_gearbox u_rx_gearbox (
                 .i_clk(xver_rx_clk),
                 .i_reset(tx_reset),
                 .i_data(xver_rx_data),
-                .i_gearbox_seq(int_rx_gearbox_seq), 
-                .i_pause(rx_gearbox_pause),
+                .i_slip(rx_gearbox_slip),
                 .o_data(rx_gearbox_data_out),
                 .o_header(rx_header),
                 .o_data_valid(rx_data_valid),

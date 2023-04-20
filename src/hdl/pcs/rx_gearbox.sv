@@ -24,7 +24,7 @@ module rx_gearbox #(
     // Create the sequence counter - 0 to 32
     logic [SEQUENCE_WIDTH:0] gearbox_seq;
 
-    logic [1:0] half_slip;
+    logic half_slip;
     wire tick_out;
 
     always @(posedge i_clk)
@@ -37,11 +37,10 @@ module rx_gearbox #(
         end
 
         if (i_slip) begin
-            half_slip <= half_slip + 1;
+            half_slip <= ~half_slip;
         end
     end
 
-    assign tick_out = half_slip[1];
 
     // Re-use the gearbox sequnce counter method as used in gty - this time counting every clock
     logic [BUF_SIZE:0] obuf, next_obuf; // Extra bit at top of buffer to allow for single bit slip
@@ -54,7 +53,7 @@ module rx_gearbox #(
 
     logic [6:0] data_idx;
         
-    assign data_idx = data_idxs[gearbox_seq];// + tick_out; // Allow for slipping every bit
+    assign data_idx = data_idxs[gearbox_seq]; // Allow for slipping every bit
 
     // Need to assign single bits as iverilog does not support variable width assignments
     genvar gi;
@@ -98,9 +97,9 @@ module rx_gearbox #(
     end
 
     assign o_data_valid = gearbox_seq != 0;
-    assign o_header = tick_out ? next_obuf[2:1] : next_obuf[1:0];
+    assign o_header = half_slip ? next_obuf[2:1] : next_obuf[1:0];
     assign o_header_valid = gearbox_seq[0];
-    assign o_data = tick_out ? (!frame_word ? next_obuf[34:3] : next_obuf[66:35]) :
+    assign o_data = half_slip ? (!frame_word ? next_obuf[34:3] : next_obuf[66:35]) :
                                (!frame_word ? next_obuf[33:2] : next_obuf[65:34]);
 
     // Ridiculous but clearest way to sequence loading of data as modelled

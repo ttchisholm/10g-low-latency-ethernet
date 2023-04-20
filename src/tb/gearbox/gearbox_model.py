@@ -3,14 +3,16 @@
 class RxGearboxModel:
     def __init__(self, type='int'):
         if type == 'str':
-            self.obuf = ['XXX' for _ in range(66)]
+            self.obuf = ['XXX' for _ in range(67)] # Extra bit for half slip
         else:
-            self.obuf = [0 for _ in range(66)]
+            self.obuf = [0 for _ in range(67)]
         self.cycle = 0
+        self.half_slip = 0
 
 
-    def next(self, idata):
+    def next(self, idata, slip=False):
 
+        self.slip = slip
         self.count = int(self.cycle % 33)
         self.valid = self.count != 0
         self.frame_word = int(self.count % 2 == 0)
@@ -42,8 +44,14 @@ class RxGearboxModel:
                 if bit >= self.idata_idx and bit < self.idata_idx + 32:
                     self.obuf[bit] = idata[bit - self.idata_idx]
     
-        self.odata = self.obuf[2 : 34] if self.frame_word == 0 else self.obuf[34:66]
-        self.oheader = self.obuf[0:2]
+        self.obuf[66] = self.obuf[0]
+
+        if self.half_slip % 2 == 0:
+            self.odata = self.obuf[2 : 34] if self.frame_word == 0 else self.obuf[34:66]
+            self.oheader = self.obuf[0:2]
+        else:
+            self.odata = self.obuf[3 : 35] if self.frame_word == 0 else self.obuf[35:67]
+            self.oheader = self.obuf[1:3]
 
         ret = {
             'data' : self.odata,
@@ -54,7 +62,11 @@ class RxGearboxModel:
             'cycle' : self.cycle
         }
 
-        self.cycle = self.cycle + 1
+        if not self.slip:
+            self.cycle = self.cycle + 1
+
+        if slip:
+            self.half_slip = self.half_slip + 1
 
         return ret
 
@@ -63,4 +75,4 @@ class RxGearboxModel:
 
     def get_state(self):
 
-        return f'{self.count:03d}\t{self.valid}\t{int(self.output_header)}\t{self.idata_idx:02d}\t{self.oheader}\t{self.odata}'
+        return f'{self.count:03d}\t{self.slip:b}\t{self.valid}\t{int(self.output_header)}\t{self.idata_idx:02d}\t{self.oheader}\t{self.odata}'

@@ -113,7 +113,7 @@ async def rx_gearbox_test_slip(dut):
         await tb.reset()
 
         # Generate random data
-        gen_idata = [np.random.randint(0,2,32) for _ in range(100)]
+        gen_idata = [np.random.randint(0,2,32) for _ in range(1000)]
 
         n_slips = 1
 
@@ -124,7 +124,7 @@ async def rx_gearbox_test_slip(dut):
 
         for i, id in enumerate(gen_idata):
 
-            slip = i < n_slips
+            slip = i < n_slips and np.random.randint(0,10) == 0
 
             for i in range(len(id)):
                 tb.dut.i_data[i].value = int(id[i])

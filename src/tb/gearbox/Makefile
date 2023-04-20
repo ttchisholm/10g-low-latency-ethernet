@@ -15,9 +15,12 @@ TOPLEVEL ?= rx_gearbox
 # MODULE is the basename of the Python test file
 MODULE ?= test_gearbox
 
+export REGISTER_OUTPUT ?= 0
 
 ifeq ($(SIM), icarus)
 	PLUSARGS += -fst
+
+	COMPILE_ARGS += -P $(TOPLEVEL).REGISTER_OUTPUT=$(REGISTER_OUTPUT)
 
 	ifeq ($(WAVES), 1)
 		VERILOG_SOURCES += iverilog_dump.v

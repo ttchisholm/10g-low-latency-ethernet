@@ -1,6 +1,7 @@
 `default_nettype none
 
 module rx_gearbox #(
+    parameter REGISTER_OUTPUT = 1,
     localparam DATA_WIDTH = 32,
     localparam HEADER_WIDTH = 2,
     localparam SEQUENCE_WIDTH = 6
@@ -11,8 +12,8 @@ module rx_gearbox #(
     
     input wire i_slip,
     
-    output wire [DATA_WIDTH-1:0] o_data,
-    output wire [HEADER_WIDTH-1:0] o_header,
+    output logic [DATA_WIDTH-1:0] o_data,
+    output logic [HEADER_WIDTH-1:0] o_header,
     output logic o_data_valid,
     output logic o_header_valid
 );
@@ -49,11 +50,8 @@ module rx_gearbox #(
     
     assign frame_word = !gearbox_seq[0];
     
-    
-
     logic [6:0] data_idx;
-        
-    assign data_idx = data_idxs[gearbox_seq]; // Allow for slipping every bit
+    assign data_idx = data_idxs[gearbox_seq];
 
     // Need to assign single bits as iverilog does not support variable width assignments
     genvar gi;
@@ -87,20 +85,44 @@ module rx_gearbox #(
 
     always @(posedge i_clk)
     if (i_reset) begin
-        obuf <= 1'b0;
-        // o_data_valid <= '0;
-        // o_header_valid <= '0;
+        obuf <= 1'b0;        
     end else begin
         obuf <= next_obuf;
-        // o_data_valid <= gearbox_seq != 32;
-        // o_header_valid <= !gearbox_seq[0];
     end
 
-    assign o_data_valid = gearbox_seq != 0;
-    assign o_header = half_slip ? next_obuf[2:1] : next_obuf[1:0];
-    assign o_header_valid = gearbox_seq[0];
-    assign o_data = half_slip ? (!frame_word ? next_obuf[34:3] : next_obuf[66:35]) :
+    // Outputs
+    wire [DATA_WIDTH-1:0] odata_int;
+    wire [HEADER_WIDTH-1:0] oheader_int;
+    wire odata_valid_int;
+    wire oheader_valid_int;
+
+    assign odata_valid_int = gearbox_seq != 0;
+    assign oheader_int = half_slip ? next_obuf[2:1] : next_obuf[1:0];
+    assign oheader_valid_int = gearbox_seq[0];
+    assign odata_int = half_slip ? (!frame_word ? next_obuf[34:3] : next_obuf[66:35]) :
                                (!frame_word ? next_obuf[33:2] : next_obuf[65:34]);
+
+
+    generate if(REGISTER_OUTPUT) begin
+        always @(posedge i_clk)
+        if (i_reset) begin
+            o_data_valid <= '0;
+            o_header <= '0;
+            o_header_valid <= '0;
+            o_data <= '0;
+        end else begin
+            o_data_valid <= odata_valid_int;
+            o_header <= (oheader_valid_int) ? oheader_int : o_header;
+            o_header_valid <= oheader_valid_int;
+            o_data <= (odata_valid_int) ? odata_int : o_data;
+        end
+    end else begin
+        assign o_data_valid = odata_valid_int;
+        assign o_header = oheader_int;
+        assign o_header_valid = oheader_valid_int;
+        assign o_data = odata_int;
+    end endgenerate
+
 
     // Ridiculous but clearest way to sequence loading of data as modelled
     initial begin

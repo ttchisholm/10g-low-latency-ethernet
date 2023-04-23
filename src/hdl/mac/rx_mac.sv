@@ -45,6 +45,7 @@ module rx_mac #(
     wire [DATA_NBYTES-1:0] term_keep;
 
     wire ctl_found;
+    wire data_invalid;
 
     // Masked data out
     wire [DATA_WIDTH-1:0] masked_data;
@@ -85,12 +86,12 @@ module rx_mac #(
                 m00_axis_tuser = '0;
             end
             DATA: begin
-                if (phy_rx_valid && (term_found || ctl_found)) // Abandon packet on any ctl char
+                if (phy_rx_valid && (term_found || ctl_found || data_invalid)) // Abandon packet on any ctl char
                     rx_next_state = IDLE;
                 else
                     rx_next_state = DATA;
                 
-                m00_axis_tvalid = phy_rx_valid && (!sfd_found_del || (sfd_found_del && start_valid));
+                m00_axis_tvalid = phy_rx_valid && !data_invalid && (!sfd_found_del || (sfd_found_del && start_valid));
                 m00_axis_tlast = rx_next_state == IDLE;
                 m00_axis_tkeep = sfd_found_del ? start_keep :
                                   term_found    ? term_keep  :
@@ -111,6 +112,12 @@ module rx_mac #(
 
     // Any control character found
     assign ctl_found = |xgmii_rxc;
+
+    // Detect xgmii error
+    assign data_invalid = (xgmii_rxc[3] && xgmii_rxd[31:24] == RS_ERROR) || 
+                          (xgmii_rxc[2] && xgmii_rxd[23:16] == RS_ERROR) || 
+                          (xgmii_rxc[1] && xgmii_rxd[15: 8] == RS_ERROR) || 
+                          (xgmii_rxc[0] && xgmii_rxd[ 7: 0] == RS_ERROR);
 
     // Start detect
     assign sfd_found = phy_rx_valid && (xgmii_rxd[7:0] == RS_START) && (xgmii_rxc[0] == 1'b1);

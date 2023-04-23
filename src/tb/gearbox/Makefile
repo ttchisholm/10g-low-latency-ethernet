@@ -6,14 +6,20 @@ TOPLEVEL_LANG ?= verilog
 WAVES ?= 1
 
 VERILOG_SOURCES += $(PWD)/../../hdl/pcs/rx_gearbox.sv
+VERILOG_SOURCES += $(PWD)/../../hdl/pcs/tx_gearbox.sv
 
-
-
-# TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
-TOPLEVEL ?= rx_gearbox
 
 # MODULE is the basename of the Python test file
-MODULE ?= test_gearbox
+MODULE ?= test_rx_gearbox
+
+
+ifeq ($(MODULE), test_tx_gearbox)
+	TOPLEVEL ?= tx_gearbox
+endif
+
+ifeq ($(MODULE), test_rx_gearbox)
+	TOPLEVEL ?= rx_gearbox
+endif
 
 export REGISTER_OUTPUT ?= 0
 

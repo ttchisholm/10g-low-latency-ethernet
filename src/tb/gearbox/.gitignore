@@ -1,6 +1,6 @@
 __pycache__
 sim_build
-*.fst
+*.fst*
 *.vcd
 *.xml
 iverilog_dump.v

@@ -20,11 +20,11 @@ module tx_gearbox #(
 
     // Re-use the gearbox sequnce counter method as used in gty
     wire load_header, frame_word;
-    logic [2*DATA_WIDTH + HEADER_WIDTH -1:0] obuf;
+    logic [2*DATA_WIDTH + HEADER_WIDTH -1:0] obuf, next_obuf;
 
-    assign load_header = i_gearbox_seq[0]; // Load header on even cycles
-    assign frame_word = !i_gearbox_seq[0]; // Load bottom word on even cycles (with header), top on odd
-    assign o_data = obuf[0 +: DATA_WIDTH];
+    assign load_header = !i_gearbox_seq[0]; // Load header on even cycles
+    assign frame_word =  i_gearbox_seq[0]; // Load bottom word on even cycles (with header), top on odd
+    assign o_data = next_obuf[0 +: DATA_WIDTH];
 
     wire [SEQUENCE_WIDTH:0] header_idx;
     wire [SEQUENCE_WIDTH:0] data_idx;
@@ -35,30 +35,36 @@ module tx_gearbox #(
     // Need to assign single bits as iverilog does not support variable width assignments
     genvar gi;
     generate for (genvar gi = 0; gi < BUF_SIZE; gi++) begin
-        always @(posedge i_clk)
-        if (i_reset) begin
-            obuf[gi] <= 1'b0;
-        end else begin
+        always @(*) begin
+
+            next_obuf[gi] = obuf[gi];
 
             if (gi < DATA_WIDTH) begin
-                obuf[gi] <= obuf[gi+DATA_WIDTH];
+                next_obuf[gi] = obuf[gi+DATA_WIDTH];
             end
 
             if (!i_pause) begin
                 if (load_header) begin
                     if (gi >= header_idx && gi < header_idx + 2) begin
-                        obuf[gi] <= i_header[gi-header_idx];
+                        next_obuf[gi] = i_header[gi-header_idx];
                     end
                 end 
 
                 if (gi >= data_idx && gi < data_idx + DATA_WIDTH) begin
-                    obuf[gi] <= frame_word ? i_data[gi-data_idx] : i_data[gi-data_idx];
+                    next_obuf[gi] = frame_word ? i_data[gi-data_idx] : i_data[gi-data_idx];
                 end
             end
             
         end
 
     end endgenerate
+
+    always @(posedge i_clk)
+    if (i_reset) begin
+        obuf <= '0;
+    end else begin
+        obuf <= next_obuf;
+    end
 
 
 endmodule

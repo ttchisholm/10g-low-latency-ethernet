@@ -30,9 +30,6 @@ class RxGearboxTb:
         await RisingEdge(self.dut.i_clk)
         self.dut.i_reset.value = 0
         
-        
-
-
 
 @cocotb.test()
 async def rx_gearbox_test_no_slip(dut):
@@ -94,10 +91,6 @@ async def rx_gearbox_test_no_slip(dut):
             print('model cycle: ', ret['cycle'])
             print('input data:  ', str(tb.dut.i_data.value)[::-1])
             assert all_eq
-
-
-        
-
 
 @cocotb.test()
 async def rx_gearbox_test_slip(dut):
@@ -168,7 +161,6 @@ async def rx_gearbox_test_slip(dut):
                 assert all_eq
     
 
-        
         
 
   

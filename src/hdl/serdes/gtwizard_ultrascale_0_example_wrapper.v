@@ -54,7 +54,9 @@
 // the core, connects them as appropriate, and maps enabled ports
 // =====================================================================================================================
 
-module gtwizard_ultrascale_0_example_wrapper (
+module gtwizard_ultrascale_0_example_wrapper #(
+  parameter EXTERNAL_GEARBOX = 1
+) (
   input  wire [0:0] gtyrxn_in
  ,input  wire [0:0] gtyrxp_in
  ,output wire [0:0] gtytxn_out
@@ -133,55 +135,109 @@ module gtwizard_ultrascale_0_example_wrapper (
   // ===================================================================================================================
 
   // Instantiate the core, mapping its enabled ports to example design ports and helper blocks as appropriate
-  gtwizard_ultrascale_0 gtwizard_ultrascale_0_inst (
-    .gtyrxn_in                               (gtyrxn_in)
-   ,.gtyrxp_in                               (gtyrxp_in)
-   ,.gtytxn_out                              (gtytxn_out)
-   ,.gtytxp_out                              (gtytxp_out)
-   ,.gtwiz_userclk_tx_reset_in               (gtwiz_userclk_tx_reset_in)
-   ,.gtwiz_userclk_tx_srcclk_out             (gtwiz_userclk_tx_srcclk_out)
-   ,.gtwiz_userclk_tx_usrclk_out             (gtwiz_userclk_tx_usrclk_out)
-   ,.gtwiz_userclk_tx_usrclk2_out            (gtwiz_userclk_tx_usrclk2_out)
-   ,.gtwiz_userclk_tx_active_out             (gtwiz_userclk_tx_active_out)
-   ,.gtwiz_userclk_rx_reset_in               (gtwiz_userclk_rx_reset_in)
-   ,.gtwiz_userclk_rx_srcclk_out             (gtwiz_userclk_rx_srcclk_out)
-   ,.gtwiz_userclk_rx_usrclk_out             (gtwiz_userclk_rx_usrclk_out)
-   ,.gtwiz_userclk_rx_usrclk2_out            (gtwiz_userclk_rx_usrclk2_out)
-   ,.gtwiz_userclk_rx_active_out             (gtwiz_userclk_rx_active_out)
-   ,.gtwiz_buffbypass_tx_reset_in            (gtwiz_buffbypass_tx_reset_in)
-   ,.gtwiz_buffbypass_tx_start_user_in       (gtwiz_buffbypass_tx_start_user_in)
-   ,.gtwiz_buffbypass_tx_done_out            (gtwiz_buffbypass_tx_done_out)
-   ,.gtwiz_buffbypass_tx_error_out           (gtwiz_buffbypass_tx_error_out)
-   ,.gtwiz_buffbypass_rx_reset_in            (gtwiz_buffbypass_rx_reset_in)
-   ,.gtwiz_buffbypass_rx_start_user_in       (gtwiz_buffbypass_rx_start_user_in)
-   ,.gtwiz_buffbypass_rx_done_out            (gtwiz_buffbypass_rx_done_out)
-   ,.gtwiz_buffbypass_rx_error_out           (gtwiz_buffbypass_rx_error_out)
-   ,.gtwiz_reset_clk_freerun_in              (gtwiz_reset_clk_freerun_in)
-   ,.gtwiz_reset_all_in                      (gtwiz_reset_all_in)
-   ,.gtwiz_reset_tx_pll_and_datapath_in      (gtwiz_reset_tx_pll_and_datapath_in)
-   ,.gtwiz_reset_tx_datapath_in              (gtwiz_reset_tx_datapath_in)
-   ,.gtwiz_reset_rx_pll_and_datapath_in      (gtwiz_reset_rx_pll_and_datapath_in)
-   ,.gtwiz_reset_rx_datapath_in              (gtwiz_reset_rx_datapath_in)
-   ,.gtwiz_reset_rx_cdr_stable_out           (gtwiz_reset_rx_cdr_stable_out)
-   ,.gtwiz_reset_tx_done_out                 (gtwiz_reset_tx_done_out)
-   ,.gtwiz_reset_rx_done_out                 (gtwiz_reset_rx_done_out)
-   ,.gtwiz_userdata_tx_in                    (gtwiz_userdata_tx_in)
-   ,.gtwiz_userdata_rx_out                   (gtwiz_userdata_rx_out)
-   ,.gtrefclk00_in                           (gtrefclk00_in)
-   ,.qpll0outclk_out                         (qpll0outclk_out)
-   ,.qpll0outrefclk_out                      (qpll0outrefclk_out)
-   ,.rxgearboxslip_in                        (rxgearboxslip_in)
-   ,.txheader_in                             (txheader_in)
-   ,.txsequence_in                           (txsequence_in)
-   ,.gtpowergood_out                         (gtpowergood_int)
-   ,.rxdatavalid_out                         (rxdatavalid_out)
-   ,.rxheader_out                            (rxheader_out)
-   ,.rxheadervalid_out                       (rxheadervalid_out)
-   ,.rxpmaresetdone_out                      (rxpmaresetdone_out)
-   ,.rxstartofseq_out                        (rxstartofseq_out)
-   ,.txpmaresetdone_out                      (txpmaresetdone_out)
-   ,.txprgdivresetdone_out                   (txprgdivresetdone_out)
-   ,.loopback_in                             (loopback_in)
-);
+
+  generate if (EXTERNAL_GEARBOX) begin
+      gtwizard_ultrascale_0 gtwizard_ultrascale_0_inst (
+      .gtyrxn_in                               (gtyrxn_in)
+      ,.gtyrxp_in                               (gtyrxp_in)
+      ,.gtytxn_out                              (gtytxn_out)
+      ,.gtytxp_out                              (gtytxp_out)
+      ,.gtwiz_userclk_tx_reset_in               (gtwiz_userclk_tx_reset_in)
+      ,.gtwiz_userclk_tx_srcclk_out             (gtwiz_userclk_tx_srcclk_out)
+      ,.gtwiz_userclk_tx_usrclk_out             (gtwiz_userclk_tx_usrclk_out)
+      ,.gtwiz_userclk_tx_usrclk2_out            (gtwiz_userclk_tx_usrclk2_out)
+      ,.gtwiz_userclk_tx_active_out             (gtwiz_userclk_tx_active_out)
+      ,.gtwiz_userclk_rx_reset_in               (gtwiz_userclk_rx_reset_in)
+      ,.gtwiz_userclk_rx_srcclk_out             (gtwiz_userclk_rx_srcclk_out)
+      ,.gtwiz_userclk_rx_usrclk_out             (gtwiz_userclk_rx_usrclk_out)
+      ,.gtwiz_userclk_rx_usrclk2_out            (gtwiz_userclk_rx_usrclk2_out)
+      ,.gtwiz_userclk_rx_active_out             (gtwiz_userclk_rx_active_out)
+      ,.gtwiz_buffbypass_tx_reset_in            (gtwiz_buffbypass_tx_reset_in)
+      ,.gtwiz_buffbypass_tx_start_user_in       (gtwiz_buffbypass_tx_start_user_in)
+      ,.gtwiz_buffbypass_tx_done_out            (gtwiz_buffbypass_tx_done_out)
+      ,.gtwiz_buffbypass_tx_error_out           (gtwiz_buffbypass_tx_error_out)
+      ,.gtwiz_buffbypass_rx_reset_in            (gtwiz_buffbypass_rx_reset_in)
+      ,.gtwiz_buffbypass_rx_start_user_in       (gtwiz_buffbypass_rx_start_user_in)
+      ,.gtwiz_buffbypass_rx_done_out            (gtwiz_buffbypass_rx_done_out)
+      ,.gtwiz_buffbypass_rx_error_out           (gtwiz_buffbypass_rx_error_out)
+      ,.gtwiz_reset_clk_freerun_in              (gtwiz_reset_clk_freerun_in)
+      ,.gtwiz_reset_all_in                      (gtwiz_reset_all_in)
+      ,.gtwiz_reset_tx_pll_and_datapath_in      (gtwiz_reset_tx_pll_and_datapath_in)
+      ,.gtwiz_reset_tx_datapath_in              (gtwiz_reset_tx_datapath_in)
+      ,.gtwiz_reset_rx_pll_and_datapath_in      (gtwiz_reset_rx_pll_and_datapath_in)
+      ,.gtwiz_reset_rx_datapath_in              (gtwiz_reset_rx_datapath_in)
+      ,.gtwiz_reset_rx_cdr_stable_out           (gtwiz_reset_rx_cdr_stable_out)
+      ,.gtwiz_reset_tx_done_out                 (gtwiz_reset_tx_done_out)
+      ,.gtwiz_reset_rx_done_out                 (gtwiz_reset_rx_done_out)
+      ,.gtwiz_userdata_tx_in                    (gtwiz_userdata_tx_in)
+      ,.gtwiz_userdata_rx_out                   (gtwiz_userdata_rx_out)
+      ,.gtrefclk00_in                           (gtrefclk00_in)
+      ,.qpll0outclk_out                         (qpll0outclk_out)
+      ,.qpll0outrefclk_out                      (qpll0outrefclk_out)
+      ,.rxgearboxslip_in                        (rxgearboxslip_in)
+      ,.txheader_in                             (txheader_in)
+      ,.txsequence_in                           (txsequence_in)
+      ,.gtpowergood_out                         (gtpowergood_int)
+      ,.rxdatavalid_out                         (rxdatavalid_out)
+      ,.rxheader_out                            (rxheader_out)
+      ,.rxheadervalid_out                       (rxheadervalid_out)
+      ,.rxpmaresetdone_out                      (rxpmaresetdone_out)
+      ,.rxstartofseq_out                        (rxstartofseq_out)
+      ,.txpmaresetdone_out                      (txpmaresetdone_out)
+      ,.txprgdivresetdone_out                   (txprgdivresetdone_out)
+      ,.loopback_in                             (loopback_in)
+    );
+  end else begin
+    gtwizard_ultrascale_0 gtwizard_ultrascale_0_inst (
+      .gtyrxn_in                               (gtyrxn_in)
+      ,.gtyrxp_in                               (gtyrxp_in)
+      ,.gtytxn_out                              (gtytxn_out)
+      ,.gtytxp_out                              (gtytxp_out)
+      ,.gtwiz_userclk_tx_reset_in               (gtwiz_userclk_tx_reset_in)
+      ,.gtwiz_userclk_tx_srcclk_out             (gtwiz_userclk_tx_srcclk_out)
+      ,.gtwiz_userclk_tx_usrclk_out             (gtwiz_userclk_tx_usrclk_out)
+      ,.gtwiz_userclk_tx_usrclk2_out            (gtwiz_userclk_tx_usrclk2_out)
+      ,.gtwiz_userclk_tx_active_out             (gtwiz_userclk_tx_active_out)
+      ,.gtwiz_userclk_rx_reset_in               (gtwiz_userclk_rx_reset_in)
+      ,.gtwiz_userclk_rx_srcclk_out             (gtwiz_userclk_rx_srcclk_out)
+      ,.gtwiz_userclk_rx_usrclk_out             (gtwiz_userclk_rx_usrclk_out)
+      ,.gtwiz_userclk_rx_usrclk2_out            (gtwiz_userclk_rx_usrclk2_out)
+      ,.gtwiz_userclk_rx_active_out             (gtwiz_userclk_rx_active_out)
+      ,.gtwiz_buffbypass_tx_reset_in            (gtwiz_buffbypass_tx_reset_in)
+      ,.gtwiz_buffbypass_tx_start_user_in       (gtwiz_buffbypass_tx_start_user_in)
+      ,.gtwiz_buffbypass_tx_done_out            (gtwiz_buffbypass_tx_done_out)
+      ,.gtwiz_buffbypass_tx_error_out           (gtwiz_buffbypass_tx_error_out)
+      ,.gtwiz_buffbypass_rx_reset_in            (gtwiz_buffbypass_rx_reset_in)
+      ,.gtwiz_buffbypass_rx_start_user_in       (gtwiz_buffbypass_rx_start_user_in)
+      ,.gtwiz_buffbypass_rx_done_out            (gtwiz_buffbypass_rx_done_out)
+      ,.gtwiz_buffbypass_rx_error_out           (gtwiz_buffbypass_rx_error_out)
+      ,.gtwiz_reset_clk_freerun_in              (gtwiz_reset_clk_freerun_in)
+      ,.gtwiz_reset_all_in                      (gtwiz_reset_all_in)
+      ,.gtwiz_reset_tx_pll_and_datapath_in      (gtwiz_reset_tx_pll_and_datapath_in)
+      ,.gtwiz_reset_tx_datapath_in              (gtwiz_reset_tx_datapath_in)
+      ,.gtwiz_reset_rx_pll_and_datapath_in      (gtwiz_reset_rx_pll_and_datapath_in)
+      ,.gtwiz_reset_rx_datapath_in              (gtwiz_reset_rx_datapath_in)
+      ,.gtwiz_reset_rx_cdr_stable_out           (gtwiz_reset_rx_cdr_stable_out)
+      ,.gtwiz_reset_tx_done_out                 (gtwiz_reset_tx_done_out)
+      ,.gtwiz_reset_rx_done_out                 (gtwiz_reset_rx_done_out)
+      ,.gtwiz_userdata_tx_in                    (gtwiz_userdata_tx_in)
+      ,.gtwiz_userdata_rx_out                   (gtwiz_userdata_rx_out)
+      ,.gtrefclk00_in                           (gtrefclk00_in)
+      ,.qpll0outclk_out                         (qpll0outclk_out)
+      ,.qpll0outrefclk_out                      (qpll0outrefclk_out)
+      ,.gtpowergood_out                         (gtpowergood_int)
+      ,.rxpmaresetdone_out                      (rxpmaresetdone_out)
+      ,.txpmaresetdone_out                      (txpmaresetdone_out)
+      ,.txprgdivresetdone_out                   (txprgdivresetdone_out)
+      ,.loopback_in                             (loopback_in)
+    );
+
+    assign rxdatavalid_out = gtwiz_reset_tx_done_out ? 1'b1 : 1'b0;
+    assign rxheader_out = 2'b0;
+    assign rxheadervalid_out = 1'b0;
+    assign rxstartofseq_out = 2'b0;
+
+  end endgenerate
+
 
 endmodule

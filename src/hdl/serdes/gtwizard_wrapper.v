@@ -58,7 +58,8 @@
 // Modified to remove pattern gen/check, expose user data and usrclk2
 
 module gtwizard_wrapper #( 
-    parameter real INIT_CLK_FREQ = 100.0
+    parameter real INIT_CLK_FREQ = 100.0,
+    parameter EXTERNAL_GEARBOX = 1
 ) (
 
   // Differential reference clock inputs
@@ -626,7 +627,8 @@ module gtwizard_wrapper #(
 
   // Instantiate the example design wrapper, mapping its enabled ports to per-channel internal signals and example
   // resources as appropriate
-    gtwizard_ultrascale_0_example_wrapper example_wrapper_inst (
+    gtwizard_ultrascale_0_example_wrapper #(.EXTERNAL_GEARBOX(EXTERNAL_GEARBOX))
+    example_wrapper_inst (
     .gtyrxn_in                               (gtyrxn_int)
    ,.gtyrxp_in                               (gtyrxp_int)
    ,.gtytxn_out                              (gtytxn_int)

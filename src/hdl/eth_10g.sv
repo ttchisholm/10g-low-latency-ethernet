@@ -2,6 +2,7 @@
 
 module eth_10g #(
     parameter SCRAMBLER_BYPASS = 0,
+    parameter EXTERNAL_GEARBOX = 0,
     parameter real INIT_CLK_FREQ = 100.0
 ) (
     // Reset + initiliaszation
@@ -67,7 +68,7 @@ module eth_10g #(
     
     mac_pcs #(
         .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS),
-        .EXTERNAL_GEARBOX(1)
+        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
     ) u_mac_pcs (
         .i_tx_reset(mac_pcs_tx_reset),
         .i_rx_reset(mac_pcs_rx_reset),
@@ -94,9 +95,9 @@ module eth_10g #(
     );
 
 
-
     gtwizard_wrapper #( 
-        .INIT_CLK_FREQ(INIT_CLK_FREQ)
+        .INIT_CLK_FREQ(INIT_CLK_FREQ),
+        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
     ) u_gtwizard_wrapper (
 
         // Differential reference clock inputs
@@ -132,7 +133,5 @@ module eth_10g #(
         .tx_ready(gtwiz_tx_ready),
         .rx_ready(gtwiz_rx_ready)
     );
-
-
 
 endmodule

@@ -116,6 +116,7 @@ module example_10g_eth (
     // Eth Core
     eth_10g #(
         .SCRAMBLER_BYPASS(0),
+        .EXTERNAL_GEARBOX(0),
         .INIT_CLK_FREQ(100.0)
     ) u_eth_10g (
         .reset(core_reset),

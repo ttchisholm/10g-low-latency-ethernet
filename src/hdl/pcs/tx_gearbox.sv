@@ -13,7 +13,8 @@ module tx_gearbox #(
     input wire [HEADER_WIDTH-1:0] i_header,
     input wire [SEQUENCE_WIDTH-1:0] i_gearbox_seq, 
     input wire i_pause,
-    output wire [DATA_WIDTH-1:0] o_data
+    output wire [DATA_WIDTH-1:0] o_data,
+    output wire o_frame_word
 );
 
     localparam BUF_SIZE = 2*DATA_WIDTH + HEADER_WIDTH;
@@ -23,7 +24,7 @@ module tx_gearbox #(
     logic [2*DATA_WIDTH + HEADER_WIDTH -1:0] obuf, next_obuf;
 
     assign load_header = !i_gearbox_seq[0]; // Load header on even cycles
-    assign frame_word =  i_gearbox_seq[0]; // Load bottom word on even cycles (with header), top on odd
+    assign o_frame_word =  i_gearbox_seq[0]; // Load bottom word on even cycles (with header), top on odd
     assign o_data = next_obuf[0 +: DATA_WIDTH];
 
     wire [SEQUENCE_WIDTH:0] header_idx;
@@ -51,7 +52,7 @@ module tx_gearbox #(
                 end 
 
                 if (gi >= data_idx && gi < data_idx + DATA_WIDTH) begin
-                    next_obuf[gi] = frame_word ? i_data[gi-data_idx] : i_data[gi-data_idx];
+                    next_obuf[gi] = o_frame_word ? i_data[gi-data_idx] : i_data[gi-data_idx];
                 end
             end
             

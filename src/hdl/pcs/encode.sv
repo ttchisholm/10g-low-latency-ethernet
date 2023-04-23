@@ -16,6 +16,7 @@ module encode_6466b #(
 
     // Input from gearbox
     input wire i_tx_pause, 
+    input wire i_frame_word,
 
     // TX Interface out
     output wire [DATA_WIDTH-1:0] o_txd,
@@ -37,7 +38,6 @@ module encode_6466b #(
     logic [3:0] delayed_i_txctl;
     logic [63:0] delayed_int_otxd;
     logic [1:0] delayed_header;
-    logic tick;
 
     always @(posedge i_txc) begin
         if(i_reset) begin
@@ -45,14 +45,12 @@ module encode_6466b #(
             delayed_i_txctl <= '0;
             delayed_int_otxd <= '0;
             delayed_header <= '0;
-            tick <= '0;
         end else begin
             if(!i_tx_pause) begin
                 delayed_i_txd <= i_txd;
                 delayed_i_txctl <= i_txctl;
-                tick <= ~tick;
                 
-                if (tick) begin
+                if (!i_frame_word) begin
                     delayed_int_otxd <= internal_otxd;
                     delayed_header <= internal_header;
                 end
@@ -63,8 +61,8 @@ module encode_6466b #(
     assign internal_txd = {i_txd, delayed_i_txd};
     assign internal_txctl = {i_txctl, delayed_i_txctl};
 
-    assign o_tx_header = !tick ? delayed_header : internal_header;
-    assign o_txd = !tick ? delayed_int_otxd[32 +: 32] : internal_otxd[0 +: 32];
+    assign o_tx_header = i_frame_word ? delayed_header : internal_header;
+    assign o_txd = i_frame_word ? delayed_int_otxd[32 +: 32] : internal_otxd[0 +: 32];
 
 
     // Tx encoding

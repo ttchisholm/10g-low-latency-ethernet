@@ -49,6 +49,7 @@ module pcs #(
     wire [DATA_WIDTH-1:0] rx_decoded_data;
     wire [DATA_NBYTES-1:0] rx_decoded_ctl;
     wire rx_data_valid, rx_header_valid;
+    wire enc_frame_word;
 
     // Encoder
     encode_6466b u_encoder (
@@ -58,6 +59,7 @@ module pcs #(
         .i_txd(xgmii_tx_data),
         .i_txctl(xgmii_tx_ctl),
         .i_tx_pause(tx_gearbox_pause),
+        .i_frame_word(enc_frame_word),
         .o_txd(tx_encoded_data),
         .o_tx_header(tx_header)
     );
@@ -103,6 +105,8 @@ module pcs #(
                 .count(xver_tx_gearbox_sequence),
                 .pause(tx_gearbox_pause)
             );
+            
+            assign enc_frame_word = xver_tx_gearbox_sequence[0];
 
         end else begin
 
@@ -124,6 +128,7 @@ module pcs #(
                 .i_header(tx_header),
                 .i_gearbox_seq(int_tx_gearbox_seq), 
                 .i_pause(tx_gearbox_pause),
+                .o_frame_word(enc_frame_word),
                 .o_data(xver_tx_data)
             );
 
@@ -153,7 +158,8 @@ module pcs #(
             wire [5:0] int_rx_gearbox_seq;
             wire rx_gearbox_pause;
 
-            rx_gearbox u_rx_gearbox (
+            rx_gearbox #(.REGISTER_OUTPUT(1)) 
+            u_rx_gearbox (
                 .i_clk(xver_rx_clk),
                 .i_reset(tx_reset),
                 .i_data(xver_rx_data),

@@ -1,5 +1,5 @@
 debug: False
 print_axis: False
 seed: 0
-startup_pause: 1000
+startup_pause: 5000
 tx_seq_length: 100

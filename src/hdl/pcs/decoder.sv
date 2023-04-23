@@ -38,9 +38,10 @@ module decode_6466b #(
     logic [31:0] delayed_i_rxd;
     logic [63:0] delayed_int_orxd;
     logic [7:0] delayed_int_rxctl;
-    wire input_tick = i_rx_header_valid  && i_rx_data_valid;
+    wire output_decode_frame;
     wire frame_valid;
 
+    assign output_decode_frame = !i_rx_header_valid  && i_rx_data_valid; // When header invalid - we have second word
     assign frame_valid = decoded_frame.frame_valid;
 
     always @(posedge i_rxc) begin
@@ -52,7 +53,7 @@ module decode_6466b #(
             if(i_rx_data_valid) begin
                 delayed_i_rxd <= i_rxd;
 
-                if (input_tick) begin // Header is invalid on second part of frame
+                if (output_decode_frame) begin // Header is invalid on second part of frame
                     delayed_int_orxd <= decoded_frame.odata;
                     delayed_int_rxctl <= decoded_frame.octl;
                 end
@@ -64,8 +65,8 @@ module decode_6466b #(
 
     assign internal_rxd = {i_rxd, delayed_i_rxd};
 
-    assign o_rxctl = !input_tick ? delayed_int_rxctl[4 +: 4] : decoded_frame.octl[0 +: 4];
-    assign o_rxd = !input_tick ? delayed_int_orxd[32 +: 32] : decoded_frame.odata[0 +: 32];
+    assign o_rxctl = !output_decode_frame ? delayed_int_rxctl[4 +: 4] : decoded_frame.octl[0 +: 4];
+    assign o_rxd = !output_decode_frame ? delayed_int_orxd[32 +: 32] : decoded_frame.odata[0 +: 32];
 
 
 

@@ -124,6 +124,28 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
 
         await self.reset()
         cocotb.start_soon(self.loopback())
+
+        # manual slip for idles - debugging w/out scrambler
+        # conseq = 0
+        # for i in range(20000):
+
+        #     if self.dut.xgmii_rx_data.value == int('0x07070707', 16) and \
+        #         self.dut.u_pcs.genblk3.u_rx_gearbox.o_header.value != 0:
+        #         conseq += 1
+        #     else:
+        #         conseq = 0
+             
+        #     if conseq > 40:
+        #         print('aligned')
+        #         break
+
+        #     if i % 87 == 0:
+        #         self.dut.u_pcs.rx_gearbox_slip.value = 1
+        #     else:
+        #         self.dut.u_pcs.rx_gearbox_slip.value = 0
+        #     await RisingEdge(self.dut.xver_rx_clk)
+
+
         cocotb.start_soon(self.driver_bfm())
         cocotb.start_soon(self.tx_monitor_bfm())
         cocotb.start_soon(self.rx_monitor_bfm())

@@ -108,8 +108,6 @@ async def rx_gearbox_test_slip(dut):
         # Generate random data
         gen_idata = [np.random.randint(0,2,32) for _ in range(1000)]
 
-        n_slips = 1
-
         # Create ref model
         model = RxGearboxModel()
 
@@ -117,7 +115,7 @@ async def rx_gearbox_test_slip(dut):
 
         for i, id in enumerate(gen_idata):
 
-            slip = i < n_slips and np.random.randint(0,10) == 0
+            slip = i < n_slips and np.random.randint(0,20) == 0
 
             for i in range(len(id)):
                 tb.dut.i_data[i].value = int(id[i])
@@ -148,17 +146,17 @@ async def rx_gearbox_test_slip(dut):
                         model_odata_valid == dut_odata_valid and \
                         model_oheader_valid == dut_oheader_valid
 
-            if not all_eq:
-                print('dut data:    ', dut_odata_valid, dut_odata)
-                print('model data:  ', model_odata_valid, model_odata)
-                print('dut header:  ', dut_oheader_valid, dut_oheader)
-                print('model header:', model_oheader_valid, model_oheader)
-                print('dut buf:  ',  dut_obuf)
-                print('model buf:',  model_obuf)
-                print('dut cycle: ', tb.dut.gearbox_seq.value)
-                print('model cycle: ', ret['cycle'])
-                print('input data:  ', str(tb.dut.i_data.value)[::-1])
-                assert all_eq
+            # if not all_eq:
+            print('dut data:    ', dut_odata_valid, dut_odata)
+            print('model data:  ', model_odata_valid, model_odata)
+            print('dut header:  ', dut_oheader_valid, dut_oheader)
+            print('model header:', model_oheader_valid, model_oheader)
+            print('dut buf:  ',  dut_obuf)
+            print('model buf:',  model_obuf)
+            print('dut cycle: ', tb.dut.gearbox_seq.value)
+            print('model cycle: ', ret['cycle'])
+            print('input data:  ', str(tb.dut.i_data.value)[::-1])
+            assert all_eq
     
 
         

@@ -3,3 +3,5 @@ msim/*
 *.log
 doc/
 notes
+.sv*.toml
+.vscode/

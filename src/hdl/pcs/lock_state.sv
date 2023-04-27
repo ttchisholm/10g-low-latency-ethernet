@@ -1,3 +1,6 @@
+`timescale 1ns/1ps
+`default_nettype none
+
 module lock_state(
     input wire i_clk,
     input wire i_reset,

@@ -1,3 +1,6 @@
+`timescale 1ns/1ps
+`default_nettype none
+
 module gearbox_seq #(
     parameter WIDTH = 6,
     parameter MAX_VAL = 32,

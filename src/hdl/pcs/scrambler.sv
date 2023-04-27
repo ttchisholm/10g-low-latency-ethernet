@@ -1,3 +1,6 @@
+`timescale 1ns/1ps
+`default_nettype none
+
 module scrambler #(
     localparam DATA_WIDTH = 32,
     parameter DESCRAMBLE = 0

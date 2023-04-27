@@ -1,3 +1,6 @@
+`timescale 1ns/1ps
+`default_nettype none
+
 module descrambler (
     input wire i_reset,
     input wire i_init_done,

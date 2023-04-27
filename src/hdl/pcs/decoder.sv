@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 `include "code_defs_pkg.svh"
 `default_nettype none
 

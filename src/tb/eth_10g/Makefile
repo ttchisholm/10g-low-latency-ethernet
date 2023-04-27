@@ -35,7 +35,7 @@ MODULE = test_eth10g
 
 # module parameters
 export SCRAMBLER_BYPASS ?= 0
-export EXTERNAL_GEARBOX ?= 1
+export EXTERNAL_GEARBOX ?= 0
 export DATA_WIDTH ?= 32
 
 ifeq ($(SIM), icarus)

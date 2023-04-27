@@ -94,6 +94,8 @@ module pcs #(
     generate
         if (EXTERNAL_GEARBOX != 0) begin
 
+            logic [5:0] prev_tx_seq;
+
             assign xver_tx_data = tx_scrambled_data;
             assign xver_tx_header = tx_header;
 
@@ -108,7 +110,15 @@ module pcs #(
                 .pause(tx_gearbox_pause)
             );
             
-            assign enc_frame_word = xver_tx_gearbox_sequence[0];
+            // Encode top word on second cycle of sequence
+            assign enc_frame_word = xver_tx_gearbox_sequence == prev_tx_seq;
+
+            always @(posedge xver_tx_clk)
+            if (tx_reset) begin
+                prev_tx_seq <= '0;
+            end else begin
+                prev_tx_seq <= xver_tx_gearbox_sequence;
+            end
 
         end else begin
 

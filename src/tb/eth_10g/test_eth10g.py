@@ -94,12 +94,18 @@ class Scoreboard(uvm_component):
         self.rx_frame_port.connect(self.rx_frame_fifo.get_export)
 
     def check_phase(self):
+
+        had_frame = False
+
         while self.rx_frame_port.can_get():
             _, rx_frame = self.rx_frame_port.try_get()
             tx_success, tx_frame = self.tx_frame_port.try_get()
+            
+            had_frame = True
 
             if not tx_success:
                 self.logger.critical(f'tx_frame {tx_frame} error')
+                assert tx_success
             else:
 
                 if len(tx_frame.tdata) < 64:
@@ -107,10 +113,6 @@ class Scoreboard(uvm_component):
                                 all([x == 0 for x in rx_frame.tdata[len(tx_frame.tdata):-4]])
                 else:
                     data_eq = rx_frame.tdata[:-4] == tx_frame.tdata
-
-                
-
-              
 
                 try:
                     iter(rx_frame.tuser)
@@ -131,6 +133,9 @@ class Scoreboard(uvm_component):
                     self.logger.info(f"PASSED: {rx_frame}, {tx_frame}")
 
                 assert data_eq and rx_crc_valid
+
+        if not had_frame: self.logger.critical(f"Didn't recieve any frames")
+        assert had_frame
 
 
 

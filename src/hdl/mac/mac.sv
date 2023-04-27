@@ -40,16 +40,7 @@ module mac #(
 );
 
     import code_defs_pkg::*;
-
-    // generate if (DATA_WIDTH != 32 && DATA_WIDTH != 64)
-    //     $error("Only 32-bit and 64-bit interface mode supported\n");
-    // endgenerate
     
-
-    localparam MIN_PAYLOAD_SIZE = 46;
-    localparam IPG_SIZE = 12;
-
-
     wire [DATA_WIDTH-1:0] phy_tx_data;
     wire [DATA_NBYTES-1:0] phy_tx_ctl;
 

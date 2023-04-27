@@ -208,7 +208,6 @@ module pcs #(
     decoder #(
     ) u_decoder(
         .i_reset(rx_reset),
-        .i_init_done(!rx_reset),
         .i_rxc(xver_rx_clk),
         .i_rxd(rx_descrambled_data),
         .i_rx_header(rx_header),

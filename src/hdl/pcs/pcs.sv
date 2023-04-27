@@ -92,7 +92,7 @@ module pcs #(
 
     // Gearbox
     generate
-        if (EXTERNAL_GEARBOX) begin
+        if (EXTERNAL_GEARBOX != 0) begin
 
             assign xver_tx_data = tx_scrambled_data;
             assign xver_tx_header = tx_header;
@@ -148,7 +148,7 @@ module pcs #(
     wire rx_gearbox_slip;
 
     generate
-        if (EXTERNAL_GEARBOX) begin
+        if (EXTERNAL_GEARBOX != 0) begin
 
             assign xver_rx_gearbox_slip = rx_gearbox_slip;
             assign rx_gearbox_data_out = xver_rx_data;

@@ -1,7 +1,7 @@
 # Makefile
 
 # defaults
-SIM ?= icarus
+SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
 WAVES ?= 1
 
@@ -43,14 +43,20 @@ ifeq ($(SIM), icarus)
 
 	COMPILE_ARGS += -P $(TOPLEVEL).SCRAMBLER_BYPASS=$(SCRAMBLER_BYPASS)
 	COMPILE_ARGS += -P $(TOPLEVEL).EXTERNAL_GEARBOX=$(EXTERNAL_GEARBOX)
-	COMPILE_ARGS += -P $(TOPLEVEL).DATA_WIDTH=$(DATA_WIDTH)
 	COMPILE_ARGS += -I $(PWD)/../../hdl/include
 
 	ifeq ($(WAVES), 1)
 		VERILOG_SOURCES += iverilog_dump.v
 		COMPILE_ARGS += -s iverilog_dump
 	endif
+else ifeq ($(SIM), verilator)
+	COMPILE_ARGS += -GSCRAMBLER_BYPASS=$(SCRAMBLER_BYPASS)
+	COMPILE_ARGS += -GEXTERNAL_GEARBOX=$(EXTERNAL_GEARBOX)
+	COMPILE_ARGS += -I$(PWD)/../../hdl/include
 
+	ifeq ($(WAVES), 1)
+		COMPILE_ARGS += --trace-fst --trace-structs
+	endif 
 endif
 
 # include cocotb's make rules to take care of the simulator setup

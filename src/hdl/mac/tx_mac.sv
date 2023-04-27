@@ -107,14 +107,14 @@ module tx_mac #(
     genvar gi;
     generate for (gi = 0; gi < INPUT_PIPELINE_LENGTH; gi++) begin
         if (gi == 0) begin // Pipeline start
-            always @(posedge clk)
-            if (reset) begin
-                input_del.tdata[gi] <= {DATA_WIDTH{1'b0}};
-                input_del.tlast[gi] <= 1'b0;
-                input_del.tvalid[gi] <= 1'b0;
-                input_del.tkeep[gi] <= {DATA_NBYTES{1'b0}};
-                input_del.data_counter[gi] <= '0;
-            end else begin
+        always @(posedge clk)
+        if (reset) begin
+            input_del.tdata[gi] <= {DATA_WIDTH{1'b0}};
+            input_del.tlast[gi] <= 1'b0;
+            input_del.tvalid[gi] <= 1'b0;
+            input_del.tkeep[gi] <= {DATA_NBYTES{1'b0}};
+            input_del.data_counter[gi] <= '0;
+        end else begin
                 if (phy_tx_ready) begin
                     input_del.tdata[gi] <= s00_axis_tready ? s00_axis_tdata : 32'b0; // If phy_tx_ready but !s00_axis_tready, we're padding
                     input_del.tlast[gi] <= s00_axis_tlast;
@@ -224,8 +224,8 @@ module tx_mac #(
                     // 1 TERM cycle for 64-bit, 2 for 32-bit
                     tx_next_state = bit'(term_counter == 3) ? IPG :
                                                                                   TERM;
-                    xgmii_tx_data = tx_term_data_rest[term_counter];
-                    xgmii_tx_ctl = tx_term_ctl_rest[term_counter];
+                    xgmii_tx_data = tx_term_data_rest[term_counter-1];
+                    xgmii_tx_ctl = tx_term_ctl_rest[term_counter-1];
                     next_data_counter = 0;
                 end
                 IPG: begin
@@ -310,12 +310,12 @@ module tx_mac #(
 
     // Assign term cycles 1-3 (cycle 0 assigned above)
     for (gi = 1; gi < N_TERM_FRAMES; gi++) begin
-        // Save the following frames for the next cycle(s)
-        always @(posedge clk)
-        if (reset) begin
+            // Save the following frames for the next cycle(s)
+            always @(posedge clk)
+            if (reset) begin
             tx_term_data_rest[gi-1] <= {DATA_WIDTH{1'b0}};
             tx_term_ctl_rest[gi-1] <= {DATA_NBYTES{1'b0}};
-        end else if (tx_state != TERM && tx_next_state == TERM) begin
+            end else if (tx_state != TERM && tx_next_state == TERM) begin
             tx_term_data_rest[gi-1] <= tx_next_term_data_64[gi / 2][(gi % 2) * DATA_WIDTH +: DATA_WIDTH];
             tx_term_ctl_rest[gi-1] <= tx_next_term_ctl_64[gi / 2][(gi % 2) * DATA_NBYTES +: DATA_NBYTES];
         end

@@ -26,53 +26,52 @@ module encoder #(
 );
 
     import code_defs_pkg::*;
+
+    // 32-bit input to 64 bit internal
+
+    logic [31:0] delayed_itxd;
+    logic [3:0] delayed_itxctl;
+    wire [63:0] internal_itxd;
+    wire [7:0] internal_itxctl;
     
-    //*********** Transmit **********//
-
-    //32-bit input to 64 bit internal
-
-    wire [63:0] internal_txd;
-    wire [7:0] internal_txctl;
     wire [63:0] internal_otxd;
-    wire [1:0] internal_header;
-
-    logic [31:0] delayed_i_txd;
-    logic [3:0] delayed_i_txctl;
-    logic [63:0] delayed_int_otxd;
-    logic [1:0] delayed_header;
+    wire [1:0] internal_oheader;
+    // verilator lint_off UNUSED
+    // While lower word unused, useful for debugging
+    logic [63:0] delayed_internal_otxd;
+    logic [1:0] delayed_internal_header;
+    // verilator lint_on UNUSED
+    
 
     always @(posedge i_txc) begin
         if(i_reset) begin
-            delayed_i_txd <= '0;
-            delayed_i_txctl <= '0;
-            delayed_int_otxd <= '0;
-            delayed_header <= '0;
+            delayed_itxd <= '0;
+            delayed_itxctl <= '0;
+            delayed_internal_otxd <= '0;
+            delayed_internal_header <= '0;
         end else begin
             if(!i_tx_pause) begin
-                delayed_i_txd <= i_txd;
-                delayed_i_txctl <= i_txctl;
+                delayed_itxd <= i_txd;
+                delayed_itxctl <= i_txctl;
                 
                 if (!i_frame_word) begin
-                    delayed_int_otxd <= internal_otxd;
-                    delayed_header <= internal_header;
+                    delayed_internal_otxd <= internal_otxd;
+                    delayed_internal_header <= internal_oheader;
                 end
             end
         end
     end
 
-    assign internal_txd = {i_txd, delayed_i_txd};
-    assign internal_txctl = {i_txctl, delayed_i_txctl};
+    assign internal_itxd = {i_txd, delayed_itxd};
+    assign internal_itxctl = {i_txctl, delayed_itxctl};
 
-    assign o_tx_header = i_frame_word ? delayed_header : internal_header;
-    assign o_txd = i_frame_word ? delayed_int_otxd[32 +: 32] : internal_otxd[0 +: 32];
+    assign o_tx_header = i_frame_word ? delayed_internal_header : internal_oheader;
+    assign o_txd = i_frame_word ? delayed_internal_otxd[32 +: 32] : internal_otxd[0 +: 32];
 
 
     // Tx encoding
-    wire [7:0] tx_type;
     logic [63:0] enc_tx_data;
-    wire [63:0] tx_ctl_mask, tx_ctl_mask_data;
-
-    assign internal_header = (internal_txctl == '0) ? SYNC_DATA : SYNC_CTL;
+    assign internal_oheader = (internal_itxctl == '0) ? SYNC_DATA : SYNC_CTL;
 
     // Data is transmitted lsb first, first byte is in txd[7:0]
     function logic [7:0] get_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lane);
@@ -80,8 +79,8 @@ module encoder #(
         return ictl[lane] == 1'b1 ? idata[8*lane +: 8] : RS_ERROR;
     endfunction
 
-    function bit get_all_rs_code(input logic [63:0] idata, input logic [8:0] ictl, 
-                                    input bit [8:0] lanes, input logic[7:0] code);
+    function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, 
+                                    input bit [7:0] lanes, input logic[7:0] code);
         for(int i = 0; i < 8; i++) begin
             if(lanes[i] == 1)
                 if(get_rs_code(idata, ictl, i) != code) return 0;
@@ -93,63 +92,87 @@ module encoder #(
         return code == RS_OSEQ || code == RS_OSIG;
     endfunction
 
-    function bit is_all_lanes_data(input logic [63:0] ictl, input bit[3:0] lanes);
-        for(int i = 0; i < 4; i++) begin
-            if(lanes[i] == 1)
-                if (ictl[lanes[i]] == 1'b0) return 0;
+    function bit is_all_lanes_data(input logic [7:0] ictl, input bit[7:0] lanes);
+        for(int i = 0; i < 8; i++) begin
+            if(lanes[i] == 1 && ictl[i] == 1) return 0; 
         end
         return 1;
     endfunction
 
+    // Ref 802.3 49.2.4.4
     function logic [63:0] encode_frame(input logic [63:0] idata, input logic [7:0] ictl);
         if(ictl == '0) begin
             return idata;
         end else begin
-            if(get_all_rs_code(idata, ictl, 8'hFF, RS_IDLE))
-                return {{7{CC_IDLE}}, BT_IDLE};
-
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 4)) && is_all_lanes_data(ictl, 8'h07))
+            // All Control (IDLE) = CCCCCCCC
+            if(get_all_rs_code(idata, ictl, 8'hFF, RS_IDLE)) begin
+                return {{8{CC_IDLE}}, BT_IDLE};
+            end
+            // O4 = CCCCODDD
+            else if (is_rs_ocode(get_rs_code(idata, ictl, 4)) && is_all_lanes_data(ictl, 8'h07)) begin
                 return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), {4{CC_IDLE}}, BT_O4};
-
-            else if (get_all_rs_code(idata, ictl, 8'h0F, RS_IDLE) && (get_rs_code(idata, ictl, 4) == RS_START) && 
-                    is_all_lanes_data(ictl, 8'hE0))
+            end
+            // S4 = CCCCSDDD
+            else if (get_all_rs_code(idata, ictl, 8'h0F, RS_IDLE) && (get_rs_code(idata, ictl, 4) == RS_START) &&  
+                    is_all_lanes_data(ictl, 8'hE0)) begin
                 return {idata[63:40], 4'b0, {4{CC_IDLE}}, BT_S4};
-
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && get_rs_code(idata, ictl, 4) == RS_START)
+            end
+            // O0S4 = ODDDSDDD
+            else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && get_rs_code(idata, ictl, 4) == RS_START) begin
                 return {idata[63:40], 4'b0, rs_to_cc_ocode(get_rs_code(idata, ictl, 0)), idata[23:0], BT_O0S4};
-
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && is_rs_ocode(get_rs_code(idata, ictl, 4)))
+            end
+            // O0O4 = ODDDODDD
+            else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && is_rs_ocode(get_rs_code(idata, ictl, 4))) begin
                 return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), rs_to_cc_ocode(get_rs_code(idata, ictl, 0)), 
                             idata[23:0], BT_O0O4};
-
-            else if (get_rs_code(idata, ictl, 0) == RS_START)
+            end
+            // S0 = SDDDDDDD
+            else if (get_rs_code(idata, ictl, 0) == RS_START) begin
                 return {idata[63:8], BT_S0};
-
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 4)))
-                return {idata[63:35], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), idata[31:8], BT_O4};
-            
-            else if (get_rs_code(idata, ictl, 0) == RS_TERM)
+            end
+            // O0 = ODDDCCCC
+            else if (is_rs_ocode(get_rs_code(idata, ictl, 4))) begin
+                return {idata[63:36], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), idata[31:8], BT_O0};
+            end
+            // T0 = TCCCCCCC
+            else if (get_rs_code(idata, ictl, 0) == RS_TERM) begin
                 return {56'd0, BT_T0};
-            else if (get_rs_code(idata, ictl, 1) == RS_TERM)
+            end
+            // T1 = DTCCCCCC
+            else if (get_rs_code(idata, ictl, 1) == RS_TERM) begin
                 return {48'd0, idata[7:0], BT_T1};
-            else if (get_rs_code(idata, ictl, 2) == RS_TERM)
+            end
+            // T2 = DDTCCCCC
+            else if (get_rs_code(idata, ictl, 2) == RS_TERM) begin
                 return {40'd0, idata[15:0], BT_T2};
-            else if (get_rs_code(idata, ictl, 3) == RS_TERM)
+            end
+            // T3 = DDDTCCCC
+            else if (get_rs_code(idata, ictl, 3) == RS_TERM) begin
                 return {32'd0, idata[23:0], BT_T3};
-            else if (get_rs_code(idata, ictl, 4) == RS_TERM)
+            end
+            // T4 = DDDDTCCC
+            else if (get_rs_code(idata, ictl, 4) == RS_TERM) begin
                 return {24'd0, idata[31:0], BT_T4};
-            else if (get_rs_code(idata, ictl, 5) == RS_TERM)
+            end
+            // T5 = DDDDDTCC
+            else if (get_rs_code(idata, ictl, 5) == RS_TERM) begin
                 return {16'd0, idata[39:0], BT_T5};
-            else if (get_rs_code(idata, ictl, 6) == RS_TERM)
+            end
+            // T6 = DDDDDDTC
+            else if (get_rs_code(idata, ictl, 6) == RS_TERM) begin
                 return {8'd0, idata[47:0], BT_T6};
-            else if (get_rs_code(idata, ictl, 7) == RS_TERM)
-                return {idata[56:0], BT_T7};
-            else
+            end
+            // T7 = DDDDDDDT
+            else if (get_rs_code(idata, ictl, 7) == RS_TERM) begin
+                return {idata[55:0], BT_T7};
+            end
+            else begin
                 return {{7{RS_ERROR}}, BT_IDLE};
+            end
         end
     endfunction
 
-    assign enc_tx_data = encode_frame(internal_txd, internal_txctl);
+    assign enc_tx_data = encode_frame(internal_itxd, internal_itxctl);
 
     assign internal_otxd = (i_reset || !i_init_done) ? {{7{RS_ERROR}}, BT_IDLE} : enc_tx_data;
 

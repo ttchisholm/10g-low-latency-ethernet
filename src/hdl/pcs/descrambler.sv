@@ -14,7 +14,9 @@ module descrambler (
 );
 
     logic[63:0] delayed_rxd;
+    // verilator lint_off UNUSED
     wire [127:0] scrambler_data;
+    // verilator lint_on UNUSED
 
     always @(posedge i_rxc) begin
         if (i_reset || !i_init_done) begin
@@ -27,8 +29,6 @@ module descrambler (
 
     // Data here is reversed wrt. polynomial index
     assign scrambler_data = {{i_rxd}, {delayed_rxd}};
-    
-    //
     
     // Parallel scrambler
     // Polynomial is 1 + x^39 + x^58, easier to write as inverse 1 + x^19 + x^58

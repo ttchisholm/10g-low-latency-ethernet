@@ -41,7 +41,6 @@ module tx_mac #(
     // Define how many cycles to buffer input for (to allow for time to send preamble)
     localparam INPUT_PIPELINE_LENGTH = 64 / DATA_WIDTH; // Todo should be a way to save a cycle here
     localparam PIPE_END = INPUT_PIPELINE_LENGTH-1;
-    localparam START_FRAME_END = 1;
 
     // Ideally the struct would be the array - iverilog doesn't seem to support it
      typedef struct packed {
@@ -57,11 +56,13 @@ module tx_mac #(
     logic phy_tx_ready_del;
 
     // Pipeline debugging
+    // verilator lint_off UNUSED
     wire [DATA_WIDTH-1:0] dbg_data_last, dbg_data_first;
     wire dbg_last_last;
     wire dbg_valid_last;
     wire [DATA_NBYTES-1:0] dbg_keep_last, dbg_keep_first;
     wire [$clog2(MIN_FRAME_SIZE):0] dbg_count_last;
+    // verilator lint_on UNUSED
 
     assign dbg_data_last = input_del.tdata[PIPE_END];
     assign dbg_last_last = input_del.tlast[PIPE_END];
@@ -93,7 +94,7 @@ module tx_mac #(
 
     // Termination
     logic seen_last;
-    logic [2:0] term_counter;
+    logic [1:0] term_counter, term_rest_idx;
     logic [1:0][63:0] tx_next_term_data_64;
     logic [1:0][7:0] tx_next_term_ctl_64;
     logic [DATA_WIDTH-1:0] tx_term_data_first; // Term frame to output when term detected
@@ -169,7 +170,12 @@ module tx_mac #(
                      (!seen_last) ? s00_axis_tlast && s00_axis_tvalid && s00_axis_tready : seen_last;
     end
 
+    
     /**** Next State Implementation ****/
+
+    // Assign the index to the term data array - cast widths for verilator
+    assign term_rest_idx = 2'(32'(term_counter)-1); // -1 as first term frame seperate variable
+
     always @(*) begin
 
         if (!phy_tx_ready) begin
@@ -222,10 +228,9 @@ module tx_mac #(
                 end
                 TERM: begin
                     // 1 TERM cycle for 64-bit, 2 for 32-bit
-                    tx_next_state = bit'(term_counter == 3) ? IPG :
-                                                                                  TERM;
-                    xgmii_tx_data = tx_term_data_rest[term_counter-1];
-                    xgmii_tx_ctl = tx_term_ctl_rest[term_counter-1];
+                    tx_next_state = bit'(term_counter == 3) ? IPG : TERM;
+                    xgmii_tx_data = tx_term_data_rest[term_rest_idx]; 
+                    xgmii_tx_ctl = tx_term_ctl_rest[term_rest_idx];
                     next_data_counter = 0;
                 end
                 IPG: begin
@@ -256,6 +261,8 @@ module tx_mac #(
     // Construct the final 2/4 tx frames depending on number of bytes in last axis frame
     wire [DATA_WIDTH-1:0] term_data;
     assign term_data = (tx_state == PADDING) ? '0 : input_del.tdata[PIPE_END];
+    
+
     always @(*) begin
         case (tx_term_keep)
         4'b1111: begin

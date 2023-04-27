@@ -1,6 +1,6 @@
 `include "code_defs_pkg.svh"
 
-module encode_6466b #(
+module encoder #(
     localparam DATA_WIDTH = 32,
 
     localparam DATA_NBYTES = DATA_WIDTH / 8

@@ -1,4 +1,5 @@
 `default_nettype none
+`include "code_defs_pkg.svh"
 
 module pcs #(
     parameter SCRAMBLER_BYPASS = 0,
@@ -52,7 +53,7 @@ module pcs #(
     wire enc_frame_word;
 
     // Encoder
-    encode_6466b u_encoder (
+    encoder u_encoder (
         .i_reset(tx_reset),
         .i_init_done(!tx_reset),
         .i_txc(xver_tx_clk),
@@ -203,7 +204,7 @@ module pcs #(
     endgenerate
 
     // Decoder
-    decode_6466b #(
+    decoder #(
     ) u_decoder(
         .i_reset(rx_reset),
         .i_init_done(!rx_reset),

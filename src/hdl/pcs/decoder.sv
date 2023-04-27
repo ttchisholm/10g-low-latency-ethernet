@@ -1,7 +1,7 @@
 `include "code_defs_pkg.svh"
 `default_nettype none
 
-module decode_6466b #(
+module decoder #(
     localparam DATA_WIDTH = 32,
 
     localparam DATA_NBYTES = DATA_WIDTH / 8

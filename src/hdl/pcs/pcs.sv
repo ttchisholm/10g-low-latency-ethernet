@@ -74,14 +74,14 @@ module pcs #(
 
             // Delay the scrambler reset if 32-bit interface
             // TODO this only helps with tb?
-            logic scram_reset;
-            always @ (posedge xver_tx_clk)
-                scram_reset <= tx_reset;
+            // logic scram_reset;
+            // always @ (posedge xver_tx_clk)
+            //     scram_reset <= tx_reset;
 
             scrambler #(
             ) u_scrambler(
                 .clk(xver_tx_clk),
-                .reset(scram_reset),
+                .reset(tx_reset),
                 .init_done(!tx_reset),
                 .pause(tx_gearbox_pause),
                 .idata(tx_encoded_data),
@@ -157,8 +157,6 @@ module pcs #(
             assign rx_header_valid = xver_rx_header_valid;
 
         end else begin
-            wire [5:0] int_rx_gearbox_seq;
-            wire rx_gearbox_pause;
 
             rx_gearbox #(.REGISTER_OUTPUT(1)) 
             u_rx_gearbox (

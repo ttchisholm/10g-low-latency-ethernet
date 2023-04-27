@@ -2,8 +2,9 @@
 `default_nettype none
 
 module scrambler #(
-    localparam DATA_WIDTH = 32,
-    parameter DESCRAMBLE = 0
+    parameter DESCRAMBLE = 0, 
+
+    localparam DATA_WIDTH = 32
 ) (
     input wire clk,
     input wire reset,
@@ -13,8 +14,12 @@ module scrambler #(
     output wire [DATA_WIDTH-1:0] odata
 );
 
+    // verilator lint_off UNUSED
     logic[127:0] scrambler_data;
+    // verilator lint_on UNUSED
+
     logic [127:0] next_scrambler_data;
+    logic [95:0] next_scrambler_data_split;
 
     always @(posedge clk) begin
         if (reset || !init_done) begin
@@ -26,8 +31,13 @@ module scrambler #(
     end
 
     // Data here is reversed wrt. polynomial index
-    assign next_scrambler_data = DESCRAMBLE ? {{idata}, {scrambler_data[DATA_WIDTH +: 128 - DATA_WIDTH]}} :
-                                              {{odata}, {scrambler_data[DATA_WIDTH +: 128 - DATA_WIDTH]}};
+    // We need to split the scrambler data to avoid circular comb (verilator)
+    // Shift the scrambler data down by DATA_WIDTH
+    assign next_scrambler_data_split = {scrambler_data[DATA_WIDTH +: 128 - DATA_WIDTH]};
+
+    // If descrambling, shift in input data, else scrambler output
+    assign next_scrambler_data = DESCRAMBLE ? {idata, next_scrambler_data_split} : 
+                                              {odata, next_scrambler_data_split};
 
     // Parallel scrambler
     // Polynomial is 1 + x^39 + x^58, easier to write as inverse 1 + x^19 + x^58
@@ -44,7 +54,7 @@ module scrambler #(
     genvar gi;
     generate;
         for (gi = 0; gi < DATA_WIDTH; gi++) begin
-            assign odata[gi] = next_scrambler_data[(64-DATA_WIDTH) + 6+gi] ^ next_scrambler_data[(64-DATA_WIDTH) + 25+gi] ^ idata[gi];
+            assign odata[gi] = next_scrambler_data_split[(64-DATA_WIDTH) + 6+gi] ^ next_scrambler_data_split[(64-DATA_WIDTH) + 25+gi] ^ idata[gi];
         end
     endgenerate
     

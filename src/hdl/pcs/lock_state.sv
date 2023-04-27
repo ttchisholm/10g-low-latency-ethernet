@@ -14,7 +14,9 @@ module lock_state(
         VALID_SH, INVALID_SH, GOOD_64, SLIP, X='x, Z='z} lock_state_t;
 
     lock_state_t state, next_state;
+    // verilator lint_off UNUSED
     logic rx_block_lock, test_sh, slip_done;
+    // verilator lint_on UNUSED
     logic [15:0] sh_cnt, sh_invalid_cnt;
     wire sh_valid;
 
@@ -53,12 +55,6 @@ module lock_state(
                 // next_state = sh_cnt == 64 && sh_invalid_cnt == 0 ? GOOD_64 : 
                 //              sh_cnt == 64 && sh_invalid_cnt != 0 ? RESET_CNT :
                 //              sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
-
-                // if (sh_cnt == 15'd10) begin
-                //     next_state = SLIP;
-                // end else begin
-                //     next_state = VALID_SH;
-                // end
 
                 if (!i_valid) begin
                     next_state = VALID_SH;

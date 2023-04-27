@@ -48,14 +48,11 @@ module rx_mac #(
     wire ctl_found;
     wire data_invalid;
 
-    // Masked data out
-    wire [DATA_WIDTH-1:0] masked_data;
-
     // CRC
-    logic [31:0] rx_calc_crc, rx_crc_del, term_crc, frame_crc, prev_frame_crc;
-    logic [DATA_NBYTES-1:0] rx_crc_input_valid, rx_crc_input_valid_del;
+    logic [31:0] rx_calc_crc;
+    logic [DATA_NBYTES-1:0] rx_crc_input_valid_del;
     wire  rx_crc_reset;
-    logic [DATA_WIDTH-1:0] rx_crc_input, rx_crc_input_del;
+    logic [DATA_WIDTH-1:0] rx_crc_input_del;
     logic [31:0] rx_captured_crc;
 
 
@@ -145,11 +142,6 @@ module rx_mac #(
     genvar gi;
     generate for (gi = 0; gi < DATA_NBYTES; gi++) begin
         assign term_keep[gi] = (1 << gi) < term_loc ? 1'b1 : 1'b0;
-    end endgenerate
-
-    // Masked data
-    generate for (gi = 0; gi < DATA_NBYTES; gi++) begin
-        assign masked_data[gi*8 +: 8] = m00_axis_tkeep[gi] ? xgmii_rxd[gi*8 +: 8] : 8'h00;
     end endgenerate
 
     // CRC

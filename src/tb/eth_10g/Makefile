@@ -19,7 +19,6 @@ VERILOG_SOURCES += $(PWD)/../../hdl/pcs/scrambler.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/tx_mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/rx_mac.sv
-VERILOG_SOURCES += $(PWD)/../../hdl/mac/crc32.sv
 
 VERILOG_SOURCES += $(PWD)/../../hdl/mac_pcs.sv
 

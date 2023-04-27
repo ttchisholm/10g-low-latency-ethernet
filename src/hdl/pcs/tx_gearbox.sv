@@ -22,31 +22,40 @@ module tx_gearbox #(
     localparam BUF_SIZE = 2*DATA_WIDTH + HEADER_WIDTH;
 
     // Re-use the gearbox sequnce counter method as used in gty
-    wire load_header, frame_word;
-    logic [2*DATA_WIDTH + HEADER_WIDTH -1:0] obuf, next_obuf;
+    wire load_header;
+    logic [2*DATA_WIDTH + HEADER_WIDTH -1:0] obuf, next_obuf, shifted_obuf;
 
     assign load_header = !i_gearbox_seq[0]; // Load header on even cycles
     assign o_frame_word =  i_gearbox_seq[0]; // Load bottom word on even cycles (with header), top on odd
     assign o_data = next_obuf[0 +: DATA_WIDTH];
 
-    wire [SEQUENCE_WIDTH:0] header_idx;
-    wire [SEQUENCE_WIDTH:0] data_idx;
+    wire [SEQUENCE_WIDTH-1:0] header_idx;
+    wire [SEQUENCE_WIDTH-1:0] data_idx;
 
     assign header_idx = i_gearbox_seq; // Location to load H0
     assign data_idx = load_header ? i_gearbox_seq + 2 : i_gearbox_seq + 1; // Location to load D0 or D32
 
+    assign shifted_obuf = {{DATA_WIDTH{1'b0}}, obuf[DATA_WIDTH +: BUF_SIZE-DATA_WIDTH]};
+
     // Need to assign single bits as iverilog does not support variable width assignments
-    genvar gi;
     generate for (genvar gi = 0; gi < BUF_SIZE; gi++) begin
+
+        // Next bit can come from three sources:
+        //      1. New data (header and data word or just data word)
+        //      2. Data previously in the buffer shifted down
+        //      3. Existing data at that index
+        //  The data source depends on the bit in the buffer and current 
+        //  sequence value (which informs header_idx and data_idx).
+        
         always @(*) begin
 
-            next_obuf[gi] = obuf[gi];
+            next_obuf[gi] = obuf[gi]; // Source 3
 
-            if (gi < DATA_WIDTH) begin
-                next_obuf[gi] = obuf[gi+DATA_WIDTH];
+            if (gi < DATA_WIDTH) begin // Source 2
+                next_obuf[gi] = shifted_obuf[gi];
             end
 
-            if (!i_pause) begin
+            if (!i_pause) begin // Source 1
                 if (load_header) begin
                     if (gi >= header_idx && gi < header_idx + 2) begin
                         next_obuf[gi] = i_header[gi-header_idx];

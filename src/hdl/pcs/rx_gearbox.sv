@@ -19,15 +19,12 @@ module rx_gearbox #(
     output logic o_header_valid
 );
 
-    localparam BUF_SIZE = 2*DATA_WIDTH + HEADER_WIDTH;
-
-
+    localparam BUF_SIZE = 2*DATA_WIDTH + HEADER_WIDTH + 1; // Extra bit at top of buffer to allow for single bit slip
 
     // Create the sequence counter - 0 to 32
-    logic [SEQUENCE_WIDTH:0] gearbox_seq;
+    logic [SEQUENCE_WIDTH-1:0] gearbox_seq;
 
     logic half_slip;
-    wire tick_out;
 
     always @(posedge i_clk)
     if (i_reset) begin
@@ -45,7 +42,7 @@ module rx_gearbox #(
 
 
     // Re-use the gearbox sequnce counter method as used in gty - this time counting every clock
-    logic [BUF_SIZE:0] obuf, next_obuf; // Extra bit at top of buffer to allow for single bit slip
+    logic [BUF_SIZE-1:0] obuf, next_obuf; 
     wire frame_word;
     logic [6:0] data_idxs[33]; // For each counter value, the start buffer index to load the data 
     
@@ -55,38 +52,36 @@ module rx_gearbox #(
     assign data_idx = data_idxs[gearbox_seq];
 
     // Need to assign single bits as iverilog does not support variable width assignments
-    genvar gi;
     generate for (genvar gi = 0; gi < BUF_SIZE; gi++) begin
 
         always @(*) begin
 
             next_obuf[gi] = obuf[gi];
 
-            if (frame_word) begin
-                if (gearbox_seq != 0 && gi >= data_idx) begin
-                    next_obuf[gi] = i_data[gi - data_idx];
-                end else if (gi < DATA_WIDTH - gearbox_seq) begin
-                    next_obuf[gi] = i_data[gi + gearbox_seq];
-                end
-            
+            if (gi == BUF_SIZE - 1) begin
+                next_obuf[gi] = next_obuf[0]; // Mirror top/bottom bits to allow for half sequence slip
             end else begin
-                if (gi >= data_idx && gi < data_idx + 32) begin
-                    next_obuf[gi] = i_data[gi - data_idx];
+                if (frame_word) begin
+                    if (gearbox_seq != 0 && gi >= data_idx) begin
+                        next_obuf[gi] = i_data[gi - data_idx];
+                    end else if (gi < DATA_WIDTH - gearbox_seq) begin
+                        next_obuf[gi] = i_data[gi + gearbox_seq];
+                    end
+                
+                end else begin
+                    if (gi >= data_idx && gi < data_idx + 32) begin
+                        next_obuf[gi] = i_data[gi - data_idx];
+                    end
                 end
-            end
+            end 
+
         end
             
-
-        
     end endgenerate
-
-    always @(*) begin
-        next_obuf[66] = next_obuf[0];
-    end
 
     always @(posedge i_clk)
     if (i_reset) begin
-        obuf <= 1'b0;        
+        obuf <= '0;        
     end else begin
         obuf <= next_obuf;
     end

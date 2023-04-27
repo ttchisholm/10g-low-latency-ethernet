@@ -4,3 +4,4 @@ sim_build
 *.vcd
 *.xml
 iverilog_dump.v
+crc_tables.mem

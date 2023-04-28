@@ -1,19 +1,51 @@
+// MIT License
+
+// Copyright (c) 2023 Tom Chisholm
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+/*
+*   Module: eth_10g
+*
+*   Description: Top-level low-latency 10G Ethernet Core. Includes MAC, PCS and Xilinx
+*                GTY instantiation.
+*
+*/
+
 `timescale 1ns/1ps
 `default_nettype none
 
 module eth_10g #(
-    parameter SCRAMBLER_BYPASS = 0,
-    parameter EXTERNAL_GEARBOX = 0,
+    parameter bit SCRAMBLER_BYPASS = 0,
+    parameter bit EXTERNAL_GEARBOX = 0,
     parameter real INIT_CLK_FREQ = 100.0
 ) (
     // Reset + initiliaszation
-    input wire reset,
-    input wire init_clk,
+    input wire i_reset,
+    input wire i_init_clk,
 
     // Differential reference clock inputs
-    input wire mgtrefclk0_x0y3_p,
-    input wire mgtrefclk0_x0y3_n,
+    input wire i_mgtrefclk0_x0y3_p,
+    input wire i_mgtrefclk0_x0y3_n,
 
+    /* svlint off prefix_input */
+    /* svlint off prefix_output */
     // Tx AXIS
     output wire s00_axis_aclk,
     input wire [31:0] s00_axis_tdata,
@@ -29,24 +61,26 @@ module eth_10g #(
     output logic m00_axis_tvalid,
     output logic m00_axis_tlast,
     output logic m00_axis_tuser,
+    /* svlint on prefix_input */
+    /* svlint on prefix_output */
 
     // Serial data ports for transceiver channel 0
-    input  wire ch0_gtyrxn_in,
-    input  wire ch0_gtyrxp_in,
-    output wire ch0_gtytxn_out,
-    output wire ch0_gtytxp_out,
+    input  wire i_ch0_gtyrxn_in,
+    input  wire i_ch0_gtyrxp_in,
+    output wire o_ch0_gtytxn_out,
+    output wire o_ch0_gtytxp_out,
 
-    // Output tx/rx mac/pcs reset ports
-    output wire mac_pcs_tx_reset,
-    output wire mac_pcs_rx_reset
+    // Output tx/rx mac/pcs i_reset ports
+    output wire o_mac_pcs_tx_reset,
+    output wire o_mac_pcs_rx_reset
 );
 
-    // MAC/PCS reset
+    // MAC/PCS i_reset
     wire gtwiz_tx_ready;
     wire gtwiz_rx_ready;
-    
-    assign mac_pcs_tx_reset = !gtwiz_tx_ready;
-    assign mac_pcs_rx_reset = !gtwiz_rx_ready;
+
+    assign o_mac_pcs_tx_reset = !gtwiz_tx_ready;
+    assign o_mac_pcs_rx_reset = !gtwiz_rx_ready;
 
     // Datapath
     wire [31:0] pcs_xver_tx_data;
@@ -66,13 +100,13 @@ module eth_10g #(
 
     assign m00_axis_aclk = gtwiz_rx_usrclk2;
     assign s00_axis_aclk = gtwiz_tx_usrclk2;
-    
+
     mac_pcs #(
         .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS),
         .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
     ) u_mac_pcs (
-        .i_tx_reset(mac_pcs_tx_reset),
-        .i_rx_reset(mac_pcs_rx_reset),
+        .i_tx_reset(o_mac_pcs_tx_reset),
+        .i_rx_reset(o_mac_pcs_rx_reset),
         .s00_axis_tdata(s00_axis_tdata),
         .s00_axis_tkeep(s00_axis_tkeep),
         .s00_axis_tvalid(s00_axis_tvalid),
@@ -96,24 +130,24 @@ module eth_10g #(
     );
 
 
-    gtwizard_wrapper #( 
+    gtwizard_wrapper #(
         .INIT_CLK_FREQ(INIT_CLK_FREQ),
         .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
     ) u_gtwizard_wrapper (
 
         // Differential reference clock inputs
-        .mgtrefclk0_x0y3_p(mgtrefclk0_x0y3_p),
-        .mgtrefclk0_x0y3_n(mgtrefclk0_x0y3_n),
+        .mgtrefclk0_x0y3_p(i_mgtrefclk0_x0y3_p),
+        .mgtrefclk0_x0y3_n(i_mgtrefclk0_x0y3_n),
 
         // Serial data ports for transceiver channel 0
-        .ch0_gtyrxn_in(ch0_gtyrxn_in),
-        .ch0_gtyrxp_in(ch0_gtyrxp_in),
-        .ch0_gtytxn_out(ch0_gtytxn_out),
-        .ch0_gtytxp_out(ch0_gtytxp_out),
+        .ch0_gtyrxn_in(i_ch0_gtyrxn_in),
+        .ch0_gtyrxp_in(i_ch0_gtyrxp_in),
+        .ch0_gtytxn_out(o_ch0_gtytxn_out),
+        .ch0_gtytxp_out(o_ch0_gtytxp_out),
 
-        // User-provided ports for reset helper block(s)
-        .hb_gtwiz_reset_clk_freerun_in(init_clk),
-        .hb_gtwiz_reset_all_in(reset),
+        // User-provided ports for i_reset helper block(s)
+        .hb_gtwiz_reset_clk_freerun_in(i_init_clk),
+        .hb_gtwiz_reset_all_in(i_reset),
 
         // User data ports
         .hb0_gtwiz_userdata_tx_int(pcs_xver_tx_data),

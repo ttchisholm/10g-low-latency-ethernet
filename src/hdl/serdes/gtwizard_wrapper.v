@@ -59,7 +59,7 @@
 
 module gtwizard_wrapper #( 
     parameter real INIT_CLK_FREQ = 100.0,
-    parameter EXTERNAL_GEARBOX = 1
+    parameter bit EXTERNAL_GEARBOX = 1
 ) (
 
   // Differential reference clock inputs

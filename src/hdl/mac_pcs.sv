@@ -11,6 +11,8 @@ module mac_pcs #(
     input wire i_tx_reset,
     input wire i_rx_reset,
 
+    /* svlint off prefix_input */
+    /* svlint off prefix_output */
     // Tx AXIS
     input wire [DATA_WIDTH-1:0] s00_axis_tdata,
     input wire [DATA_NBYTES-1:0] s00_axis_tkeep,
@@ -24,6 +26,8 @@ module mac_pcs #(
     output logic m00_axis_tvalid,
     output logic m00_axis_tlast,
     output logic m00_axis_tuser,
+    /* svlint on prefix_input */
+    /* svlint on prefix_output */
 
     // Rx XVER
     input wire xver_rx_clk,
@@ -46,15 +50,14 @@ module mac_pcs #(
     wire [DATA_NBYTES-1:0] term_loc;
 
     mac u_mac (
-        
-        .tx_reset(i_tx_reset),
-        .rx_reset(i_rx_reset),
+        .i_tx_reset(i_tx_reset),
+        .i_rx_reset(i_rx_reset),
 
         // Tx PHY
-        .tx_clk(xver_tx_clk),
-        .xgmii_tx_data(xgmii_tx_data),
-        .xgmii_tx_ctl(xgmii_tx_ctl),
-        .phy_tx_ready(phy_tx_ready),
+        .i_tx_clk(xver_tx_clk),
+        .o_xgmii_tx_data(xgmii_tx_data),
+        .o_xgmii_tx_ctl(xgmii_tx_ctl),
+        .i_phy_tx_ready(phy_tx_ready),
 
         // Tx AXIS
         .s00_axis_tdata(s00_axis_tdata),
@@ -64,11 +67,11 @@ module mac_pcs #(
         .s00_axis_tlast(s00_axis_tlast),
 
         // Rx PHY
-        .rx_clk(xver_rx_clk),
-        .xgmii_rx_data(xgmii_rx_data),
-        .xgmii_rx_ctl(xgmii_rx_ctl),
-        .phy_rx_valid(phy_rx_valid),
-        .term_loc(term_loc),
+        .i_rx_clk(xver_rx_clk),
+        .i_xgmii_rx_data(xgmii_rx_data),
+        .i_xgmii_rx_ctl(xgmii_rx_ctl),
+        .i_phy_rx_valid(phy_rx_valid),
+        .i_term_loc(term_loc),
 
         // Rx AXIS
         .m00_axis_tdata(m00_axis_tdata),

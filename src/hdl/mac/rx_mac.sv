@@ -3,15 +3,13 @@
 `include "code_defs_pkg.svh"
 
 module rx_mac #(
-    localparam DATA_WIDTH = 32,
-
-    localparam DATA_NBYTES = DATA_WIDTH / 8
+    localparam int DATA_WIDTH = 32,
+    localparam int DATA_NBYTES = DATA_WIDTH / 8
 ) (
-    
     input wire i_reset,
     input wire i_clk,
 
-     // Rx PHY
+    // Rx PHY
     input wire [DATA_WIDTH-1:0] xgmii_rxd,
     input wire [DATA_NBYTES-1:0] xgmii_rxc,
     input wire phy_rx_valid,
@@ -29,9 +27,8 @@ module rx_mac #(
 
     import code_defs_pkg::*;
 
-
     // Rx states
-    typedef enum {IDLE, PREAMBLE, DATA, TERM} rx_state_t;
+    typedef enum logic[1:0] {IDLE, PREAMBLE, DATA, TERM} rx_state_t;
     rx_state_t rx_state, rx_next_state;
 
     // Start detect
@@ -42,7 +39,6 @@ module rx_mac #(
 
     // Term detect
     wire term_found;
-    //wire [DATA_NBYTES-1:0] term_loc;
     wire [DATA_NBYTES-1:0] term_keep;
 
     wire ctl_found;

@@ -114,9 +114,9 @@ module gtwizard_ultrascale_0_example_wrapper #(
 
   // Declare and initialize local parameters and functions used for HDL generation
   localparam [191:0] P_CHANNEL_ENABLE = 192'b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000;
-  `include "gtwizard_ultrascale_0_example_wrapper_functions.v"
-  localparam integer P_TX_MASTER_CH_PACKED_IDX = f_calc_pk_mc_idx(12);
-  localparam integer P_RX_MASTER_CH_PACKED_IDX = f_calc_pk_mc_idx(12);
+  // `include "gtwizard_ultrascale_0_example_wrapper_functions.v"
+  // localparam integer P_TX_MASTER_CH_PACKED_IDX = f_calc_pk_mc_idx(12);
+  // localparam integer P_RX_MASTER_CH_PACKED_IDX = f_calc_pk_mc_idx(12);
 
 
   // ===================================================================================================================

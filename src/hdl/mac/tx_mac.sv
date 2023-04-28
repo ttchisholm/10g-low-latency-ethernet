@@ -1,46 +1,79 @@
+// MIT License
+
+// Copyright (c) 2023 Tom Chisholm
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+/*
+*   Module: tx_mac
+*
+*   Description: 10G Ethernet MAC, transmit channel. AXIS slave in, XGMII out.
+*                Preamble, SFD, CRC, IPG added. No deficit IPG.
+*
+*/
+
 `timescale 1ns/1ps
 `default_nettype none
 `include "code_defs_pkg.svh"
 
 module tx_mac #(
-    localparam DATA_WIDTH = 32,
-    localparam DATA_NBYTES = DATA_WIDTH / 8
+    localparam int DATA_WIDTH = 32,
+    localparam int DATA_NBYTES = DATA_WIDTH / 8
 ) (
-    
-    input wire reset,
-    input wire clk,
+
+    input wire i_reset,
+    input wire i_clk,
 
     // Tx PHY
-    output logic [DATA_WIDTH-1:0] xgmii_tx_data,
-    output logic [DATA_NBYTES-1:0] xgmii_tx_ctl,
-    input wire phy_tx_ready,
+    output logic [DATA_WIDTH-1:0] o_xgmii_tx_data,
+    output logic [DATA_NBYTES-1:0] o_xgmii_tx_ctl,
+    input wire i_phy_tx_ready,
 
+    /* svlint off prefix_input */
+    /* svlint off prefix_output */
     // Tx User AXIS
     input wire [DATA_WIDTH-1:0] s00_axis_tdata,
     input wire [DATA_NBYTES-1:0] s00_axis_tkeep,
     input wire s00_axis_tvalid,
     output logic s00_axis_tready,
     input wire s00_axis_tlast
+    /* svlint on prefix_input */
+    /* svlint on prefix_output */
 );
 
     import code_defs_pkg::*;
 
-
     /****  Local Definitions ****/
-    localparam MIN_FRAME_SIZE = 60; //Excluding CRC
-    localparam IPG_SIZE = 12;
-    localparam N_TERM_FRAMES = 4;
-    localparam IPG_COUNTER_WIDTH = 5;
+    localparam int MIN_FRAME_SIZE = 60; //Excluding CRC
+    localparam int IPG_SIZE = 12;
+    localparam int N_TERM_FRAMES = 4;
+    localparam int IPG_COUNTER_WIDTH = 5;
 
-    localparam START_FRAME_64 = {MAC_SFD, {6{MAC_PRE}}, RS_START}; // First octet of preamble is replaced by RS_START (46.1.7.1.4)
-    localparam START_CTL_64 = 8'b00000001;
-    localparam IDLE_FRAME_64 =  {8{RS_IDLE}};
-    localparam ERROR_FRAME_64 = {8{RS_ERROR}};
+    localparam bit [63:0] START_FRAME_64 = {MAC_SFD, {6{MAC_PRE}}, RS_START}; // First octet of preamble is replaced by RS_START (46.1.7.1.4)
+    localparam bit [7:0]  START_CTL_64 = 8'b00000001;
+    localparam bit [63:0] IDLE_FRAME_64 =  {8{RS_IDLE}};
+    localparam bit [63:0] ERROR_FRAME_64 = {8{RS_ERROR}};
 
     /****  Data Pipeline Definitions ****/
     // Define how many cycles to buffer input for (to allow for time to send preamble)
-    localparam INPUT_PIPELINE_LENGTH = 64 / DATA_WIDTH; // Todo should be a way to save a cycle here
-    localparam PIPE_END = INPUT_PIPELINE_LENGTH-1;
+    localparam int INPUT_PIPELINE_LENGTH = 64 / DATA_WIDTH; // Todo should be a way to save a cycle here
+    localparam int PIPE_END = INPUT_PIPELINE_LENGTH-1;
 
     // Ideally the struct would be the array - iverilog doesn't seem to support it
      typedef struct packed {
@@ -49,11 +82,11 @@ module tx_mac #(
         logic  [INPUT_PIPELINE_LENGTH-1:0] tvalid ;
         logic [INPUT_PIPELINE_LENGTH-1:0] [DATA_NBYTES-1:0] tkeep ;
         logic [INPUT_PIPELINE_LENGTH-1:0] [$clog2(MIN_FRAME_SIZE):0] data_counter;
-        
+
     } input_pipeline_t ;
 
-    input_pipeline_t input_del; 
-    logic phy_tx_ready_del;
+    input_pipeline_t input_del;
+    logic i_phy_tx_ready_del;
 
     // Pipeline debugging
     // verilator lint_off UNUSED
@@ -73,7 +106,7 @@ module tx_mac #(
     assign dbg_data_first = input_del.tdata[0];
 
     /****  State definitions ****/
-    typedef enum {IDLE, PREAMBLE, DATA, PADDING, TERM, IPG} tx_state_t;
+    typedef enum logic [2:0] {IDLE, PREAMBLE, DATA, PADDING, TERM, IPG} tx_state_t;
     tx_state_t tx_state, tx_next_state;
 
     /****  Other definitions ****/
@@ -101,42 +134,39 @@ module tx_mac #(
     logic [DATA_NBYTES-1:0] tx_term_ctl_first;
     logic [N_TERM_FRAMES-2:0] [DATA_WIDTH-1:0] tx_term_data_rest; // The next 3 term frames after term detected
     logic [N_TERM_FRAMES-2:0] [DATA_NBYTES-1:0] tx_term_ctl_rest;
-    
-    
 
     /****  Data Pipeline Implementation ****/
-    genvar gi;
-    generate for (gi = 0; gi < INPUT_PIPELINE_LENGTH; gi++) begin
-        if (gi == 0) begin // Pipeline start
-        always @(posedge clk)
-        if (reset) begin
-            input_del.tdata[gi] <= {DATA_WIDTH{1'b0}};
-            input_del.tlast[gi] <= 1'b0;
-            input_del.tvalid[gi] <= 1'b0;
-            input_del.tkeep[gi] <= {DATA_NBYTES{1'b0}};
-            input_del.data_counter[gi] <= '0;
-        end else begin
-                if (phy_tx_ready) begin
-                    input_del.tdata[gi] <= s00_axis_tready ? s00_axis_tdata : 32'b0; // If phy_tx_ready but !s00_axis_tready, we're padding
-                    input_del.tlast[gi] <= s00_axis_tlast;
-                    input_del.tvalid[gi] <= s00_axis_tvalid;
-                    input_del.tkeep[gi] <= input_del.data_counter[0] < MIN_FRAME_SIZE ? 4'b1111 : 
-                                           (tx_next_state == DATA) ? tx_data_keep : 4'b0000;
-                    input_del.data_counter[gi] <= tx_next_state == IDLE ? '0 :
-                                                  (input_del.data_counter[gi] >= MIN_FRAME_SIZE) ? input_del.data_counter[gi] : 
-                                                   input_del.data_counter[gi] + DATA_NBYTES;
-                end
-            end
-        end else begin // Move the pipeline along
-            always @(posedge clk)
-            if (reset) begin
+    generate for (genvar gi = 0; gi < INPUT_PIPELINE_LENGTH; gi++) begin: l_tx_pipeline
+        if (gi == 0) begin: l_pipeline_start
+            always_ff @(posedge i_clk)
+            if (i_reset) begin
                 input_del.tdata[gi] <= {DATA_WIDTH{1'b0}};
                 input_del.tlast[gi] <= 1'b0;
                 input_del.tvalid[gi] <= 1'b0;
                 input_del.tkeep[gi] <= {DATA_NBYTES{1'b0}};
                 input_del.data_counter[gi] <= '0;
             end else begin
-                if (phy_tx_ready) begin
+                if (i_phy_tx_ready) begin
+                    input_del.tdata[gi] <= s00_axis_tready ? s00_axis_tdata : 32'b0; // If i_phy_tx_ready but !s00_axis_tready, we're padding
+                    input_del.tlast[gi] <= s00_axis_tlast;
+                    input_del.tvalid[gi] <= s00_axis_tvalid;
+                    input_del.tkeep[gi] <= input_del.data_counter[0] < MIN_FRAME_SIZE ? 4'b1111 :
+                                            (tx_next_state == DATA) ? tx_data_keep : 4'b0000;
+                    input_del.data_counter[gi] <= tx_next_state == IDLE ? '0 :
+                                                    (input_del.data_counter[gi] >= MIN_FRAME_SIZE) ? input_del.data_counter[gi] : 
+                                                    input_del.data_counter[gi] + DATA_NBYTES;
+                end
+            end
+        end else begin: l_pipeline_cont
+            always_ff @(posedge i_clk)
+            if (i_reset) begin
+                input_del.tdata[gi] <= {DATA_WIDTH{1'b0}};
+                input_del.tlast[gi] <= 1'b0;
+                input_del.tvalid[gi] <= 1'b0;
+                input_del.tkeep[gi] <= {DATA_NBYTES{1'b0}};
+                input_del.data_counter[gi] <= '0;
+            end else begin
+                if (i_phy_tx_ready) begin
                     input_del.tdata[gi] <= input_del.tdata[gi-1];
                     input_del.tlast[gi] <= input_del.tlast[gi-1];
                     input_del.tvalid[gi] <= input_del.tvalid[gi-1];
@@ -147,102 +177,98 @@ module tx_mac #(
         end
     end endgenerate
 
-
     /**** Sequential State Implementation ****/
-    always @(posedge clk)
-    if (reset) begin
+    always_ff @(posedge i_clk)
+    if (i_reset) begin
         tx_state <= IDLE;
         data_counter <= '0;
         ipg_counter <= '0;
         term_counter <= '0;
-        phy_tx_ready_del <= '0;
+        i_phy_tx_ready_del <= '0;
         seen_last <= '0;
-        
     end else begin
-        tx_state <= tx_next_state;        
-        data_counter <= next_data_counter; 
-        ipg_counter <= (tx_state == IPG)  ? ipg_counter + IPG_COUNTER_WIDTH'(DATA_NBYTES) : 
-                                            initial_ipg_count;
-        term_counter <= (!phy_tx_ready) ? term_counter : 
-                        (tx_next_state == TERM) ? term_counter + 1 : 0;
-        phy_tx_ready_del <= phy_tx_ready;
+        tx_state <= tx_next_state;
+        data_counter <= next_data_counter;
+        ipg_counter <= (tx_state == IPG)  ? ipg_counter + IPG_COUNTER_WIDTH'(DATA_NBYTES) :
+                                                initial_ipg_count;
+        term_counter <= (!i_phy_tx_ready) ? term_counter :
+                            (tx_next_state == TERM) ? term_counter + 1 : 0;
+        i_phy_tx_ready_del <= i_phy_tx_ready;
         seen_last <= (tx_next_state == IDLE) ? '0 :
-                     (!seen_last) ? s00_axis_tlast && s00_axis_tvalid && s00_axis_tready : seen_last;
+                        (!seen_last) ? s00_axis_tlast && s00_axis_tvalid && s00_axis_tready : seen_last;
     end
 
-    
     /**** Next State Implementation ****/
 
     // Assign the index to the term data array - cast widths for verilator
     assign term_rest_idx = 2'(32'(term_counter)-1); // -1 as first term frame seperate variable
 
     always @(*) begin
-
-        if (!phy_tx_ready) begin
+        if (!i_phy_tx_ready) begin
             tx_next_state = tx_state;
-            xgmii_tx_data = ERROR_FRAME_64[0 +: DATA_WIDTH];
-            xgmii_tx_ctl = '1;
+            o_xgmii_tx_data = ERROR_FRAME_64[0 +: DATA_WIDTH];
+            o_xgmii_tx_ctl = '1;
             next_data_counter = data_counter;
         end else begin
             case (tx_state)
                 IDLE: begin
-                    tx_next_state = bit'(s00_axis_tvalid) ? PREAMBLE :
+                    tx_next_state = bit '(s00_axis_tvalid) ? PREAMBLE :
                                     IDLE;
-                    xgmii_tx_data = tx_next_state == IDLE ? IDLE_FRAME_64[0+:DATA_WIDTH] :
+                    o_xgmii_tx_data = tx_next_state == IDLE ? IDLE_FRAME_64[0+:DATA_WIDTH] :
                                                             START_FRAME_64[0+:DATA_WIDTH];
-                    xgmii_tx_ctl = tx_next_state == IDLE ? '1 :
+                    o_xgmii_tx_ctl = tx_next_state == IDLE ? '1 :
                                                             START_CTL_64[0+:DATA_NBYTES];
                     next_data_counter = 0;
                 end
                 PREAMBLE: begin // Only used in 32-bit mode
-                    tx_next_state = bit'(!s00_axis_tvalid) ? IDLE :
+                    tx_next_state = bit '(!s00_axis_tvalid) ? IDLE :
                                                             DATA;
-                    xgmii_tx_data = START_FRAME_64[32+:32];
-                    xgmii_tx_ctl = START_CTL_64[4+:4];
+                    o_xgmii_tx_data = START_FRAME_64[32+:32];
+                    o_xgmii_tx_ctl = START_CTL_64[4+:4];
                     next_data_counter = 0;
                 end
                 DATA: begin
                     // tvalid must be high throughout frame
-                    tx_next_state = bit'(!input_del.tvalid[PIPE_END])                           ? IDLE :                    
-                                    bit'(input_del.tlast[PIPE_END] && !min_packet_size_reached) ? PADDING :
-                                    bit'(input_del.tlast[PIPE_END])                             ? TERM :
-                                                                                                  DATA;
+                    tx_next_state = bit '(!input_del.tvalid[PIPE_END])                           ? IDLE :                    
+                                    bit '(input_del.tlast[PIPE_END] && !min_packet_size_reached) ? PADDING :
+                                    bit '(input_del.tlast[PIPE_END])                             ? TERM :
+                                                                                                    DATA;
 
 
-                    xgmii_tx_data = !input_del.tvalid[PIPE_END] ? ERROR_FRAME_64[0 +: DATA_WIDTH] : 
-                                    input_del.tlast[PIPE_END]   ? tx_term_data_first :
-                                                                  input_del.tdata[PIPE_END];
-                    
-                    xgmii_tx_ctl = !input_del.tvalid[PIPE_END] ? '1 : 
-                                    input_del.tlast[PIPE_END]  ? tx_term_ctl_first :
-                                                                 '0;
+                    o_xgmii_tx_data = !input_del.tvalid[PIPE_END] ? ERROR_FRAME_64[0 +: DATA_WIDTH] :
+                                        input_del.tlast[PIPE_END]   ? tx_term_data_first :
+                                                                        input_del.tdata[PIPE_END];
+
+                    o_xgmii_tx_ctl = !input_del.tvalid[PIPE_END] ? '1 :
+                                        input_del.tlast[PIPE_END]  ? tx_term_ctl_first :
+                                                                    '0;
 
                     // stop counting when min size reached
-                    next_data_counter = (data_counter >= MIN_FRAME_SIZE) ? data_counter : data_counter + DATA_NBYTES; 
+                    next_data_counter = (data_counter >= MIN_FRAME_SIZE) ? data_counter : data_counter + DATA_NBYTES;
                 end
                 PADDING: begin
-                    tx_next_state = bit'(!min_packet_size_reached) ? PADDING : TERM;
-                    xgmii_tx_data = !min_packet_size_reached ? '0 : tx_term_data_first;
-                    xgmii_tx_ctl = !min_packet_size_reached ? '0 : tx_term_ctl_first; 
+                    tx_next_state = bit '(!min_packet_size_reached) ? PADDING : TERM;
+                    o_xgmii_tx_data = !min_packet_size_reached ? '0 : tx_term_data_first;
+                    o_xgmii_tx_ctl = !min_packet_size_reached ? '0 : tx_term_ctl_first;
                     next_data_counter = data_counter + DATA_NBYTES;
                 end
                 TERM: begin
                     // 1 TERM cycle for 64-bit, 2 for 32-bit
-                    tx_next_state = bit'(term_counter == 3) ? IPG : TERM;
-                    xgmii_tx_data = tx_term_data_rest[term_rest_idx]; 
-                    xgmii_tx_ctl = tx_term_ctl_rest[term_rest_idx];
+                    tx_next_state = bit '(term_counter == 3) ? IPG : TERM;
+                    o_xgmii_tx_data = tx_term_data_rest[term_rest_idx];
+                    o_xgmii_tx_ctl = tx_term_ctl_rest[term_rest_idx];
                     next_data_counter = 0;
                 end
                 IPG: begin
-                    tx_next_state = bit'(ipg_counter < IPG_SIZE) ? IPG : IDLE;
-                    xgmii_tx_data = IDLE_FRAME_64[0+:DATA_WIDTH];
-                    xgmii_tx_ctl = '1;
+                    tx_next_state = bit '(ipg_counter < IPG_SIZE) ? IPG : IDLE;
+                    o_xgmii_tx_data = IDLE_FRAME_64[0+:DATA_WIDTH];
+                    o_xgmii_tx_ctl = '1;
                     next_data_counter = 0;
                 end
                 default: begin
                     tx_next_state = IDLE;
-                    xgmii_tx_data = ERROR_FRAME_64[0 +: DATA_WIDTH];
-                    xgmii_tx_ctl = '1;
+                    o_xgmii_tx_data = ERROR_FRAME_64[0 +: DATA_WIDTH];
+                    o_xgmii_tx_ctl = '1;
                     next_data_counter = 0;
                 end
 
@@ -251,8 +277,8 @@ module tx_mac #(
     end
 
     assign min_packet_size_reached = next_data_counter >= MIN_FRAME_SIZE;
-    assign s00_axis_tready = phy_tx_ready && !seen_last && (tx_state == IDLE || tx_state == PREAMBLE  || tx_state == DATA);
-    assign tx_data_keep = {DATA_NBYTES{phy_tx_ready}} & (s00_axis_tkeep & {DATA_NBYTES{s00_axis_tvalid}});
+    assign s00_axis_tready = i_phy_tx_ready && !seen_last && (tx_state == IDLE || tx_state == PREAMBLE  || tx_state == DATA);
+    assign tx_data_keep = {DATA_NBYTES{i_phy_tx_ready}} & (s00_axis_tkeep & {DATA_NBYTES{s00_axis_tvalid}});
     assign tx_pad_keep = data_counter < MIN_FRAME_SIZE ? 4'b1111 : 4'b0000;
     assign tx_term_keep = (tx_state == PADDING) ? tx_pad_keep : input_del.tkeep[PIPE_END];
 
@@ -316,23 +342,23 @@ module tx_mac #(
     assign tx_term_ctl_first = tx_next_term_ctl_64[0][0+:4];
 
     // Assign term cycles 1-3 (cycle 0 assigned above)
-    for (gi = 1; gi < N_TERM_FRAMES; gi++) begin
+    generate for (genvar gi = 1; gi < N_TERM_FRAMES; gi++) begin: l_assign_term
             // Save the following frames for the next cycle(s)
-            always @(posedge clk)
-            if (reset) begin
-            tx_term_data_rest[gi-1] <= {DATA_WIDTH{1'b0}};
-            tx_term_ctl_rest[gi-1] <= {DATA_NBYTES{1'b0}};
+            always_ff @(posedge i_clk)
+            if (i_reset) begin
+                tx_term_data_rest[gi-1] <= {DATA_WIDTH{1'b0}};
+                tx_term_ctl_rest[gi-1] <= {DATA_NBYTES{1'b0}};
             end else if (tx_state != TERM && tx_next_state == TERM) begin
-            tx_term_data_rest[gi-1] <= tx_next_term_data_64[gi / 2][(gi % 2) * DATA_WIDTH +: DATA_WIDTH];
-            tx_term_ctl_rest[gi-1] <= tx_next_term_ctl_64[gi / 2][(gi % 2) * DATA_NBYTES +: DATA_NBYTES];
-        end
-    end
+                tx_term_data_rest[gi-1] <= tx_next_term_data_64[gi / 2][(gi % 2) * DATA_WIDTH +: DATA_WIDTH];
+                tx_term_ctl_rest[gi-1] <= tx_next_term_ctl_64[gi / 2][(gi % 2) * DATA_NBYTES +: DATA_NBYTES];
+            end
+    end endgenerate
 
     /**** CRC Implementation ****/
 
-    assign tx_crc_reset = reset || (tx_state == IDLE);
+    assign tx_crc_reset = i_reset || (tx_state == IDLE);
     assign tx_crc_input = (tx_next_state == PADDING) ? 32'b0 : input_del.tdata[0];
-    assign tx_crc_input_valid = {DATA_NBYTES{phy_tx_ready_del}} & input_del.tkeep[0];
+    assign tx_crc_input_valid = {DATA_NBYTES{i_phy_tx_ready_del}} & input_del.tkeep[0];
 
     slicing_crc #(
         .SLICE_LENGTH(DATA_NBYTES),
@@ -340,13 +366,13 @@ module tx_mac #(
         .INVERT_OUTPUT(1),
         .REGISTER_OUTPUT(1)
     ) u_tx_crc (
-        .clk(clk),
+        .clk(i_clk),
         .reset(tx_crc_reset),
         .data(tx_crc_input),
         .valid(tx_crc_input_valid),
         .crc(tx_crc)
     );
-    
+
     assign tx_crc_byteswapped = {tx_crc[0+:8], tx_crc[8+:8], tx_crc[16+:8], tx_crc[24+:8]};
 
 endmodule

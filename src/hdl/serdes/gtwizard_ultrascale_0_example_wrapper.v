@@ -55,7 +55,7 @@
 // =====================================================================================================================
 
 module gtwizard_ultrascale_0_example_wrapper #(
-  parameter EXTERNAL_GEARBOX = 1
+  parameter bit EXTERNAL_GEARBOX = 1
 ) (
   input  wire [0:0] gtyrxn_in
  ,input  wire [0:0] gtyrxp_in

@@ -5,7 +5,7 @@
 // Todo comment doc operation from spreadsheet
 
 module tx_gearbox #(
-    localparam DATA_WIDTH = 32,
+    localparam int DATA_WIDTH = 32,
     localparam HEADER_WIDTH = 2,
     localparam SEQUENCE_WIDTH = 6
 ) (

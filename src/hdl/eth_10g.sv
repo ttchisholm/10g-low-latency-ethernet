@@ -26,6 +26,13 @@
 *   Description: Top-level low-latency 10G Ethernet Core. Includes MAC, PCS and Xilinx
 *                GTY instantiation.
 *
+*                Note:
+*                A non-standard implementation of TUSER is used for the AXIS master.
+*                If TUSER is not asserted with TLAST, this indicates a packet was recieved with
+*                incorrect CRC. However, TLAST/TUSER can be asserted when all TKEEP == 0, this is to
+*                provide data for processing ASAP. This may cause TUSER to be dropped if routing
+*                the AXIS interface through interconnect.
+*
 */
 
 `timescale 1ns/1ps
@@ -117,16 +124,16 @@ module eth_10g #(
         .m00_axis_tvalid(m00_axis_tvalid),
         .m00_axis_tlast(m00_axis_tlast),
         .m00_axis_tuser(m00_axis_tuser),
-        .xver_rx_clk(gtwiz_rx_usrclk2),
-        .xver_rx_data(pcs_xver_rx_data),
-        .xver_rx_header(pcs_xver_rx_header),
-        .xver_rx_data_valid(pcs_xver_rx_data_valid),
-        .xver_rx_header_valid(pcs_xver_rx_header_valid),
-        .xver_rx_gearbox_slip(pcs_xver_rx_gearbox_slip),
-        .xver_tx_clk(gtwiz_tx_usrclk2),
-        .xver_tx_data(pcs_xver_tx_data),
-        .xver_tx_header(pcs_xver_tx_header),
-        .xver_tx_gearbox_sequence(pcs_xver_tx_gearbox_sequence)
+        .i_xver_rx_clk(gtwiz_rx_usrclk2),
+        .i_xver_rx_data(pcs_xver_rx_data),
+        .i_xver_rx_header(pcs_xver_rx_header),
+        .i_xver_rx_data_valid(pcs_xver_rx_data_valid),
+        .i_xver_rx_header_valid(pcs_xver_rx_header_valid),
+        .o_xver_rx_gearbox_slip(pcs_xver_rx_gearbox_slip),
+        .i_xver_tx_clk(gtwiz_tx_usrclk2),
+        .o_xver_tx_data(pcs_xver_tx_data),
+        .o_xver_tx_header(pcs_xver_tx_header),
+        .o_xver_tx_gearbox_sequence(pcs_xver_tx_gearbox_sequence)
     );
 
 

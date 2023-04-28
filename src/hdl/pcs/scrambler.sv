@@ -4,7 +4,7 @@
 module scrambler #(
     parameter DESCRAMBLE = 0, 
 
-    localparam DATA_WIDTH = 32
+    localparam int DATA_WIDTH = 32
 ) (
     input wire clk,
     input wire reset,

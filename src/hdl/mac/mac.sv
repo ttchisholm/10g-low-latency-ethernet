@@ -77,13 +77,13 @@ module mac #(
     wire [DATA_NBYTES-1:0] phy_tx_ctl;
 
     tx_mac u_tx(
-        .reset(i_tx_reset),
-        .clk(i_tx_clk),
+        .i_reset(i_tx_reset),
+        .i_clk(i_tx_clk),
 
         // Tx PHY
-        .xgmii_tx_data(phy_tx_data),
-        .xgmii_tx_ctl(phy_tx_ctl),
-        .phy_tx_ready(i_phy_tx_ready),
+        .o_xgmii_tx_data(phy_tx_data),
+        .o_xgmii_tx_ctl(phy_tx_ctl),
+        .i_phy_tx_ready(i_phy_tx_ready),
 
         // Tx User AXIS
         .s00_axis_tdata(s00_axis_tdata),
@@ -119,10 +119,10 @@ module mac #(
         .i_clk(i_rx_clk),
 
         // Rx PHY
-        .xgmii_rxd(i_xgmii_rx_data),
-        .xgmii_rxc(i_xgmii_rx_ctl),
-        .phy_rx_valid(i_phy_rx_valid),
-        .term_loc(i_term_loc),
+        .i_xgmii_rxd(i_xgmii_rx_data),
+        .i_xgmii_rxc(i_xgmii_rx_ctl),
+        .i_phy_rx_valid(i_phy_rx_valid),
+        .i_term_loc(i_term_loc),
 
         // Rx AXIS
         .m00_axis_tdata(rx_tdata),

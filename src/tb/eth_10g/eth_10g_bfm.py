@@ -19,15 +19,15 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
         self.rx_monitor_queue = Queue(maxsize=0)
 
         self.tx_axis_source = AxiStreamSource(AxiStreamBus.from_prefix(self.dut, "s00_axis"), 
-                                                self.dut.xver_tx_clk, self.dut.i_rx_reset)
+                                                self.dut.i_xver_tx_clk, self.dut.i_rx_reset)
         
 
         self.tx_axis_monitor = AxiStreamMonitor(AxiStreamBus.from_prefix(self.dut, "s00_axis"), 
-                                                self.dut.xver_tx_clk, self.dut.i_rx_reset)
+                                                self.dut.i_xver_tx_clk, self.dut.i_rx_reset)
         
 
         self.rx_axis_monitor = AxiStreamMonitor(AxiStreamBus.from_prefix(self.dut, "m00_axis"), 
-                                                self.dut.xver_rx_clk, self.dut.i_tx_reset)
+                                                self.dut.i_xver_rx_clk, self.dut.i_tx_reset)
         
 
     def set_axis_log(self, enable):
@@ -40,26 +40,26 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
             for _ in range(delay): await q.put([0, 0, 0, 0])
             prev_tx_gearbox_seq = 0
             while True:
-                await RisingEdge(self.dut.xver_tx_clk)
+                await RisingEdge(self.dut.i_xver_tx_clk)
                 
-                xver_tx_data = self.dut.xver_tx_data.value
-                xver_tx_header = self.dut.xver_tx_header.value
-                xver_tx_data_valid = self.dut.xver_tx_gearbox_sequence.value != self.gearbox_pause_val
+                o_xver_tx_data = self.dut.o_xver_tx_data.value
+                o_xver_tx_header = self.dut.o_xver_tx_header.value
+                xver_tx_data_valid = self.dut.o_xver_tx_gearbox_sequence.value != self.gearbox_pause_val
 
-                xver_tx_header_valid = self.dut.xver_tx_gearbox_sequence.value != prev_tx_gearbox_seq and xver_tx_data_valid
-                prev_tx_gearbox_seq = self.dut.xver_tx_gearbox_sequence.value
+                xver_tx_header_valid = self.dut.o_xver_tx_gearbox_sequence.value != prev_tx_gearbox_seq and xver_tx_data_valid
+                prev_tx_gearbox_seq = self.dut.o_xver_tx_gearbox_sequence.value
 
-                await q.put([xver_tx_data, xver_tx_header, xver_tx_data_valid, xver_tx_header_valid])
+                await q.put([o_xver_tx_data, o_xver_tx_header, xver_tx_data_valid, xver_tx_header_valid])
 
         async def apply_input(self, q):
             while True:
-                await RisingEdge(self.dut.xver_rx_clk)
-                [xver_tx_data, xver_tx_header, xver_tx_data_valid, xver_tx_header_valid] = await q.get()
+                await RisingEdge(self.dut.i_xver_rx_clk)
+                [o_xver_tx_data, o_xver_tx_header, xver_tx_data_valid, xver_tx_header_valid] = await q.get()
                 
-                self.dut.xver_rx_data.value = xver_tx_data
-                self.dut.xver_rx_header.value = xver_tx_header
-                self.dut.xver_rx_data_valid.value = xver_tx_data_valid
-                self.dut.xver_rx_header_valid.value = xver_tx_header_valid
+                self.dut.i_xver_rx_data.value = o_xver_tx_data
+                self.dut.i_xver_rx_header.value = o_xver_tx_header
+                self.dut.i_xver_rx_data_valid.value = xver_tx_data_valid
+                self.dut.i_xver_rx_header_valid.value = xver_tx_header_valid
 
         q = Queue()
         cocotb.start_soon(capture_outputs(self, q, delay))
@@ -71,21 +71,21 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
     async def reset(self):
         self.dut.i_tx_reset.value = 1
         self.dut.i_rx_reset.value = 1
-        self.dut.xver_rx_clk.value = 0
-        self.dut.xver_rx_data.value = 0
-        self.dut.xver_tx_clk.value = 0
-        await RisingEdge(self.dut.xver_rx_clk)
-        await RisingEdge(self.dut.xver_tx_clk)
-        await FallingEdge(self.dut.xver_rx_clk)
-        await FallingEdge(self.dut.xver_tx_clk)
+        self.dut.i_xver_rx_clk.value = 0
+        self.dut.i_xver_rx_data.value = 0
+        self.dut.i_xver_tx_clk.value = 0
+        await RisingEdge(self.dut.i_xver_rx_clk)
+        await RisingEdge(self.dut.i_xver_tx_clk)
+        await FallingEdge(self.dut.i_xver_rx_clk)
+        await FallingEdge(self.dut.i_xver_tx_clk)
         self.dut.i_tx_reset.value = 0
         self.dut.i_rx_reset.value = 0
-        await RisingEdge(self.dut.xver_rx_clk)
-        await RisingEdge(self.dut.xver_tx_clk)
+        await RisingEdge(self.dut.i_xver_rx_clk)
+        await RisingEdge(self.dut.i_xver_tx_clk)
 
     async def pause(self, cycles):
         for _ in range(cycles):
-            await RisingEdge(self.dut.xver_tx_clk)
+            await RisingEdge(self.dut.i_xver_tx_clk)
 
     async def driver_bfm(self):
         while True:
@@ -118,8 +118,8 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
         self.gearbox_pause_val = 32
         self.clk_period = round(1 / (10.3125 / self.data_width), 2) # ps precision
         
-        cocotb.start_soon(Clock(self.dut.xver_tx_clk, self.clk_period, units="ns").start())
-        cocotb.start_soon(Clock(self.dut.xver_rx_clk, self.clk_period, units="ns").start())
+        cocotb.start_soon(Clock(self.dut.i_xver_tx_clk, self.clk_period, units="ns").start())
+        cocotb.start_soon(Clock(self.dut.i_xver_rx_clk, self.clk_period, units="ns").start())
         
 
         await self.reset()
@@ -143,7 +143,7 @@ class Eth10gBfm(metaclass=utility_classes.Singleton):
         #         self.dut.u_pcs.rx_gearbox_slip.value = 1
         #     else:
         #         self.dut.u_pcs.rx_gearbox_slip.value = 0
-        #     await RisingEdge(self.dut.xver_rx_clk)
+        #     await RisingEdge(self.dut.i_xver_rx_clk)
 
 
         cocotb.start_soon(self.driver_bfm())

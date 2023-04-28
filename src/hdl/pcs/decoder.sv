@@ -3,9 +3,9 @@
 `default_nettype none
 
 module decoder #(
-    localparam DATA_WIDTH = 32,
+    localparam int DATA_WIDTH = 32,
 
-    localparam DATA_NBYTES = DATA_WIDTH / 8
+    localparam int DATA_NBYTES = DATA_WIDTH / 8
 ) (
 
     input wire i_reset,

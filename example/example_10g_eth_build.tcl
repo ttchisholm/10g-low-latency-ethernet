@@ -1,6 +1,12 @@
 # Vivado build script
 
-# todo find better way to deal with non-ip sources
+if {[info exists env(ETH10G_FPGA_PART)]} { 
+    set fpga_part $env(ETH10G_FPGA_PART)
+    puts "fpga_part = ${fpga_part}"
+} else {
+    puts "Environment variable ETH10G_FPGA_PART not set, generate IP from shell script."
+    exit 1
+}
 
 global output_dir
 global src_dir
@@ -8,7 +14,6 @@ global build_dir
 global ip_dir
 global flatten_hierarchy
 
-set fpga_part xczu49dr-ffvf1760-2-e
 set project_name example_10g_eth
 set output_dir ../build/out
 set src_dir ../
@@ -30,7 +35,6 @@ proc init {} {
     set_property source_mgmt_mode All [current_project]
 }
 
-# todo better way to organise sources
 proc add_sources {} {
 
     read_verilog [glob $::src_dir/hdl/*.sv] -sv
@@ -44,9 +48,7 @@ proc add_sources {} {
     read_xdc [glob $::src_dir/constraints/*.xdc]
 }
 
-# todo out-of-context runs?
 proc gen_ip {} {
-
 
     # Out-Of-Context synthesis for IPs
     foreach ip [get_ips] {
@@ -58,20 +60,12 @@ proc gen_ip {} {
      
       if {([file exists $ip_dcp] == 0) || [expr {[file mtime $ip_filename ] > [file mtime $ip_dcp ]}]} {
      
-        # # remove old files of IP, if still existing
-        # reset_target all $ip
-        # file delete $ip_xml
-     
         # re-generate the IP
         generate_target all -force $ip 
         set_property generate_synth_checkpoint true [get_files $ip_filename]
         synth_ip -force $ip 
       }
     }
-
-
-    # set_property GENERATE_SYNTH_CHECKPOINT true [get_files -filter {NAME =~ *.xci}]
-    # synth_ip [get_ips] -force
 }
 
 proc synth {} {
@@ -85,7 +79,7 @@ proc synth {} {
 proc impl {} {
 
     # ensure debug hub connected to free running clock
-    connect_debug_port dbg_hub/clk [get_nets init_clk]
+    connect_debug_port dbg_hub/clk [get_nets i_init_clk]
 
     opt_design
     place_design
@@ -115,15 +109,11 @@ proc output {} {
     
     write_bitstream -force $::output_dir/$::project_name
     write_bitstream -bin_file -force $::output_dir/$::project_name
-    exec cp $::output_dir/$::project_name.bin $::nfs_dir/$::project_name.bit.bin
-
-    
 }
 
 proc write_xsa {} {
     open_checkpoint $::output_dir/post_route.dcp
     write_hw_platform -force -include_bit -fixed $::output_dir/$::project_name.xsa
-    
 }
 
 proc all {} {
@@ -148,3 +138,8 @@ proc impl_out {} {
     output
     write_xsa
 }
+
+puts "Build options: "
+puts "  'all'         : Full build"
+puts "  'start_synth' : Initialise, add sources and run synthesis"
+puts "  'impl_out'    : Run implementation and bitstream generation"

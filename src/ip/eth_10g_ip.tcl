@@ -1,14 +1,27 @@
-# Designed to be run in 'gen' subdirectory
+if {[info exists env(ETH10G_FPGA_PART)]} { 
+    set FPGA_PART $env(ETH10G_FPGA_PART)
+    puts "FPGA_PART = ${FPGA_PART}"
+} else {
+    puts "Environment variable ETH10G_FPGA_PART not set, generate IP from shell script."
+    exit 1
+}
 
+if {[info exists env(ETH10G_CHANNEL)]} { 
+    set CHANNEL $env(ETH10G_CHANNEL)
+    puts "CHANNEL = ${CHANNEL}"
+} else {
+    puts "Environment variable ETH10G_CHANNEL not set, generate IP from shell script."
+    exit 1
+}
 
 # IP project setup
-create_project -in_memory -part xczu49dr-ffvf1760-2-e
+create_project -in_memory -part $FPGA_PART
 set_property target_language Verilog [current_project]
 set_property source_mgmt_mode All [current_project]
 
 # Transceiver - with gearbox
 # create_ip -name gtwizard_ultrascale -vendor xilinx.com -library ip -version 1.7 -module_name gtwizard_ultrascale_0 -dir . -force 
-# set_property -dict [list CONFIG.CHANNEL_ENABLE {X0Y12} CONFIG.TX_MASTER_CHANNEL {X0Y12} CONFIG.RX_MASTER_CHANNEL {X0Y12} \
+# set_property -dict [list CONFIG.CHANNEL_ENABLE ${CHANNEL} CONFIG.TX_MASTER_CHANNEL ${CHANNEL} CONFIG.RX_MASTER_CHANNEL ${CHANNEL} \
 #                          CONFIG.TX_REFCLK_FREQUENCY {156.25} CONFIG.TX_DATA_ENCODING {64B66B} CONFIG.TX_USER_DATA_WIDTH {32} \
 #                          CONFIG.TX_BUFFER_MODE {0} CONFIG.TX_OUTCLK_SOURCE {TXPROGDIVCLK} CONFIG.RX_REFCLK_FREQUENCY {156.25} \
 #                          CONFIG.RX_DATA_DECODING {64B66B} CONFIG.RX_USER_DATA_WIDTH {32} CONFIG.RX_INT_DATA_WIDTH {32} \
@@ -18,7 +31,7 @@ set_property source_mgmt_mode All [current_project]
 # generate_target all [get_ips gtwizard_ultrascale_0]
 
 create_ip -name gtwizard_ultrascale -vendor xilinx.com -library ip -version 1.7 -module_name gtwizard_ultrascale_0 -dir . -force 
-set_property -dict [list CONFIG.CHANNEL_ENABLE {X0Y12} CONFIG.TX_MASTER_CHANNEL {X0Y12} CONFIG.RX_MASTER_CHANNEL {X0Y12} \
+set_property -dict [list CONFIG.CHANNEL_ENABLE ${CHANNEL} CONFIG.TX_MASTER_CHANNEL ${CHANNEL} CONFIG.RX_MASTER_CHANNEL ${CHANNEL} \
                          CONFIG.TX_REFCLK_FREQUENCY {156.25} CONFIG.TX_DATA_ENCODING {RAW} CONFIG.TX_USER_DATA_WIDTH {32} \
                          CONFIG.TX_BUFFER_MODE {0} CONFIG.TX_OUTCLK_SOURCE {TXPROGDIVCLK} CONFIG.RX_REFCLK_FREQUENCY {156.25} \
                          CONFIG.RX_DATA_DECODING {RAW} CONFIG.RX_USER_DATA_WIDTH {32} CONFIG.RX_INT_DATA_WIDTH {32} \
@@ -50,3 +63,4 @@ create_ip -name ila -vendor xilinx.com -library ip -version 6.2 -module_name exa
 set_property -dict [list CONFIG.C_DATA_DEPTH {131072} CONFIG.C_NUM_OF_PROBES {7} CONFIG.C_PROBE0_WIDTH {32} CONFIG.C_PROBE1_WIDTH {4} CONFIG.C_PROBE5_WIDTH {16}] [get_ips example_packet_ila]
 generate_target all [get_ips example_packet_ila]
 
+exit 0

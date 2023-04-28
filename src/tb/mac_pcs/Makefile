@@ -31,7 +31,7 @@ CUSTOM_SIM_DEPS += crc_tables.mem
 TOPLEVEL = mac_pcs
 
 # MODULE is the basename of the Python test file
-MODULE = test_eth10g
+MODULE = test_mac_pcs
 
 # module parameters
 export SCRAMBLER_BYPASS ?= 0

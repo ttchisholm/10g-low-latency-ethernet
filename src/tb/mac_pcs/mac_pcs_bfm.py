@@ -11,7 +11,7 @@ from cocotbext.axi import (AxiStreamBus, AxiStreamSource, AxiStreamSink, AxiStre
 
 import debugpy
 
-class Eth10gBfm(metaclass=utility_classes.Singleton):
+class MacPcsBfm(metaclass=utility_classes.Singleton):
     def __init__(self):
         self.dut = cocotb.top
         self.tx_driver_queue = Queue(maxsize=1)

@@ -1,7 +1,8 @@
 import random
+import debugpy
+import yaml
 
 import numpy as np
-import yaml
 
 from cocotb.triggers import RisingEdge, FallingEdge
 from cocotb.queue import QueueEmpty, Queue
@@ -10,9 +11,7 @@ from cocotb.clock import Clock
 from pyuvm import *
 import pyuvm
 
-from eth_10g_bfm import Eth10gBfm
-
-import debugpy
+from mac_pcs_bfm import MacPcsBfm
 
 class EthTxSeqItem(uvm_sequence_item):
     def __init__(self, name, packet_size):
@@ -51,7 +50,7 @@ class TxDriver(uvm_driver):
         self.ap = uvm_analysis_port('ap', self)
 
     def start_of_simulation_phase(self):
-        self.bfm = Eth10gBfm()
+        self.bfm = MacPcsBfm()
 
     async def launch_tb(self):
         await self.bfm.start_bfm()
@@ -71,7 +70,7 @@ class Monitor(uvm_component):
 
     def build_phase(self):
         self.ap = uvm_analysis_port("ap", self)
-        self.bfm = Eth10gBfm()
+        self.bfm = MacPcsBfm()
         self.get_method = getattr(self.bfm, self.method_name)
 
     async def run_phase(self):
@@ -146,7 +145,7 @@ class EthEnv(uvm_env):
         self.seqr = uvm_sequencer('seqr', self)
         ConfigDB().set(None, '*', 'SEQR', self.seqr)
         
-        self.bfm = Eth10gBfm()
+        self.bfm = MacPcsBfm()
         self.bfm.set_axis_log(self.config['print_axis'])
         
         self.driver = TxDriver.create('driver', self)
@@ -160,9 +159,9 @@ class EthEnv(uvm_env):
         self.rx_mon.ap.connect(self.scoreboard.rx_frame_export)
 
 
-class Eth10gTest(uvm_test):
+class MacPcsTest(uvm_test):
     def build_phase(self):
-        with open('eth_10g_config.yaml', 'r') as f:
+        with open('mac_pcs_config.yaml', 'r') as f:
             self.config = yaml.safe_load(f)
         ConfigDB().set(None, '*', 'run_config', self.config)
 
@@ -186,6 +185,6 @@ class Eth10gTest(uvm_test):
 
 
 @cocotb.test()
-async def test_run_Eth10gTest(_):
+async def test_run_MacPcsTest(_):
     # 
-    await uvm_root().run_test(Eth10gTest)
+    await uvm_root().run_test(MacPcsTest)

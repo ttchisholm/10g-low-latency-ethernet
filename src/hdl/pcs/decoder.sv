@@ -1,10 +1,38 @@
+// MIT License
+
+// Copyright (c) 2023 Tom Chisholm
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+/*
+*   Module: decoder
+*
+*   Description: 64b66b to XGMII RS decoder. 32-bit data I/O.
+*
+*/
+
 `timescale 1ns/1ps
 `include "code_defs_pkg.svh"
 `default_nettype none
 
 module decoder #(
     localparam int DATA_WIDTH = 32,
-
     localparam int DATA_NBYTES = DATA_WIDTH / 8
 ) (
 
@@ -22,12 +50,11 @@ module decoder #(
 
     import code_defs_pkg::*;
 
-   
     typedef struct packed {
-        logic [63:0] odata; 
+        logic [63:0] odata;
         logic [7:0] octl;
         logic frame_valid;
-   } xgmii_data_ctl_t;
+    } xgmii_data_ctl_t;
 
     /**** 32-bit input to 64 bit internal ****/
     // Input declarations
@@ -46,16 +73,16 @@ module decoder #(
     // verilator lint_on UNUSED
 
     // I/O delays for width conversion
-    always @(posedge i_rxc) begin
-        if(i_reset) begin
+    always_ff @(posedge i_rxc) begin
+        if (i_reset) begin
             delayed_i_rxd <= '0;
             internal_orxd <= '0;
             internal_orxctl <= '0;
         end else begin
-            if(i_rx_data_valid) begin
+            if (i_rx_data_valid) begin
                 delayed_i_rxd <= i_rxd;
                 if (output_decode_frame) begin // Header is invalid on second part of frame
-                    internal_orxd <= decoded_frame.odata; 
+                    internal_orxd <= decoded_frame.odata;
                     internal_orxctl <= decoded_frame.octl;
                 end
             end
@@ -70,19 +97,19 @@ module decoder #(
     // Output assignments
     assign o_rxd = !output_decode_frame ? internal_orxd[32 +: 32] : decoded_frame.odata[0 +: 32];
     assign o_rxctl = !output_decode_frame ? internal_orxctl[4 +: 4] : decoded_frame.octl[0 +: 4];
-    
+
     /**** Decoder functions ****/
     /*
     * Function `control_code_to_rs_lane`
     *
     * A 64b66b control frame can contain up to 8 7-bit control codes and the 8-bit block type.
     *   This function converts the 64b66b control codes into XGMII RS Codes and places into XGMII
-    *   frame. The location of the 64b66b control codes are determined by the bits set in the 'lanes' 
+    *   frame. The location of the 64b66b control codes are determined by the bits set in the 'lanes'
     *   input.
     */
-    function logic [63:0] control_code_to_rs_lane(input logic [63:0] idata, input bit [7:0] lanes);
+    function automatic logic [63:0] control_code_to_rs_lane(input logic [63:0] idata, input bit [7:0] lanes);
         control_code_to_rs_lane = {8{RS_ERROR}};
-        for( int i = 0; i < 8; i++) begin
+        for (int i = 0; i < 8; i++) begin
             if (lanes[7-i] == 1) begin
                 control_code_to_rs_lane[8*i +: 8] = control_to_rs_code(idata[8 + (7*i) +: 7]);
             end
@@ -92,9 +119,9 @@ module decoder #(
     /*
     * Function `decode_frame`
     *
-    * Decodes 64b66b 64-bit input data and 2-bit header into XGMII 64-bit data and 8-bit control 
+    * Decodes 64b66b 64-bit input data and 2-bit header into XGMII 64-bit data and 8-bit control
     */
-    function xgmii_data_ctl_t decode_frame(input logic [63:0] idata, input logic [1:0] iheader);
+    function automatic xgmii_data_ctl_t decode_frame(input logic [63:0] idata, input logic [1:0] iheader);
 
         decode_frame.odata = '0;
         decode_frame.octl = '0;
@@ -105,7 +132,7 @@ module decoder #(
             decode_frame.octl = '0;
         end else begin
             case (idata[7:0])
-                
+
                 BT_IDLE: begin
                     decode_frame.odata = control_code_to_rs_lane(idata, 8'hFF);
                     decode_frame.octl = '1;
@@ -204,5 +231,5 @@ module decoder #(
     endfunction
 
     assign decoded_frame = decode_frame(internal_irxd, i_rx_header);
-    
+
 endmodule

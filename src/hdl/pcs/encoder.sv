@@ -1,10 +1,38 @@
+// MIT License
+
+// Copyright (c) 2023 Tom Chisholm
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+/*
+*   Module: encoder
+*
+*   Description: XGMII RS to 64b66b encoder. 32-bit data I/O.
+*
+*/
+
 `timescale 1ns/1ps
 `default_nettype none
 `include "code_defs_pkg.svh"
 
 module encoder #(
     localparam int DATA_WIDTH = 32,
-
     localparam int DATA_NBYTES = DATA_WIDTH / 8
 ) (
 
@@ -17,7 +45,7 @@ module encoder #(
     input wire[DATA_NBYTES-1:0] i_txctl,
 
     // Input from gearbox
-    input wire i_tx_pause, 
+    input wire i_tx_pause,
     input wire i_frame_word,
 
     // TX Interface out
@@ -33,7 +61,7 @@ module encoder #(
     logic [3:0] delayed_itxctl;
     wire [63:0] internal_itxd;
     wire [7:0] internal_itxctl;
-    
+
     wire [63:0] internal_otxd;
     wire [1:0] internal_oheader;
     // verilator lint_off UNUSED
@@ -41,19 +69,18 @@ module encoder #(
     logic [63:0] delayed_internal_otxd;
     logic [1:0] delayed_internal_header;
     // verilator lint_on UNUSED
-    
 
-    always @(posedge i_txc) begin
-        if(i_reset) begin
+    always_ff @(posedge i_txc) begin
+        if (i_reset) begin
             delayed_itxd <= '0;
             delayed_itxctl <= '0;
             delayed_internal_otxd <= '0;
             delayed_internal_header <= '0;
         end else begin
-            if(!i_tx_pause) begin
+            if (!i_tx_pause) begin
                 delayed_itxd <= i_txd;
                 delayed_itxctl <= i_txctl;
-                
+
                 if (!i_frame_word) begin
                     delayed_internal_otxd <= internal_otxd;
                     delayed_internal_header <= internal_oheader;
@@ -74,38 +101,37 @@ module encoder #(
     assign internal_oheader = (internal_itxctl == '0) ? SYNC_DATA : SYNC_CTL;
 
     // Data is transmitted lsb first, first byte is in txd[7:0]
-    function logic [7:0] get_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lane);
-        assert(lane < 8);
+    function automatic logic [7:0] get_rs_code(input logic [63:0] idata, input logic [7:0] ictl, input int lane);
+        assert (lane < 8);
         return ictl[lane] == 1'b1 ? idata[8*lane +: 8] : RS_ERROR;
     endfunction
 
-    function bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl, 
+    function automatic bit get_all_rs_code(input logic [63:0] idata, input logic [7:0] ictl,
                                     input bit [7:0] lanes, input logic[7:0] code);
-        for(int i = 0; i < 8; i++) begin
-            if(lanes[i] == 1)
-                if(get_rs_code(idata, ictl, i) != code) return 0;
+        for (int i = 0; i < 8; i++) begin
+            if (lanes[i] == 1 && get_rs_code(idata, ictl, i) != code) return 0;
         end
         return 1;
     endfunction
 
-    function bit is_rs_ocode(input logic[7:0] code);
+    function automatic bit is_rs_ocode(input logic[7:0] code);
         return code == RS_OSEQ || code == RS_OSIG;
     endfunction
 
-    function bit is_all_lanes_data(input logic [7:0] ictl, input bit[7:0] lanes);
-        for(int i = 0; i < 8; i++) begin
-            if(lanes[i] == 1 && ictl[i] == 1) return 0; 
+    function automatic bit is_all_lanes_data(input logic [7:0] ictl, input bit [7:0] lanes);
+        for (int i = 0; i < 8; i++) begin
+            if (lanes[i] == 1 && ictl[i] == 1) return 0;
         end
         return 1;
     endfunction
 
     // Ref 802.3 49.2.4.4
-    function logic [63:0] encode_frame(input logic [63:0] idata, input logic [7:0] ictl);
-        if(ictl == '0) begin
+    function automatic logic [63:0] encode_frame(input logic [63:0] idata, input logic [7:0] ictl);
+        if (ictl == '0) begin
             return idata;
         end else begin
             // All Control (IDLE) = CCCCCCCC
-            if(get_all_rs_code(idata, ictl, 8'hFF, RS_IDLE)) begin
+            if (get_all_rs_code(idata, ictl, 8'hFF, RS_IDLE)) begin
                 return {{8{CC_IDLE}}, BT_IDLE};
             end
             // O4 = CCCCODDD
@@ -113,7 +139,7 @@ module encoder #(
                 return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), {4{CC_IDLE}}, BT_O4};
             end
             // S4 = CCCCSDDD
-            else if (get_all_rs_code(idata, ictl, 8'h0F, RS_IDLE) && (get_rs_code(idata, ictl, 4) == RS_START) &&  
+            else if (get_all_rs_code(idata, ictl, 8'h0F, RS_IDLE) && (get_rs_code(idata, ictl, 4) == RS_START) &&
                     is_all_lanes_data(ictl, 8'hE0)) begin
                 return {idata[63:40], 4'b0, {4{CC_IDLE}}, BT_S4};
             end
@@ -123,7 +149,7 @@ module encoder #(
             end
             // O0O4 = ODDDODDD
             else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && is_rs_ocode(get_rs_code(idata, ictl, 4))) begin
-                return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), rs_to_cc_ocode(get_rs_code(idata, ictl, 0)), 
+                return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), rs_to_cc_ocode(get_rs_code(idata, ictl, 0)),
                             idata[23:0], BT_O0O4};
             end
             // S0 = SDDDDDDD

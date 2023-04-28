@@ -1,3 +1,32 @@
+// MIT License
+
+// Copyright (c) 2023 Tom Chisholm
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+/*
+*   Module: lock_state
+*
+*   Description: 64b66b lock detection as per IEEE 802.3-2008, Figure 49-14
+*
+*/
+
 `timescale 1ns/1ps
 `default_nettype none
 
@@ -6,11 +35,11 @@ module lock_state(
     input wire i_reset,
     input wire [1:0] i_header,
     input wire i_valid,
-    
+
     output wire o_slip
 );
 
-    typedef enum logic[3:0] { LOCK_INIT, RESET_CNT, TEST_SH, 
+    typedef enum logic[3:0] { LOCK_INIT, RESET_CNT, TEST_SH,
         VALID_SH, INVALID_SH, GOOD_64, SLIP, X='x, Z='z} lock_state_t;
 
     lock_state_t state, next_state;
@@ -23,8 +52,8 @@ module lock_state(
     assign sh_valid = (i_header[1] ^ i_header[0]);
     assign o_slip = (state == SLIP);
 
-    always @(posedge i_clk) begin
-        if(i_reset) begin
+    always_ff @(posedge i_clk) begin
+        if (i_reset) begin
             state <= LOCK_INIT;
         end else begin
             state <= next_state;
@@ -47,12 +76,12 @@ module lock_state(
                 end if (sh_valid) begin
                     next_state = VALID_SH;
                 end else begin
-                    next_state = INVALID_SH;    
+                    next_state = INVALID_SH;
                 end
             end
             VALID_SH: begin
                 // Minor change here as going back to TEST_SH would miss data
-                // next_state = sh_cnt == 64 && sh_invalid_cnt == 0 ? GOOD_64 : 
+                // next_state = sh_cnt == 64 && sh_invalid_cnt == 0 ? GOOD_64 :
                 //              sh_cnt == 64 && sh_invalid_cnt != 0 ? RESET_CNT :
                 //              sh_cnt < 64 && !sh_valid ? INVALID_SH : VALID_SH;
 
@@ -76,7 +105,7 @@ module lock_state(
                 if (!i_valid) begin
                     next_state = INVALID_SH;
                 end if (sh_cnt == 64 && sh_invalid_cnt < 16) begin
-                    next_state = RESET_CNT; 
+                    next_state = RESET_CNT;
                 end else if (sh_invalid_cnt == 16) begin
                     next_state = SLIP;
                 end else if (sh_cnt < 64 && !sh_valid) begin
@@ -98,8 +127,8 @@ module lock_state(
 
     end
 
-    always @(posedge i_clk) begin
-        if(i_reset) begin
+    always_ff @(posedge i_clk) begin
+        if (i_reset) begin
             rx_block_lock <= 1'b0;
             test_sh <= 1'b0;
             sh_cnt <= 0;

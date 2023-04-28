@@ -80,12 +80,12 @@ module pcs #(
 
             scrambler #(
             ) u_scrambler(
-                .clk(i_xver_tx_clk),
-                .reset(i_tx_reset),
-                .init_done(!i_tx_reset),
-                .pause(tx_gearbox_pause),
-                .idata(tx_encoded_data),
-                .odata(tx_scrambled_data)
+                .i_clk(i_xver_tx_clk),
+                .i_reset(i_tx_reset),
+                .i_init_done(!i_tx_reset),
+                .i_pause(tx_gearbox_pause),
+                .i_data(tx_encoded_data),
+                .o_data(tx_scrambled_data)
             );
         end
     endgenerate
@@ -103,11 +103,11 @@ module pcs #(
             //      TX_DATAWIDTH == TX_INT_DATAWIDTH == 32 ref UG578 v1.3.1 pg 120 on
             gearbox_seq #(.WIDTH(6), .MAX_VAL(32), .PAUSE_VAL(32), .HALF_STEP(1))
             u_tx_gearbox_seq (
-                .clk(i_xver_tx_clk),
-                .reset(i_tx_reset),
-                .slip(1'b0),
-                .count(o_xver_tx_gearbox_sequence),
-                .pause(tx_gearbox_pause)
+                .i_clk(i_xver_tx_clk),
+                .i_reset(i_tx_reset),
+                .i_slip(1'b0),
+                .o_count(o_xver_tx_gearbox_sequence),
+                .o_pause(tx_gearbox_pause)
             );
 
             // Encode top word on second cycle of sequence
@@ -126,11 +126,11 @@ module pcs #(
 
             gearbox_seq #(.WIDTH(6), .MAX_VAL(32), .PAUSE_VAL(32), .HALF_STEP(0))
             u_tx_gearbox_seq (
-                .clk(i_xver_tx_clk),
-                .reset(i_tx_reset),
-                .slip(1'b0),
-                .count(int_tx_gearbox_seq),
-                .pause(tx_gearbox_pause)
+                .i_clk(i_xver_tx_clk),
+                .i_reset(i_tx_reset),
+                .i_slip(1'b0),
+                .o_count(int_tx_gearbox_seq),
+                .o_pause(tx_gearbox_pause)
             );
 
             tx_gearbox u_tx_gearbox (
@@ -205,12 +205,12 @@ module pcs #(
             scrambler #(
                 .DESCRAMBLE(1)
             ) u_descrambler(
-                .clk(i_xver_rx_clk),
-                .reset(i_rx_reset),
-                .init_done(!i_rx_reset),
-                .pause(!rx_data_valid),
-                .idata(rx_gearbox_data_out),
-                .odata(rx_descrambled_data)
+                .i_clk(i_xver_rx_clk),
+                .i_reset(i_rx_reset),
+                .i_init_done(!i_rx_reset),
+                .i_pause(!rx_data_valid),
+                .i_data(rx_gearbox_data_out),
+                .o_data(rx_descrambled_data)
             );
 
         end

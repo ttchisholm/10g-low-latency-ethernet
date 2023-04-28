@@ -119,10 +119,10 @@ module example_10g_eth (
         .EXTERNAL_GEARBOX(0),
         .INIT_CLK_FREQ(100.0)
     ) u_eth_10g (
-        .reset(core_reset),
-        .init_clk(init_clk),
-        .mgtrefclk0_x0y3_p(mgtrefclk0_x0y3_p),
-        .mgtrefclk0_x0y3_n(mgtrefclk0_x0y3_n),
+        .i_reset(core_reset),
+        .i_init_clk(init_clk),
+        .i_mgtrefclk0_x0y3_p(mgtrefclk0_x0y3_p),
+        .i_mgtrefclk0_x0y3_n(mgtrefclk0_x0y3_n),
         .s00_axis_aclk(s00_axis_aclk),
         .s00_axis_tdata(s00_axis_tdata),
         .s00_axis_tkeep(s00_axis_tkeep),
@@ -135,12 +135,12 @@ module example_10g_eth (
         .m00_axis_tvalid(m00_axis_tvalid),
         .m00_axis_tlast(m00_axis_tlast),
         .m00_axis_tuser(m00_axis_tuser),
-        .ch0_gtyrxn_in(ch0_gtyrxn_in),
-        .ch0_gtyrxp_in(ch0_gtyrxp_in),
-        .ch0_gtytxn_out(ch0_gtytxn_out),
-        .ch0_gtytxp_out(ch0_gtytxp_out),
-        .mac_pcs_tx_reset(mac_pcs_tx_reset),
-        .mac_pcs_rx_reset(mac_pcs_rx_reset)
+        .i_ch0_gtyrxn(ch0_gtyrxn_in),
+        .i_ch0_gtyrxp(ch0_gtyrxp_in),
+        .o_ch0_gtytxn(ch0_gtytxn_out),
+        .o_ch0_gtytxp(ch0_gtytxp_out),
+        .o_mac_pcs_tx_reset(mac_pcs_tx_reset),
+        .o_mac_pcs_rx_reset(mac_pcs_rx_reset)
     );
 
 

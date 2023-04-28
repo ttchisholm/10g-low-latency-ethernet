@@ -39,11 +39,6 @@ proc add_sources {} {
     read_verilog [glob $::core_src_dir/hdl/**/*.v]
     read_verilog [glob $::lib_src_dir/**/**/*.sv]
 
-    # remove the gtwiz functions source as this wont synth on its own
-    # todo better way?
-    remove_files [get_files -filter {NAME =~ */gtwizard_ultrascale_0_example_wrapper_functions.v}] 
-    
-
     read_ip [glob $::ip_dir/**/*.xci]
 
     read_xdc [glob $::src_dir/constraints/*.xdc]

@@ -72,10 +72,10 @@ module eth_10g #(
     /* svlint on prefix_output */
 
     // Serial data ports for transceiver channel 0
-    input  wire i_ch0_gtyrxn_in,
-    input  wire i_ch0_gtyrxp_in,
-    output wire o_ch0_gtytxn_out,
-    output wire o_ch0_gtytxp_out,
+    input  wire i_ch0_gtyrxn,
+    input  wire i_ch0_gtyrxp,
+    output wire o_ch0_gtytxn,
+    output wire o_ch0_gtytxp,
 
     // Output tx/rx mac/pcs i_reset ports
     output wire o_mac_pcs_tx_reset,
@@ -147,10 +147,10 @@ module eth_10g #(
         .mgtrefclk0_x0y3_n(i_mgtrefclk0_x0y3_n),
 
         // Serial data ports for transceiver channel 0
-        .ch0_gtyrxn_in(i_ch0_gtyrxn_in),
-        .ch0_gtyrxp_in(i_ch0_gtyrxp_in),
-        .ch0_gtytxn_out(o_ch0_gtytxn_out),
-        .ch0_gtytxp_out(o_ch0_gtytxp_out),
+        .ch0_gtyrxn_in(i_ch0_gtyrxn),
+        .ch0_gtyrxp_in(i_ch0_gtyrxp),
+        .ch0_gtytxn_out(o_ch0_gtytxn),
+        .ch0_gtytxp_out(o_ch0_gtytxp),
 
         // User-provided ports for i_reset helper block(s)
         .hb_gtwiz_reset_clk_freerun_in(i_init_clk),

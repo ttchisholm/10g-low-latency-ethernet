@@ -229,7 +229,7 @@ module tx_mac #(
                 end
                 DATA: begin
                     // tvalid must be high throughout frame
-                    tx_next_state = bit '(!input_del.tvalid[PIPE_END])                           ? IDLE :                    
+                    tx_next_state = bit '(!input_del.tvalid[PIPE_END])                           ? IDLE :
                                     bit '(input_del.tlast[PIPE_END] && !min_packet_size_reached) ? PADDING :
                                     bit '(input_del.tlast[PIPE_END])                             ? TERM :
                                                                                                     DATA;
@@ -287,7 +287,6 @@ module tx_mac #(
     // Construct the final 2/4 tx frames depending on number of bytes in last axis frame
     wire [DATA_WIDTH-1:0] term_data;
     assign term_data = (tx_state == PADDING) ? '0 : input_del.tdata[PIPE_END];
-    
 
     always @(*) begin
         case (tx_term_keep)
@@ -357,7 +356,7 @@ module tx_mac #(
     /**** CRC Implementation ****/
 
     assign tx_crc_reset = i_reset || (tx_state == IDLE);
-    assign tx_crc_input = (tx_next_state == PADDING) ? 32'b0 : input_del.tdata[0];
+    assign tx_crc_input = input_del.tdata[0];
     assign tx_crc_input_valid = {DATA_NBYTES{i_phy_tx_ready_del}} & input_del.tkeep[0];
 
     slicing_crc #(
@@ -366,11 +365,11 @@ module tx_mac #(
         .INVERT_OUTPUT(1),
         .REGISTER_OUTPUT(1)
     ) u_tx_crc (
-        .clk(i_clk),
-        .reset(tx_crc_reset),
-        .data(tx_crc_input),
-        .valid(tx_crc_input_valid),
-        .crc(tx_crc)
+        .i_clk(i_clk),
+        .i_reset(tx_crc_reset),
+        .i_data(tx_crc_input),
+        .i_valid(tx_crc_input_valid),
+        .o_crc(tx_crc)
     );
 
     assign tx_crc_byteswapped = {tx_crc[0+:8], tx_crc[8+:8], tx_crc[16+:8], tx_crc[24+:8]};

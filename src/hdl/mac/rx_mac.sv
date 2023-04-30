@@ -152,7 +152,7 @@ module rx_mac #(
                             (i_xgmii_rxc[0] && i_xgmii_rxd[ 7: 0] == RS_ERROR);
 
     // Start detect
-    assign sfd_found = i_phy_rx_valid && (i_xgmii_rxd[7:0] == RS_START) && (i_xgmii_rxc[0] == 1'b1);
+    assign sfd_found = i_phy_rx_valid && (i_xgmii_rxd == {{3{8'h55}}, RS_START}) && (i_xgmii_rxc == 4'b1);
 
     always_ff @(posedge i_clk) // Record sfd loc for next cycle output
     if (i_reset) begin

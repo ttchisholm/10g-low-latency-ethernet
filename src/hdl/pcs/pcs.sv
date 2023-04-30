@@ -73,11 +73,6 @@ module pcs #(
             assign tx_scrambled_data = tx_encoded_data;
         end else begin: l_tx_scrambler
 
-            // Delay the scrambler reset for tb validation - todo force in tb?
-            // logic scram_reset;
-            // always @ (posedge i_xver_tx_clk)
-            //     scram_reset <= i_tx_reset;
-
             scrambler #(
             ) u_scrambler(
                 .i_clk(i_xver_tx_clk),

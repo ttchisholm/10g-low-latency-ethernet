@@ -26,6 +26,8 @@ set lib_src_dir ../../src/lib
 
 set flatten_hierarchy none
 set directive PerformanceOptimized
+set fanout_limit 512
+set use_retiming 1
 
 proc init {} {
     
@@ -70,7 +72,15 @@ proc gen_ip {} {
 
 proc synth {} {
     
-    synth_design -top $::project_name -flatten_hierarchy $::flatten_hierarchy -directive $::directive -include_dirs $::core_src_include_dir
+    if { $::use_retiming == 1 } {
+        synth_design -top $::project_name -flatten_hierarchy $::flatten_hierarchy -directive $::directive \
+            -include_dirs $::core_src_include_dir -retiming
+    } else {
+        synth_design -top $::project_name -flatten_hierarchy $::flatten_hierarchy -directive $::directive \
+            -include_dirs $::core_src_include_dir
+    }
+
+    
     write_checkpoint -force $::output_dir/post_synth.dcp
     report_timing_summary -file $::output_dir/post_synth_timing_summary.rpt
     report_utilization -file $::output_dir/post_synth_util.rpt
@@ -81,14 +91,15 @@ proc impl {} {
     # ensure debug hub connected to free running clock
     connect_debug_port dbg_hub/clk [get_nets i_init_clk]
 
-    opt_design
+    opt_design -hier_fanout_limit $::fanout_limit
+    # opt_design
     place_design
     report_clock_utilization -file $::output_dir/clock_util.rpt
 
     #get timing violations and run optimizations if needed
     if {[get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]] < 0} {
-    puts "Found setup timing violations => running physical optimization"
-    phys_opt_design
+        puts "Found setup timing violations => running physical optimization"
+        phys_opt_design
     }
     write_checkpoint -force $::output_dir/post_place.dcp
     report_utilization -file $::output_dir/post_place_util.rpt
@@ -96,6 +107,19 @@ proc impl {} {
 
     #Route design and generate bitstream
     route_design -directive Explore
+
+    # Re-run phys_opt if timing violations found
+    if {[get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]] < 0} {
+        puts "Found setup timing violations => running physical optimization"
+        if { $::use_retiming == 1 } {
+            phys_opt_design -directive AddRetime
+        } else {
+            phys_opt_design
+        }
+        
+    }
+
+
     write_checkpoint -force $::output_dir/post_route.dcp
     report_route_status -file $::output_dir/post_route_status.rpt
     report_timing_summary -file $::output_dir/post_route_timing_summary.rpt
@@ -111,11 +135,6 @@ proc output {} {
     write_bitstream -bin_file -force $::output_dir/$::project_name
 }
 
-proc write_xsa {} {
-    open_checkpoint $::output_dir/post_route.dcp
-    write_hw_platform -force -include_bit -fixed $::output_dir/$::project_name.xsa
-}
-
 proc all {} {
     init
     add_sources
@@ -123,7 +142,6 @@ proc all {} {
     synth
     impl
     output
-    write_xsa
 }
 
 proc start_synth {} {
@@ -136,7 +154,6 @@ proc start_synth {} {
 proc impl_out {} {
     impl
     output
-    write_xsa
 }
 
 puts "Build options: "

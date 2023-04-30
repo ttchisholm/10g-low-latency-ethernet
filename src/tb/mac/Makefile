@@ -9,7 +9,6 @@ VERILOG_SOURCES += $(PWD)/../../hdl/include/code_defs_pkg.svh
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/tx_mac.sv
 VERILOG_SOURCES += $(PWD)/../../hdl/mac/rx_mac.sv
-VERILOG_SOURCES += $(PWD)/../../hdl/mac/crc32.sv
 VERILOG_SOURCES += $(PWD)/../../lib/slicing_crc/hdl/slicing_crc.sv
 
 

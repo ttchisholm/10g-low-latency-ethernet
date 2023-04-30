@@ -13,16 +13,16 @@ class MAC_TB:
     def __init__(self, dut, loopback=False):
         self.dut = dut
 
-        self.data_width = len(self.dut.xgmii_tx_data)
+        self.data_width = len(self.dut.o_xgmii_tx_data)
         self.data_nbytes = self.data_width // 8
         self.clk_period = round(1 / (10.3125 / self.data_width), 2) # ps precision
 
-        cocotb.start_soon(Clock(dut.tx_clk, self.clk_period, units="ns").start())
-        cocotb.start_soon(Clock(dut.rx_clk, self.clk_period, units="ns").start())
+        cocotb.start_soon(Clock(dut.i_tx_clk, self.clk_period, units="ns").start())
+        cocotb.start_soon(Clock(dut.i_rx_clk, self.clk_period, units="ns").start())
 
         if loopback:  
-            cocotb.start_soon(self.loopback('xgmii_tx_data', 'xgmii_rx_data'))
-            cocotb.start_soon(self.loopback('xgmii_tx_ctl', 'xgmii_rx_ctl'))
+            cocotb.start_soon(self.loopback('o_xgmii_tx_data', 'i_xgmii_rx_data'))
+            cocotb.start_soon(self.loopback('o_xgmii_tx_ctl', 'i_xgmii_rx_ctl'))
 
         
 
@@ -33,18 +33,18 @@ class MAC_TB:
         
         
     async def change_reset(self, val):
-        self.dut.tx_reset.value = val
-        self.dut.rx_reset.value = val
+        self.dut.i_tx_reset.value = val
+        self.dut.i_rx_reset.value = val
         
-        await RisingEdge(self.dut.tx_clk)
-        await RisingEdge(self.dut.rx_clk)
+        await RisingEdge(self.dut.i_tx_clk)
+        await RisingEdge(self.dut.i_rx_clk)
 
 
     async def reset(self):
         await self.change_reset(0)
         await self.change_reset(1)
-        self.dut.tx_reset.value = 0
-        self.dut.rx_reset.value = 0
+        self.dut.i_tx_reset.value = 0
+        self.dut.i_rx_reset.value = 0
 
     async def loopback(self, output, input):
         while True:
@@ -57,12 +57,12 @@ class MAC_TB:
 async def tx_test(dut):
     tb = MAC_TB(dut, True)
 
-    dut.phy_tx_ready.value = 1
+    dut.i_phy_tx_ready.value = 1
     
     await tb.reset()
 
     dut.s00_axis_tkeep.value = int(2**tb.data_nbytes - 1)
-    await RisingEdge(dut.tx_clk)
+    await RisingEdge(dut.i_tx_clk)
 
     test_vectors = [
         [   
@@ -110,8 +110,8 @@ async def tx_test(dut):
 
     async def print_out():
         while(True):
-            await RisingEdge(dut.tx_clk)
-            print(f'{int(tb.dut.xgmii_tx_data.value):08x}')
+            await RisingEdge(dut.i_tx_clk)
+            print(f'{int(tb.dut.o_xgmii_tx_data.value):08x}')
 
     cocotb.start_soon(print_out())
 
@@ -127,7 +127,7 @@ async def tx_test(dut):
             while tb.dut.s00_axis_tready.value == 0:
                 tb.dut.s00_axis_tvalid.value = 0
                 timeout += 1
-                await RisingEdge(dut.tx_clk)
+                await RisingEdge(dut.i_tx_clk)
                 assert timeout < 40, 'Waiting for tx ready timed out'
 
             ivalue = 0
@@ -141,17 +141,17 @@ async def tx_test(dut):
             tb.dut.s00_axis_tvalid.value = 1
             tb.dut.s00_axis_tlast.value = int(i == len(tvc) - 1)
 
-            await RisingEdge(dut.tx_clk)
+            await RisingEdge(dut.i_tx_clk)
 
 
         tb.dut.s00_axis_tvalid.value = 0
         tb.dut.s00_axis_tdata.value = 0
         tb.dut.s00_axis_tlast.value = 0
 
-        await RisingEdge(dut.tx_clk)
+        await RisingEdge(dut.i_tx_clk)
 
     for _ in range(20):
-        await RisingEdge(dut.tx_clk)
+        await RisingEdge(dut.i_tx_clk)
         
 @cocotb.test()
 async def rx_test(dut):
@@ -200,16 +200,16 @@ async def rx_test(dut):
 
     
 
-    tb.dut.xgmii_rx_data.value = 0
-    tb.dut.xgmii_rx_ctl.value = 0
-    tb.dut.phy_rx_valid.value = 1
+    tb.dut.i_xgmii_rx_data.value = 0
+    tb.dut.i_xgmii_rx_ctl.value = 0
+    tb.dut.i_phy_rx_valid.value = 1
 
     await tb.reset()
 
     for (ctl, data) in eg_xgmii_data[tb.data_width]:
-        tb.dut.xgmii_rx_data.value = data
-        tb.dut.xgmii_rx_ctl.value = ctl
+        tb.dut.i_xgmii_rx_data.value = data
+        tb.dut.i_xgmii_rx_ctl.value = ctl
 
-        await RisingEdge(dut.rx_clk)
+        await RisingEdge(dut.i_rx_clk)
 
 

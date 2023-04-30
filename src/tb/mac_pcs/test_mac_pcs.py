@@ -1,12 +1,47 @@
+# MIT License
+
+# Copyright (c) 2023 Tom Chisholm
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+"""test_mac_pcs.py
+
+    Pyuvm testbench for mac_pcs module.
+
+    This testbench implements a single test with random packets, tested in loopback.
+    Received packets are checked for correctness and for CRC match flag (TUSER) set.
+
+"""
+
 import random
 import debugpy
 import yaml
-
+import pytest
 import numpy as np
+import os
+import glob
+from shutil import copyfile
 
 from cocotb.triggers import RisingEdge, FallingEdge
 from cocotb.queue import QueueEmpty, Queue
 from cocotb.clock import Clock
+from cocotb_test.simulator import run
 
 from pyuvm import *
 import pyuvm
@@ -37,7 +72,7 @@ class EthTxSeqRandom(uvm_sequence):
             await self.start_item(seq_item)
             await self.finish_item(seq_item)
 
-class TestAllSeq(uvm_sequence):
+class EthTxAllSeq(uvm_sequence):
     async def body(self):
         self.config = ConfigDB().get(None, "", 'run_config')
         seqr = ConfigDB().get(None, "", "SEQR")
@@ -161,8 +196,10 @@ class EthEnv(uvm_env):
 
 class MacPcsTest(uvm_test):
     def build_phase(self):
+
         with open('mac_pcs_config.yaml', 'r') as f:
             self.config = yaml.safe_load(f)
+        
         ConfigDB().set(None, '*', 'run_config', self.config)
 
         np.random.seed(self.config['seed'])
@@ -175,7 +212,7 @@ class MacPcsTest(uvm_test):
         self.env = EthEnv("env", self)
 
     def end_of_elaboration_phase(self):
-        self.test_random = TestAllSeq.create("test_random")
+        self.test_random = EthTxAllSeq.create("test_random")
 
     async def run_phase(self):
         self.raise_objection()
@@ -185,6 +222,41 @@ class MacPcsTest(uvm_test):
 
 
 @cocotb.test()
-async def test_run_MacPcsTest(_):
+async def run_MacPcsTest(pytestconfig):
     # 
     await uvm_root().run_test(MacPcsTest)
+
+@pytest.mark.parametrize(
+    "parameters", [
+        {"EXTERNAL_GEARBOX": "0", "SCRAMBLER_BYPASS": "0"},  
+        ])
+def test_mac_pcs(parameters):
+
+    sim_build = "./sim_build/" + ",".join((f"{key}={value}" for key, value in parameters.items()))
+
+    os.makedirs(sim_build, exist_ok=True)
+
+    copyfile("./mac_pcs_config.yaml", os.path.join(sim_build, "mac_pcs_config.yaml"))
+    copyfile("../../lib/slicing_crc/hdl/crc_tables.mem", os.path.join(sim_build, "crc_tables.mem"))
+
+    source_tree = [
+        glob.glob('../../hdl/mac_pcs.sv'),
+        glob.glob('../../hdl/mac/*.sv'),
+        glob.glob('../../hdl/pcs/*.sv'),
+        glob.glob('../../lib/slicing_crc/hdl/*.sv')
+    ]
+
+    sources = [item for sublist in source_tree for item in sublist]
+
+    run(
+        verilog_sources=sources,
+        toplevel="mac_pcs",
+
+        module="test_mac_pcs",
+        simulator="icarus",
+        verilog_compile_args=["-g2012"],
+        includes=["../../hdl/include/"],
+        parameters=parameters,
+        extra_env=parameters,
+        sim_build=sim_build
+    )

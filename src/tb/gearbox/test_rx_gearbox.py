@@ -7,7 +7,6 @@ from gearbox_model import RxGearboxModel
 
 from cocotb.triggers import Timer, RisingEdge, FallingEdge, Edge, NextTimeStep
 from cocotb.clock import Clock
-from cocotb.result import TestFailure
 
 import debugpy
 
@@ -146,17 +145,17 @@ async def rx_gearbox_test_slip(dut):
                         model_odata_valid == dut_odata_valid and \
                         model_oheader_valid == dut_oheader_valid
 
-            # if not all_eq:
-            print('dut data:    ', dut_odata_valid, dut_odata)
-            print('model data:  ', model_odata_valid, model_odata)
-            print('dut header:  ', dut_oheader_valid, dut_oheader)
-            print('model header:', model_oheader_valid, model_oheader)
-            print('dut buf:  ',  dut_obuf)
-            print('model buf:',  model_obuf)
-            print('dut cycle: ', tb.dut.gearbox_seq.value)
-            print('model cycle: ', ret['cycle'])
-            print('input data:  ', str(tb.dut.i_data.value)[::-1])
-            assert all_eq
+            if not all_eq:
+                print('dut data:    ', dut_odata_valid, dut_odata)
+                print('model data:  ', model_odata_valid, model_odata)
+                print('dut header:  ', dut_oheader_valid, dut_oheader)
+                print('model header:', model_oheader_valid, model_oheader)
+                print('dut buf:  ',  dut_obuf)
+                print('model buf:',  model_obuf)
+                print('dut cycle: ', tb.dut.gearbox_seq.value)
+                print('model cycle: ', ret['cycle'])
+                print('input data:  ', str(tb.dut.i_data.value)[::-1])
+                assert all_eq
     
 
         

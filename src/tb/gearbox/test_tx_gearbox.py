@@ -7,7 +7,6 @@ from gearbox_model import TxGearboxModel
 
 from cocotb.triggers import Timer, RisingEdge, FallingEdge, Edge, NextTimeStep
 from cocotb.clock import Clock
-from cocotb.result import TestFailure
 
 import debugpy
 

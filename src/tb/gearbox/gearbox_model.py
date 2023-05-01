@@ -11,13 +11,20 @@ class RxGearboxModel:
 
 
     def next(self, idata, slip=False):
-
+        
         self.slip = slip
         self.count = int(self.cycle % 33)
-        self.valid = self.count != 0
-        self.frame_word = int(self.count % 2 == 0)
-        self.output_header = int(self.count % 2 == 1)
 
+
+        if not self.half_slip:
+            self.valid = self.count != 0
+            self.frame_word = int(self.count % 2 == 0)
+            self.output_header = int(self.count % 2 == 1)
+        else:
+            self.valid = self.count != 31
+            self.frame_word = int(self.count % 2 == 0) and self.count != 32
+            self.output_header = (int(self.count % 2 == 1) or self.count == 32) and self.valid
+        
         data_idxs = [00,32,64,30,62,28,60,26,58,24,56,22,54,20,52,18,50,16,48,14,46,12,44,10,42,8,40,6,38,4,36,2,34]
 
         # if self.count % 2 == 0:
@@ -59,14 +66,16 @@ class RxGearboxModel:
             'data_valid' : self.valid,
             'header_valid' : self.output_header,
             'obuf' : self.obuf,
-            'cycle' : self.cycle
+            'cycle' : self.cycle,
+            'count' : self.count,
+            'frame_word' : self.frame_word
         }
 
         if not self.slip:
             self.cycle = self.cycle + 1
 
         if slip:
-            self.half_slip = self.half_slip + 1
+            self.half_slip = (self.half_slip + 1) % 2
 
         return ret
 

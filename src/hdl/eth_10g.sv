@@ -41,6 +41,7 @@
 module eth_10g #(
     parameter bit SCRAMBLER_BYPASS = 0,
     parameter bit EXTERNAL_GEARBOX = 0,
+    parameter bit TX_XVER_BUFFER = 0,
     parameter real INIT_CLK_FREQ = 100.0
 ) (
     // Reset + initiliaszation
@@ -90,8 +91,8 @@ module eth_10g #(
     assign o_mac_pcs_rx_reset = !gtwiz_rx_ready;
 
     // Datapath
-    wire [31:0] pcs_xver_tx_data;
-    wire [1:0] pcs_xver_tx_header;
+    logic [31:0] pcs_xver_tx_data, xver_tx_data;
+    logic [1:0] pcs_xver_tx_header, xver_tx_header;
     wire [31:0] pcs_xver_rx_data;
     wire [1:0] pcs_xver_rx_header;
 
@@ -100,7 +101,7 @@ module eth_10g #(
     wire gtwiz_rx_usrclk2;
 
     // Gearbox
-    wire [5:0] pcs_xver_tx_gearbox_sequence;
+    logic [5:0] pcs_xver_tx_gearbox_sequence, xver_tx_gearbox_sequence;
     wire pcs_xver_rx_data_valid;
     wire pcs_xver_rx_header_valid;
     wire pcs_xver_rx_gearbox_slip;
@@ -137,6 +138,24 @@ module eth_10g #(
     );
 
 
+    generate if (TX_XVER_BUFFER == 1) begin: l_tx_xver_buffer
+        always_ff @(posedge gtwiz_tx_usrclk2)
+        if (o_mac_pcs_tx_reset) begin
+            xver_tx_data <= '0;
+            xver_tx_header <= '0;
+            xver_tx_gearbox_sequence <= '0;
+        end else begin
+            xver_tx_data <= pcs_xver_tx_data;
+            xver_tx_header <= pcs_xver_tx_header;
+            xver_tx_gearbox_sequence <= pcs_xver_tx_gearbox_sequence;
+        end
+    end else begin: l_tx_xver_nobuf
+        assign xver_tx_data = pcs_xver_tx_data;
+        assign xver_tx_header = pcs_xver_tx_header;
+        assign xver_tx_gearbox_sequence = pcs_xver_tx_gearbox_sequence;
+    end
+    endgenerate
+
     gtwizard_wrapper #(
         .INIT_CLK_FREQ(INIT_CLK_FREQ),
         .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
@@ -157,15 +176,15 @@ module eth_10g #(
         .hb_gtwiz_reset_all_in(i_reset),
 
         // User data ports
-        .hb0_gtwiz_userdata_tx_int(pcs_xver_tx_data),
-        .hb0_gtwiz_header_tx(pcs_xver_tx_header),
+        .hb0_gtwiz_userdata_tx_int(xver_tx_data),
+        .hb0_gtwiz_header_tx(xver_tx_header),
         .hb0_gtwiz_userdata_rx_int(pcs_xver_rx_data),
         .hb0_gtwiz_header_rx(pcs_xver_rx_header),
 
         .hb0_gtwiz_rx_gearbox_slip(pcs_xver_rx_gearbox_slip),
         .hb0_gtwiz_rx_data_valid(pcs_xver_rx_data_valid),
         .hb0_gtwiz_rx_header_valid(pcs_xver_rx_header_valid),
-        .hb0_gtwiz_tx_gearbox_sequence(pcs_xver_tx_gearbox_sequence),
+        .hb0_gtwiz_tx_gearbox_sequence(xver_tx_gearbox_sequence),
 
         // Transceiver user clock outputs
         .hb0_gtwiz_userclk_tx_usrclk2(gtwiz_tx_usrclk2),

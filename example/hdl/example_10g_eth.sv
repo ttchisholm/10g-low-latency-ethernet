@@ -32,7 +32,12 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-module example_10g_eth (
+module example_10g_eth #(
+    parameter bit SCRAMBLER_BYPASS = 0,
+    parameter bit EXTERNAL_GEARBOX = 0,
+    parameter bit TX_XVER_BUFFER = 1,
+    parameter real INIT_CLK_FREQ = 100.0
+) (
 
     input wire i_init_clk,
 
@@ -153,9 +158,10 @@ module example_10g_eth (
     /********* Ethernet Core ********/
 
     eth_10g #(
-        .SCRAMBLER_BYPASS(0),
-        .EXTERNAL_GEARBOX(0),
-        .INIT_CLK_FREQ(100.0)
+        .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS),
+        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX),
+        .TX_XVER_BUFFER(TX_XVER_BUFFER),
+        .INIT_CLK_FREQ(INIT_CLK_FREQ)
     ) u_eth_10g (
         .i_reset(core_reset),
         .i_init_clk(i_init_clk),

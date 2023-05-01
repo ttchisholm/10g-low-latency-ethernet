@@ -24,7 +24,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip3 install -r tb/requirements.txt
+        pip3 install -r src/tb/mac_pcs/requirements.txt
         sudo apt install -y --no-install-recommends iverilog
     - name: Verify with cocotb & icarus
       run: |

@@ -32,6 +32,7 @@
 `include "code_defs_pkg.svh"
 
 module encoder #(
+    parameter bit OCODE_SUPPORT = 0,
     localparam int DATA_WIDTH = 32,
     localparam int DATA_NBYTES = DATA_WIDTH / 8
 ) (
@@ -135,7 +136,7 @@ module encoder #(
                 return {{8{CC_IDLE}}, BT_IDLE};
             end
             // O4 = CCCCODDD
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 4)) && is_all_lanes_data(ictl, 8'h07)) begin
+            else if (OCODE_SUPPORT && is_rs_ocode(get_rs_code(idata, ictl, 4)) && is_all_lanes_data(ictl, 8'h07)) begin
                 return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), {4{CC_IDLE}}, BT_O4};
             end
             // S4 = CCCCSDDD
@@ -144,11 +145,11 @@ module encoder #(
                 return {idata[63:40], 4'b0, {4{CC_IDLE}}, BT_S4};
             end
             // O0S4 = ODDDSDDD
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && get_rs_code(idata, ictl, 4) == RS_START) begin
+            else if (OCODE_SUPPORT && is_rs_ocode(get_rs_code(idata, ictl, 0)) && get_rs_code(idata, ictl, 4) == RS_START) begin
                 return {idata[63:40], 4'b0, rs_to_cc_ocode(get_rs_code(idata, ictl, 0)), idata[23:0], BT_O0S4};
             end
             // O0O4 = ODDDODDD
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 0)) && is_rs_ocode(get_rs_code(idata, ictl, 4))) begin
+            else if (OCODE_SUPPORT && is_rs_ocode(get_rs_code(idata, ictl, 0)) && is_rs_ocode(get_rs_code(idata, ictl, 4))) begin
                 return {idata[63:40], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), rs_to_cc_ocode(get_rs_code(idata, ictl, 0)),
                             idata[23:0], BT_O0O4};
             end
@@ -157,7 +158,7 @@ module encoder #(
                 return {idata[63:8], BT_S0};
             end
             // O0 = ODDDCCCC
-            else if (is_rs_ocode(get_rs_code(idata, ictl, 4))) begin
+            else if (OCODE_SUPPORT && is_rs_ocode(get_rs_code(idata, ictl, 4))) begin
                 return {idata[63:36], rs_to_cc_ocode(get_rs_code(idata, ictl, 4)), idata[31:8], BT_O0};
             end
             // T0 = TCCCCCCC

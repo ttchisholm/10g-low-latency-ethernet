@@ -5,6 +5,7 @@
 module pcs #(
     parameter bit SCRAMBLER_BYPASS = 0,
     parameter bit EXTERNAL_GEARBOX = 0,
+    parameter bit ENCODER_OCODE_SUPPORT = 0,
 
     localparam int DATA_WIDTH = 32,
     localparam int DATA_NBYTES = DATA_WIDTH / 8
@@ -56,7 +57,9 @@ module pcs #(
     wire enc_frame_word;
 
     // Encoder
-    encoder u_encoder (
+    encoder #(
+        .OCODE_SUPPORT(ENCODER_OCODE_SUPPORT)
+    ) u_encoder (
         .i_reset(i_tx_reset),
         .i_init_done(!i_tx_reset),
         .i_txc(i_xver_tx_clk),

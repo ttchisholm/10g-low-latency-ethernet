@@ -35,7 +35,7 @@
 module example_10g_eth #(
     parameter bit SCRAMBLER_BYPASS = 0,
     parameter bit EXTERNAL_GEARBOX = 0,
-    parameter bit TX_XVER_BUFFER = 1,
+    parameter bit TX_XVER_BUFFER = 0,
     parameter real INIT_CLK_FREQ = 100.0
 ) (
 

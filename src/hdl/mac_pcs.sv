@@ -116,9 +116,11 @@ module mac_pcs #(
         .m00_axis_tuser(m00_axis_tuser)
     );
 
+
     pcs #(
         .SCRAMBLER_BYPASS(SCRAMBLER_BYPASS),
-        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX)
+        .EXTERNAL_GEARBOX(EXTERNAL_GEARBOX),
+        .ENCODER_OCODE_SUPPORT(0) // Mac doesn't generate OCODES, disable to relieve timing pressure
     ) u_pcs (
 
         // Reset logic

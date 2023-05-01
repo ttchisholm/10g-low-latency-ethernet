@@ -86,11 +86,10 @@ module rx_mac #(
     // CRC
     wire  rx_crc_reset;
     logic [DATA_WIDTH-1:0] rx_crc_input_del;
-    logic [31:0] rx_calc_crc, rx_calc_crc_del;
+    logic [31:0] rx_calc_crc;
     logic [31:0] rx_captured_crc;
     logic [DATA_NBYTES-1:0] crc_input_valid;
     logic [DATA_NBYTES-1:0] rx_crc_input_valid_del;
-    wire crc_good;
 
     /********* Implementation ********/
 
@@ -128,7 +127,7 @@ module rx_mac #(
                 m00_axis_tkeep = sfd_found_del ? start_keep :
                                     term_found ? term_keep  :
                                                 '1;
-                m00_axis_tuser = term_found && crc_good;
+                m00_axis_tuser = term_found && (rx_calc_crc == rx_captured_crc);
             end
             default: begin
                 rx_next_state = IDLE;
@@ -182,15 +181,15 @@ module rx_mac #(
     if (i_reset) begin
         rx_crc_input_del <= '0;
         rx_crc_input_valid_del <= '0;
-        rx_calc_crc_del <= '0;
     end else begin
         rx_crc_input_del <= i_phy_rx_valid ? m00_axis_tdata : rx_crc_input_del;
-        rx_crc_input_valid_del <= i_phy_rx_valid ? m00_axis_tkeep : {DATA_NBYTES{1'b0}};
-        rx_calc_crc_del <= i_phy_rx_valid ? rx_calc_crc : rx_calc_crc_del;
+        rx_crc_input_valid_del <= i_phy_rx_valid ? m00_axis_tkeep : rx_crc_input_valid_del;
     end
 
     always @(*) begin
-        if (!term_found) begin
+        if (!i_phy_rx_valid) begin
+            crc_input_valid = {DATA_NBYTES{1'b0}};
+        end else if (!term_found) begin
             crc_input_valid = rx_crc_input_valid_del;
         end else begin
             // We need to stop the CRC itself from being input
@@ -213,11 +212,6 @@ module rx_mac #(
     end
 
     assign rx_crc_reset = rx_state == IDLE;
-
-    // We check this on last cycle of packet - if previous cycle was invalid (!phy_rx_ready)
-    //  take the previous crc result - as the updated result will have the CRC input to it
-    assign crc_good = |rx_crc_input_valid_del ? rx_calc_crc == rx_captured_crc :
-                                                rx_calc_crc_del == rx_captured_crc;
 
     slicing_crc #(
         .SLICE_LENGTH(DATA_NBYTES),

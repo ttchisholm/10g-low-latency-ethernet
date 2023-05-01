@@ -38,7 +38,8 @@
 *                and slips the input data by two positions. Every other assertation of i_slip causes a
 *                half slip, where the data output from the buffer is shifted up by one - i.e. the header
 *                output is obuf[2:1] and data obuf[34:3] / obuf[66:35]. Bit 66 of obuf is mirrored to bit 0 to
-*                support this.
+*                support this. Additionaly, the cycle at which the data output is paused is modified when
+*                half slipping.
 *
 */
 
@@ -93,7 +94,8 @@ module rx_gearbox #(
     logic [6:0] data_idxs[33]; // For each counter value, the start buffer index to load the data
     logic [6:0] current_data_idx;
 
-    assign frame_word = !gearbox_seq[0];
+    assign frame_word = (half_slip) ? !gearbox_seq[0] && gearbox_seq != SEQUENCE_WIDTH'(32) : 
+                                        !gearbox_seq[0];
     assign current_data_idx = data_idxs[gearbox_seq];
 
     // Need to assign single bits as iverilog does not support variable width assignments
@@ -138,9 +140,9 @@ module rx_gearbox #(
     wire odata_valid_int;
     wire oheader_valid_int;
 
-    assign odata_valid_int = gearbox_seq != 0;
+    assign odata_valid_int = half_slip ? gearbox_seq != 31 : gearbox_seq != 0;
     assign oheader_int = half_slip ? next_obuf[2:1] : next_obuf[1:0];
-    assign oheader_valid_int = gearbox_seq[0];
+    assign oheader_valid_int = !frame_word && odata_valid_int;
     assign odata_int = half_slip ? (!frame_word ? next_obuf[34:3] : next_obuf[66:35]) :
                                (!frame_word ? next_obuf[33:2] : next_obuf[65:34]);
 

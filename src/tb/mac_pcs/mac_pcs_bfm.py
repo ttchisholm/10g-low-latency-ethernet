@@ -63,10 +63,12 @@ class MacPcsBfm(metaclass=utility_classes.Singleton):
         self.tx_axis_monitor.log.propagate = enable
         self.rx_axis_monitor.log.propagate = enable
        
-    async def loopback(self, delay=1):
-        async def capture_outputs(self, q, delay):
-            for _ in range(delay): await q.put([0, 0, 0, 0])
+    async def loopback(self, cycle_delay=1, bit_delay=3):
+        async def capture_outputs(self, q, cycle_delay, bit_delay):
+            for _ in range(cycle_delay): await q.put([0, 0, 0, 0])
             prev_tx_gearbox_seq = 0
+            prev_data_bits = 0
+
             while True:
                 await RisingEdge(self.dut.i_xver_tx_clk)
                 
@@ -77,6 +79,13 @@ class MacPcsBfm(metaclass=utility_classes.Singleton):
                 xver_tx_header_valid = self.dut.o_xver_tx_gearbox_sequence.value != prev_tx_gearbox_seq and xver_tx_data_valid
                 prev_tx_gearbox_seq = self.dut.o_xver_tx_gearbox_sequence.value
 
+                # todo
+                # As we don't fully model external gearbox, only support bit slips for internal
+                if bit_delay > 0 and self.dut.EXTERNAL_GEARBOX.value == 0:
+                    tx_data_noslip = o_xver_tx_data
+                    o_xver_tx_data = ((o_xver_tx_data << bit_delay) | prev_data_bits) & 0xFFFFFFFF
+                    prev_data_bits = (tx_data_noslip >> (32 - bit_delay)) & ((1 << bit_delay) - 1)
+
                 await q.put([o_xver_tx_data, o_xver_tx_header, xver_tx_data_valid, xver_tx_header_valid])
 
         async def apply_input(self, q):
@@ -85,12 +94,17 @@ class MacPcsBfm(metaclass=utility_classes.Singleton):
                 [o_xver_tx_data, o_xver_tx_header, xver_tx_data_valid, xver_tx_header_valid] = await q.get()
                 
                 self.dut.i_xver_rx_data.value = o_xver_tx_data
-                self.dut.i_xver_rx_header.value = o_xver_tx_header
-                self.dut.i_xver_rx_data_valid.value = xver_tx_data_valid
-                self.dut.i_xver_rx_header_valid.value = xver_tx_header_valid
+                if self.dut.EXTERNAL_GEARBOX.value:
+                    self.dut.i_xver_rx_header.value = o_xver_tx_header
+                    self.dut.i_xver_rx_data_valid.value = xver_tx_data_valid
+                    self.dut.i_xver_rx_header_valid.value = xver_tx_header_valid
+                else: 
+                    self.dut.i_xver_rx_header.value = 0
+                    self.dut.i_xver_rx_data_valid.value = 0
+                    self.dut.i_xver_rx_header_valid.value = 0
 
         q = Queue()
-        cocotb.start_soon(capture_outputs(self, q, delay))
+        cocotb.start_soon(capture_outputs(self, q, cycle_delay, bit_delay))
         cocotb.start_soon(apply_input(self, q))
 
     async def send_tx_packet(self, packet):

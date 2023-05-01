@@ -37,11 +37,12 @@ from cocotb.clock import Clock
 
 from cocotbext.axi import (AxiStreamBus, AxiStreamSource, AxiStreamSink, AxiStreamMonitor)
 
-from pyuvm import utility_classes
+from pyuvm import *
 
 class MacPcsBfm(metaclass=utility_classes.Singleton):
     def __init__(self):
         self.dut = cocotb.top
+        self.config = ConfigDB().get(None, "", 'run_config')
         self.tx_driver_queue = Queue(maxsize=1)
         self.tx_monitor_queue = Queue(maxsize=0)
         self.rx_monitor_queue = Queue(maxsize=0)
@@ -63,7 +64,7 @@ class MacPcsBfm(metaclass=utility_classes.Singleton):
         self.tx_axis_monitor.log.propagate = enable
         self.rx_axis_monitor.log.propagate = enable
        
-    async def loopback(self, cycle_delay=1, bit_delay=3):
+    async def loopback(self, cycle_delay, bit_delay):
         async def capture_outputs(self, q, cycle_delay, bit_delay):
             for _ in range(cycle_delay): await q.put([0, 0, 0, 0])
             prev_tx_gearbox_seq = 0
@@ -79,7 +80,6 @@ class MacPcsBfm(metaclass=utility_classes.Singleton):
                 xver_tx_header_valid = self.dut.o_xver_tx_gearbox_sequence.value != prev_tx_gearbox_seq and xver_tx_data_valid
                 prev_tx_gearbox_seq = self.dut.o_xver_tx_gearbox_sequence.value
 
-                # todo
                 # As we don't fully model external gearbox, only support bit slips for internal
                 if bit_delay > 0 and self.dut.EXTERNAL_GEARBOX.value == 0:
                     tx_data_noslip = o_xver_tx_data
@@ -165,27 +165,29 @@ class MacPcsBfm(metaclass=utility_classes.Singleton):
         
 
         await self.reset()
-        cocotb.start_soon(self.loopback())
+        cocotb.start_soon(self.loopback(self.config['loopback_cycle_slip'], self.config['loopback_bit_slip']))
 
         # manual slip for idles - debugging w/out scrambler
-        # conseq = 0
-        # for i in range(20000):
+        if self.config['dbg_manual_gearbox_slip']:
+            print('Performing manual gearbox sync')
+            conseq = 0
+            for i in range(10000):
 
-        #     if self.dut.xgmii_rx_data.value == int('0x07070707', 16) and \
-        #         self.dut.u_pcs.genblk3.u_rx_gearbox.o_header.value != 0:
-        #         conseq += 1
-        #     else:
-        #         conseq = 0
-             
-        #     if conseq > 40:
-        #         print('aligned')
-        #         break
+                if self.dut.xgmii_rx_data.value == int('0x07070707', 16) and \
+                    self.dut.u_pcs.l_rx_int_gearbox.u_rx_gearbox.o_header.value != 0:
+                    conseq += 1
+                else:
+                    conseq = 0
+                
+                if conseq > 40:
+                    print('aligned')
+                    break
 
-        #     if i % 87 == 0:
-        #         self.dut.u_pcs.rx_gearbox_slip.value = 1
-        #     else:
-        #         self.dut.u_pcs.rx_gearbox_slip.value = 0
-        #     await RisingEdge(self.dut.i_xver_rx_clk)
+                if i % 50 == 0:
+                    self.dut.u_pcs.rx_gearbox_slip.value = 1
+                else:
+                    self.dut.u_pcs.rx_gearbox_slip.value = 0
+                await RisingEdge(self.dut.i_xver_rx_clk)
 
 
         cocotb.start_soon(self.driver_bfm())

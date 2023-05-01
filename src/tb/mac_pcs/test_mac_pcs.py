@@ -227,16 +227,29 @@ async def run_MacPcsTest(pytestconfig):
     await uvm_root().run_test(MacPcsTest)
 
 @pytest.mark.parametrize(
-    "parameters", [
-        {"EXTERNAL_GEARBOX": "0", "SCRAMBLER_BYPASS": "0"},  
+    "parameters,config", [
+        ({"EXTERNAL_GEARBOX": "0", "SCRAMBLER_BYPASS": "0"}, {"loopback_bit_slip": 0}),
+        ({"EXTERNAL_GEARBOX": "0", "SCRAMBLER_BYPASS": "0"}, {"loopback_bit_slip": 1}),
+        ({"EXTERNAL_GEARBOX": "0", "SCRAMBLER_BYPASS": "0"}, {"loopback_bit_slip": 2}),
+        ({"EXTERNAL_GEARBOX": "0", "SCRAMBLER_BYPASS": "0"}, {"loopback_bit_slip": 3}),
+        ({"EXTERNAL_GEARBOX": "1", "SCRAMBLER_BYPASS": "0"}, {"loopback_bit_slip": 0}),
         ])
-def test_mac_pcs(parameters):
+def test_mac_pcs(parameters, config):
 
-    sim_build = "./sim_build/" + ",".join((f"{key}={value}" for key, value in parameters.items()))
+    test_variables = {**parameters,  **config}
+
+    sim_build = "./sim_build/" + ",".join((f"{key}={str(value)}" for key, value in test_variables.items()))
 
     os.makedirs(sim_build, exist_ok=True)
 
-    copyfile("./mac_pcs_config.yaml", os.path.join(sim_build, "mac_pcs_config.yaml"))
+    with open('mac_pcs_config.yaml', 'r') as f:
+        base_config = yaml.safe_load(f)
+
+    base_config.update(config)
+
+    with open(os.path.join(sim_build, "mac_pcs_config.yaml"), 'w') as f:
+        yaml.dump(base_config, f)
+
     copyfile("../../lib/slicing_crc/hdl/crc_tables.mem", os.path.join(sim_build, "crc_tables.mem"))
 
     source_tree = [

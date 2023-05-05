@@ -1,24 +1,29 @@
 # Vivado build script
 
-if {[info exists env(ETH10G_FPGA_PART)]} { 
-    set fpga_part $env(ETH10G_FPGA_PART)
-    puts "fpga_part = ${fpga_part}"
-} else {
-    puts "Environment variable ETH10G_FPGA_PART not set, generate IP from shell script."
-    exit 1
+
+set module_vars {SCRAMBLER_BYPASS EXTERNAL_GEARBOX TX_XVER_BUFFER INIT_CLK_FREQ}
+set build_vars [concat {FPGA_PART} $module_vars]
+
+foreach x $build_vars {
+    if {[info exists env($x)]} { 
+        set $x $env($x)
+        puts "$x = $env($x)"
+        
+    } else {
+        puts "Environment variable $x not set, generate IP from shell script."
+        exit 1
+    }
 }
 
 global output_dir
 global src_dir
-global build_dir
 global ip_dir
 global flatten_hierarchy
 
 set project_name example_10g_eth
-set output_dir ../build/out
+set output_dir ./out
 set src_dir ../
 
-set build_dir ../build
 set ip_dir ../../src/ip/gen
 set core_src_dir ../../src
 set core_src_include_dir ../../src/hdl/include
@@ -31,7 +36,7 @@ set use_retiming 1
 
 proc init {} {
     
-    set_part $::fpga_part
+    set_part $::FPGA_PART
     set_property target_language Verilog [current_project]
 
     set_property source_mgmt_mode All [current_project]
@@ -48,6 +53,13 @@ proc add_sources {} {
     read_ip [glob $::ip_dir/**/*.xci]
 
     read_xdc [glob $::src_dir/constraints/*.xdc]
+
+    set params ""
+    foreach x $::module_vars {
+        global $x
+        set params [concat $params "$x=[expr $$x]"]
+    }
+    set_property generic $params [current_fileset]
 }
 
 proc gen_ip {} {

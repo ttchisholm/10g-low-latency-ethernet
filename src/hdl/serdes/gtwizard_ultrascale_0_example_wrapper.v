@@ -137,7 +137,7 @@ module gtwizard_ultrascale_0_example_wrapper #(
   // Instantiate the core, mapping its enabled ports to example design ports and helper blocks as appropriate
 
   generate if (EXTERNAL_GEARBOX) begin
-      gtwizard_ultrascale_0 gtwizard_ultrascale_0_inst (
+      gtwizard_ultrascale_inc_gearbox gtwizard_ultrascale_0_inst (
       .gtyrxn_in                               (gtyrxn_in)
       ,.gtyrxp_in                               (gtyrxp_in)
       ,.gtytxn_out                              (gtytxn_out)
@@ -188,7 +188,7 @@ module gtwizard_ultrascale_0_example_wrapper #(
       ,.loopback_in                             (loopback_in)
     );
   end else begin
-    gtwizard_ultrascale_0 gtwizard_ultrascale_0_inst (
+    gtwizard_ultrascale_raw gtwizard_ultrascale_0_inst (
       .gtyrxn_in                               (gtyrxn_in)
       ,.gtyrxp_in                               (gtyrxp_in)
       ,.gtytxn_out                              (gtytxn_out)

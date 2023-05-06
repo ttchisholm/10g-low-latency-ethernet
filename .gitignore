@@ -6,3 +6,4 @@ notes
 .sv*.toml
 .vscode/
 TODO
+.Xil/

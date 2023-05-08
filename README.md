@@ -4,10 +4,12 @@
 
 ## Overview
 
+For more information, refer to my blog series for this project - [Designing a Low Latency 10G Ethernet Core - Part 1 (Introduction)](https://ttchisholm.github.io/ethernet/2023/05/01/designing-10g-eth-1.html)
+
 This repository contains:
 - A low latency 10G Ethernet MAC/PCS, written in SystemVerilog and tested with pyuvm/cocotb
 - An integrated low latency 10G Ethernet core, with MAC/PCS and GTY wrapper/IP for Xilinx UltraScale+
-- An example design, containing GTY bringup VIOs and packet latency measurement in loopback
+- An example design containing packet latency measurement in loopback
 
 Repository structure:
 
@@ -38,7 +40,7 @@ cd src/ip
 ./gen_eth_10g_ip.sh
 ```
 
-3. Modify the constraints file *example/constraints/example_10g_eth.xdc* with approrpiate pin assignements. The design requires a 100MHz clock input for initialisation and a low-jitter 156.25MHz clock for the transceivers
+3. Modify the constraints file *example/constraints/example_10g_eth.xdc* with appropriate pin assignments. The design requires a 100MHz clock input for initialisation and a low-jitter 156.25MHz clock for the transceivers
 
 4. Build the example design. Set the FPGA part again in *example/build_example.sh*
 

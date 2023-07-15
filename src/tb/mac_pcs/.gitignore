@@ -6,3 +6,9 @@ sim_build
 iverilog_dump.v
 crc_tables.mem
 *.hier
+
+transcript
+modelsim.ini
+vsim.wlf
+*.ucdb
+covhtmlreport

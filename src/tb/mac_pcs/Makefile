@@ -49,6 +49,16 @@ ifeq ($(SIM), icarus)
 		VERILOG_SOURCES += iverilog_dump.v
 		COMPILE_ARGS += -s iverilog_dump
 	endif
+else ifeq ($(SIM), modelsim)
+	COMPILE_ARGS += "+incdir+$(PWD)/../../hdl/include"
+	COMPILE_ARGS += +cover=sbceft
+
+	SIM_ARGS += -GSCRAMBLER_BYPASS=$(SCRAMBLER_BYPASS)
+	SIM_ARGS += -GEXTERNAL_GEARBOX=$(EXTERNAL_GEARBOX)
+
+	SIM_ARGS += -coverage
+	SIM_ARGS += -no_autoacc
+	SIM_ARGS +=  -do \" coverage save -onexit $(TOPLEVEL).ucdb; run -all;exit\"
 endif
 # "Veriliator currently does not work with cocotb verilog-axi"
 # else ifeq ($(SIM), verilator)
